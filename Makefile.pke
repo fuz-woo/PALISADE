@@ -1,0 +1,97 @@
+#
+#Copyright (c) 2015, New Jersey Institute of Technology (NJIT)
+#All rights reserved.
+#Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+#met:
+#1. Redistributions of source code must retain the above copyright
+#notice, this list of conditions and the following disclaimer.
+#2. Redistributions in binary form must reproduce the above copyright
+#notice, this list of conditions and the following disclaimer in the
+#documentation and/or other materials provided with the distribution.
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+#IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+#TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#PARTICULAR PURPOSE ARE DISCLAIMED.
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+#ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+#DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+#OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+#HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+#STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+#IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#POSSIBILITY OF SUCH DAMAGE.
+#
+
+
+################
+# Makefile.pke builds the pke components of the PALISADE library
+# Includes unit tests and demos
+################
+
+PKESRCDIR := src/pke
+PKEBINDIR := src/pke/bin
+PKETESTDIR := src/pke/unittest
+PKEDEMODIR := src/pke/demo
+
+PKESOURCES := $(shell find $(PKESRCDIR)/lib -name '*.cpp')
+PKEUNITSOURCES := $(wildcard $(PKESRCDIR)/unittest/*.cpp)
+PKEDEMOSOURCES := $(wildcard $(PKESRCDIR)/demo/*.cpp)
+
+PKEOBJECTSALL = $(patsubst $(PKESRCDIR)/%,$(PKEBINDIR)/%,$(patsubst %.cpp,%.o,$(PKESOURCES)))
+PKEOBJECTS = $(filter %-impl.o,$(PKEOBJECTSALL))
+PKEUNITOBJECTS := $(patsubst $(PKESRCDIR)/%,$(PKEBINDIR)/%,$(patsubst %.cpp,%.o,$(PKEUNITSOURCES)))
+PKEUNITOBJECTS += test/include/gtest/gtest-all.o
+PKEDEMOOBJECTS += $(patsubst $(PKESRCDIR)/%,$(PKEBINDIR)/%,$(patsubst %.cpp,%.o,$(PKEDEMOSOURCES)))
+
+PKE_TEST_TARGET := $(EXTTESTDIR)/pke/tests$(EXESUFFIX)
+
+-include $(PKEOBJECTS:.o=.d)
+-include $(PKEUNITOBJECTS:.o=.d)
+-include $(PKEDEMOOBJECTS:.o=.d)
+
+.PHONY:allpke
+allpke: allcore $(EXTLIBDIR)/$(PALISADEPKELIB) $(PKE_TEST_TARGET) allpkedemos
+
+allpkedemos: $(patsubst $(PKEBINDIR)/demo/%,bin/demo/pke/%,$(patsubst %.o,%$(EXESUFFIX),$(PKEDEMOOBJECTS)))
+
+bin/demo/pke/%$(EXESUFFIX): src/pke/bin/demo/%.o $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB)
+	@mkdir -p $(@D)
+	$(CC) -o $@ $^ $(EXTLIB)
+
+#this builds the palisade library out of the objects 
+$(EXTLIBDIR)/$(PALISADEPKELIB): $(PKEOBJECTS) $(EXTLIBDIR)/$(PALISADECORELIB)
+	@echo " -- pke:linking $@ from PKEOBJECTS"
+	mkdir -p $(EXTLIBDIR)
+	$(CC) $(LIBCMD) -o $@ $(PKEOBJECTS) -L$(EXTLIBDIR) -lPALISADEcore
+
+### #this builds the individual objects that make up the library .
+.PRECIOUS: $(PKEBINDIR)/%
+$(PKEBINDIR)/%:
+	@if [ "$(suffix $@)" = ".o" ] ;   \
+	then  \
+		mkdir -p $(@D)  ;\
+		echo $(CC) $(CPPFLAGS) $(INC) -c -o $@ $(patsubst $(PKEBINDIR)/%,$(PKESRCDIR)/%,$(patsubst %.o,%.cpp,$@))  ;\
+		$(CC) -MM $(CPPFLAGS) $(INC) $(patsubst $(PKEBINDIR)/%,$(PKESRCDIR)/%,$(patsubst %.o,%.cpp,$@)) > $(patsubst %.o,%.d,$@) ;\
+		mv -f $(patsubst %.o,%.d,$@) $(patsubst %.o,%.d.tmp,$@)  ;\
+		sed -e 's|.*\.o:|$(PKEBINDIR)/$*:|' < $(patsubst %.o,%.d.tmp,$@) > $(patsubst %.o,%.d,$@)  ;\
+		rm -f $(patsubst %.o,%.d.tmp,$@)  ; \
+		$(CC) $(CPPFLAGS) $(INC) -c -o $@ $(patsubst $(PKEBINDIR)/%,$(PKESRCDIR)/%,$(patsubst %.o,%.cpp,$@))  ;\
+	fi
+
+.PHONY: cleanpke 
+
+#this target is used to cleanup, it is called from the top Makefile
+cleanpke: 
+	$(RM) -fr $(PKEBINDIR) $(EXTLIBDIR)/$(PALISADEPKELIB) `dirname $(PKE_TEST_TARGET)` bin/demo/pke
+
+# this links test executable  from objects in the test build directory
+$(PKE_TEST_TARGET): $(PKEUNITOBJECTS) $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB)
+	@mkdir -p `dirname $(PKE_TEST_TARGET)`
+	$(CC) $(PKEUNITOBJECTS) -o $(PKE_TEST_TARGET) -L$(EXTLIBDIR) -lPALISADEpke -L$(EXTLIBDIR) -lPALISADEcore $(TEST_LIB)
+
+#used to run tests from make
+.PHONY: testpke
+testpke: $(PKE_TEST_TARGET)
+	$(PKE_TEST_TARGET)
+

@@ -1,0 +1,11 @@
+# Ignore everything
+*
+
+# But not these files...
+!.gitignore
+!*.sln
+!*.vcxproj
+!*.vcxproj.filters
+
+# ...even if they are in subdirectories
+!*/

@@ -1,0 +1,48 @@
+# Ignore everything in this directory
+*~
+*.o
+bin/
+build/
+test/build
+test/bin
+output.txt
+apidoc_warning_logfile.txt
+third-party/distros/gmp-6.1.1
+third-party/distros/gmp-6.1.2
+third-party/distros/ntl-10.3.0
+third-party/include
+third-party/lib
+third-party/share
+gmon.out
+.gitattributes
+# Except this file
+!.gitignore
+output.txt
+bin
+test/bin
+test/build
+.idea
+*/**/*.gch
+*.a
+*.class
+
+## for the moment
+.cproject
+.metadata/
+.project
+.settings/
+RemoteSystemTempFiles/
+.classpath
+.externalToolBuilders/
+/Default/
+
+.DS_Store
+
+# Ignore intellij project files/cmake files
+CMakeLists.txt
+.idea/
+
+src/circuit/lib/scan.cpp
+src/circuit/lib/parse.cpp
+src/circuit/lib/parse.hpp
+src/circuit/lib/*.hh

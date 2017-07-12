@@ -1,0 +1,23 @@
+## for mac OSx
+
+OMPINCLUDE := -I /opt/local/include/libomp -fopenmp
+
+CPPSTD := -std=c++11 -stdlib=libc++ -fPIC
+CC := /opt/local/bin/clang++ $(CPPSTD)
+BISON := /opt/local/bin/bison
+FLEX := /opt/local/bin/flex
+
+LIBSUFFIX := .dylib
+LIBCMD := -dynamiclib -undefined suppress -flat_namespace -fopenmp
+
+RDYNAMIC := 
+
+JNIBUILD :=  
+JNILIB := libPalisadeCryptoWrapper.jnilib
+JNILINKPARM := -framework JavaVM
+
+PYINCLUDE := $(shell python-config --include)
+LIBPYTHON := -lpython2.7 
+
+COMPTHREADFLAG := -pthread
+LOADTHREADFLAG := 

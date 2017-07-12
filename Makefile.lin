@@ -1,0 +1,37 @@
+## for linux
+
+##BOOSTINCLUDE := -I /afs/cad/linux/boost-1.60-sl6/include/
+BOOSTINCLUDE := 
+
+OMPINCLUDE := 
+
+
+##DBC include and library paths for NTL and GMP leave empty if not using MATHBACKEND 6
+
+
+ifneq ($(wildcard third-party/include), )
+  #$(info GMP/NTL directory third-party/include exists)
+  NTLLIB := third-party/lib/libntl.so
+  GMPLIB := third-party/lib/libgmp.so
+else
+  #$(info GMP/NTL directory third-party does not exist)
+endif
+
+
+CPPSTD := -std=gnu++11 -fPIC
+CC := g++ $(CPPSTD)
+
+LIBSUFFIX := .so
+LIBCMD := -fPIC -shared -Wl,--export-dynamic -fopenmp
+
+RDYNAMIC := -rdynamic
+
+JNIBUILD :=  
+JNILIB := libPalisadeCryptoWrapper.so
+
+PYINCLUDE := -I/usr/include/python2.7
+LIBPYTHON := -lpython2.7 
+
+COMPTHREADFLAG := -pthread
+LOADTHREADFLAG := -pthread
+

@@ -1,0 +1,108 @@
+#
+#Copyright (c) 2015, New Jersey Institute of Technology (NJIT)
+#All rights reserved.
+#Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+#met:
+#1. Redistributions of source code must retain the above copyright
+#notice, this list of conditions and the following disclaimer.
+#2. Redistributions in binary form must reproduce the above copyright
+#notice, this list of conditions and the following disclaimer in the
+#documentation and/or other materials provided with the distribution.
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+#IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+#TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#PARTICULAR PURPOSE ARE DISCLAIMED.
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+#ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+#DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+#OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+#HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+#STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+#IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#POSSIBILITY OF SUCH DAMAGE.
+#
+
+BM_SRCDIR = google/benchmark-master/src
+BM_IFLAGS = -I$(BM_SRCDIR)/../include
+BM_SRC = $(wildcard $(BM_SRCDIR)/*.cc)
+BM_OBJ = $(BM_SRC:.cc=.o)
+
+#this defines the benchmark library archive
+BM_LIB = $(BM_SRCDIR)/libbenchmark.a
+
+REGEX_FLAG := -DHAVE_STD_REGEX  #note does not work for g++ <version 4.9
+
+#### this warning flag should NOT be used with clang
+WARNING_FLAG := -Wno-unused-but-set-variable
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Darwin)
+	WARNING_FLAG :=
+    endif
+
+LIBBENCHMARK_FLAGS = $(REGEX_FLAG) -DHAVE_STEADY_CLOCK -DNDEBUG $(WARNING_FLAG) -Wno-unused-variable ##-Wextra -Wshadow -pedantic -pedantic-errors -Wfloat-equal -Wzero-as-null-pointer-constant -fstrict-aliasing -Wstrict-aliasing -Wno-nested-anon-types
+
+benchmark: libbenchmark benchmarktargets 
+
+# this builds objects from sources for benchmark library
+$(BM_SRCDIR)/%.o: $(BM_SRCDIR)/%.cc
+	$(CC) $(CPPFLAGS) $(LIBBENCHMARK_FLAGS) $(BM_IFLAGS) -o $@ -c $<
+
+$(BM_LIB) : $(BM_OBJ)
+	ar cr $(BM_LIB) $(BM_OBJ)
+	ranlib $(BM_LIB) 
+
+libbenchmark: $(BM_LIB)
+
+# this is where the benchmark library code lives
+BM_LIBSRCDIR = google/benchmark-master/include
+
+########### PALISADE BENCHMARKS BUILD HERE
+
+# this defines the source, build (obj) and binary directories
+BENCHMARK_SRC_DIR = benchmark/src
+BENCHMARK_BIN_DIR = benchmark/bin
+BENCHMARK_BUILD_DIR = benchmark/build
+
+#define list of source files (all files with .cc in the BENCHMARK_SRC_DIR
+BENCHMARK_SRC =  $(wildcard $(BENCHMARK_SRC_DIR)/*.cpp) 
+
+BENCHMARK_OBJ =  $(BENCHMARK_SRC:$(BENCHMARK_SRC_DIR)%.cpp=$(BENCHMARK_BUILD_DIR)%.o)
+
+-include $(BENCHMARK_OBJ:.o=.d)
+
+#define list of executables (1:1 substituion of .cc --> no extention in all .cc files)
+#and puts executables in _BIN_DIR
+BENCHMARK_BIN =  $(BENCHMARK_SRC:$(BENCHMARK_SRC_DIR)%.cpp=$(BENCHMARK_BIN_DIR)%$(EXESUFFIX))
+
+
+#this is is the Include directive for the palisade code being benchmarked
+#BENCHMARK_INC = -Isrc/core/lib -Isrc/pke/lib $(BM_IFLAGS)
+
+#DBC included NTL and GMP
+BENCHMARK_INC = -Isrc/core/lib -Isrc/pke/lib $(BM_IFLAGS) $(NTLINCLUDE) $(GMPINCLUDE)
+
+# this builds objects from sources for benchmarks
+$(BENCHMARK_BUILD_DIR)/%.o: $(BENCHMARK_SRC_DIR)/%.cpp
+	@mkdir -p $(BENCHMARK_BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(BENCHMARK_INC) $(LIBBENCHMARK_FLAGS)  $(BENCHMARK_INCLUDES) -c -g $< -o $@
+	@$(CC) -MM $(CPPFLAGS) $(BENCHMARK_INC) $(LIBBENCHMARK_FLAGS)  $(BENCHMARK_INCLUDES) $< > $(patsubst %.o,%.d,$@)
+	@mv -f $(patsubst %.o,%.d,$@) $(patsubst %.o,%.d.tmp,$@)
+	@sed -e 's|.*\.o:|$@:|' < $(patsubst %.o,%.d.tmp,$@) > $(patsubst %.o,%.d,$@)
+	@rm -f $(patsubst %.o,%.d.tmp,$@)
+
+# this builds executables from objects for benchmarks
+$(BENCHMARK_BIN_DIR)/%$(EXESUFFIX): $(BENCHMARK_BUILD_DIR)/%.o $(BM_LIB) $(EXTLIBDIR)/$(PALISADETRAPDOORLIB) $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB)
+	@mkdir -p $(BENCHMARK_BIN_DIR)
+	$(CC) $(BENCHMARK_INC) $(LIBBENCHMARK_FLAGS)  $< -o $@ $(EXTLIBDIR)/$(PALISADETRAPDOORLIB) $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB) $(RDYNAMIC) $(BM_LIB) $(EXTLIB)  $(MINGWREGEX)
+
+# this is the target that makes the actual benchmarks 
+.PHONY:benchmarktargets
+benchmarktargets: $(BENCHMARK_BIN)
+
+#this target is usesd to cleanup, it is called from the top Makefile
+.PHONEY: cleanbenchmark
+cleanbenchmark:
+	@echo " Cleaning Benchmarks...";
+	$(RM) -r $(BENCHMARK_BIN_DIR) $(BENCHMARK_BUILD_DIR) $(BM_OBJ) $(BM_LIB)
+
