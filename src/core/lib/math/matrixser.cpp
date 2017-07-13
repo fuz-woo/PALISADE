@@ -81,6 +81,8 @@ bool Matrix<BigInteger>::Deserialize(const Serialized& serObj) {
 	return false;
 }
 
+#if MATHBACKEND != 7
+
 template<>
 bool Matrix<native_int::BigInteger>::Serialize(Serialized* serObj) const {
 	return false;
@@ -90,6 +92,8 @@ template<>
 bool Matrix<native_int::BigInteger>::Deserialize(const Serialized& serObj) {
 	return false;
 }
+
+#endif
 
 template<>
 bool Matrix<BigVector>::Serialize(Serialized* serObj) const {

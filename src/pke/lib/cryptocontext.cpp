@@ -163,12 +163,14 @@ CryptoContext<T>::Serialize(Serialized* serObj) const
 
 	Serialized kser(rapidjson::kObjectType, &serObj->GetAllocator());
 
-	if( this->evalMultKeys.size() > 0 ) {
-		SerializeVectorOfPointers<LPEvalKey<T>>("EvalMultKeys", "LPEvalKey", this->evalMultKeys, &ccser);
-	}
+	if( Serializable::IncludeKeysInSerializedContext() ) {
+		if( this->evalMultKeys.size() > 0 ) {
+			SerializeVectorOfPointers<LPEvalKey<T>>("EvalMultKeys", "LPEvalKey", this->evalMultKeys, &ccser);
+		}
 
-	if( this->evalSumKeys.size() > 0 ) {
-		SerializeMapOfPointers("EvalSumKeys", T::GetElementName(), this->evalSumKeys, &ccser);
+		if( this->evalSumKeys.size() > 0 ) {
+			SerializeMapOfPointers("EvalSumKeys", T::GetElementName(), this->evalSumKeys, &ccser);
+		}
 	}
 
 	ccser.AddMember("Schemes", std::to_string(this->scheme->GetEnabled()), serObj->GetAllocator());
