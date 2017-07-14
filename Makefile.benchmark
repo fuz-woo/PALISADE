@@ -23,13 +23,13 @@
 #POSSIBILITY OF SUCH DAMAGE.
 #
 
-BM_SRCDIR = google/benchmark-master/src
-BM_IFLAGS = -I$(BM_SRCDIR)/../include
-BM_SRC = $(wildcard $(BM_SRCDIR)/*.cc)
-BM_OBJ = $(BM_SRC:.cc=.o)
+BMLIB_SRCDIR := google/benchmark-master/src
+BMLIB_IFLAG := -I$(BMLIB_SRCDIR)/../include
+BMLIB_SRC := $(wildcard $(BMLIB_SRCDIR)/*.cc)
+BMLIB_OBJ := $(BMLIB_SRC:.cc=.o)
 
 #this defines the benchmark library archive
-BM_LIB = $(BM_SRCDIR)/libbenchmark.a
+BMLIB_LIB := $(BMLIB_SRCDIR)/libbenchmark.a
 
 REGEX_FLAG := -DHAVE_STD_REGEX  #note does not work for g++ <version 4.9
 
@@ -40,69 +40,64 @@ WARNING_FLAG := -Wno-unused-but-set-variable
 	WARNING_FLAG :=
     endif
 
-LIBBENCHMARK_FLAGS = $(REGEX_FLAG) -DHAVE_STEADY_CLOCK -DNDEBUG $(WARNING_FLAG) -Wno-unused-variable ##-Wextra -Wshadow -pedantic -pedantic-errors -Wfloat-equal -Wzero-as-null-pointer-constant -fstrict-aliasing -Wstrict-aliasing -Wno-nested-anon-types
+LIBBENCHMARK_FLAGS := $(REGEX_FLAG) -DHAVE_STEADY_CLOCK -DNDEBUG $(WARNING_FLAG) -Wno-unused-variable ##-Wextra -Wshadow -pedantic -pedantic-errors -Wfloat-equal -Wzero-as-null-pointer-constant -fstrict-aliasing -Wstrict-aliasing -Wno-nested-anon-types
 
-benchmark: libbenchmark benchmarktargets 
+# this defines the source, build (obj) and binary directories
+BMARK_SRC := benchmark/src
+BMARK_BIN := benchmark/bin
+BMARK_BUILD := benchmark/build
+
+#define list of source files (all files with .cc in the BMARK_SRC
+BM_SOURCES :=  $(wildcard $(BMARK_SRC)/*.cpp) 
+
+BM_OBJS :=  $(BM_SOURCES:$(BMARK_SRC)%.cpp=$(BMARK_BUILD)%.o)
+
+-include $(BM_OBJS:.o=.d)
+
+BMARKS :=  $(BM_SOURCES:$(BMARK_SRC)%.cpp=$(BMARK_BIN)%$(EXESUFFIX))
+
+benchmark: $(BMLIB_LIB) $(BMARKS)
 
 # this builds objects from sources for benchmark library
-$(BM_SRCDIR)/%.o: $(BM_SRCDIR)/%.cc
-	$(CC) $(CPPFLAGS) $(LIBBENCHMARK_FLAGS) $(BM_IFLAGS) -o $@ -c $<
+.PRECIOUS: $(BMLIB_SRCDIR)/%.o
+$(BMLIB_SRCDIR)/%.o: $(BMLIB_SRCDIR)/%.cc
+	$(CC) $(CPPFLAGS) $(LIBBENCHMARK_FLAGS) $(BMLIB_IFLAG) -o $@ -c $<
 
-$(BM_LIB) : $(BM_OBJ)
-	ar cr $(BM_LIB) $(BM_OBJ)
-	ranlib $(BM_LIB) 
-
-libbenchmark: $(BM_LIB)
+.PRECIOUS: $(BMLIB_LIB)
+$(BMLIB_LIB): $(BMLIB_OBJ)
+	ar cr $(BMLIB_LIB) $(BMLIB_OBJ)
+	ranlib $(BMLIB_LIB) 
 
 # this is where the benchmark library code lives
-BM_LIBSRCDIR = google/benchmark-master/include
+BMLIB_LIBSRCDIR := google/benchmark-master/include
 
 ########### PALISADE BENCHMARKS BUILD HERE
 
-# this defines the source, build (obj) and binary directories
-BENCHMARK_SRC_DIR = benchmark/src
-BENCHMARK_BIN_DIR = benchmark/bin
-BENCHMARK_BUILD_DIR = benchmark/build
-
-#define list of source files (all files with .cc in the BENCHMARK_SRC_DIR
-BENCHMARK_SRC =  $(wildcard $(BENCHMARK_SRC_DIR)/*.cpp) 
-
-BENCHMARK_OBJ =  $(BENCHMARK_SRC:$(BENCHMARK_SRC_DIR)%.cpp=$(BENCHMARK_BUILD_DIR)%.o)
-
--include $(BENCHMARK_OBJ:.o=.d)
-
-#define list of executables (1:1 substituion of .cc --> no extention in all .cc files)
-#and puts executables in _BIN_DIR
-BENCHMARK_BIN =  $(BENCHMARK_SRC:$(BENCHMARK_SRC_DIR)%.cpp=$(BENCHMARK_BIN_DIR)%$(EXESUFFIX))
-
-
 #this is is the Include directive for the palisade code being benchmarked
-#BENCHMARK_INC = -Isrc/core/lib -Isrc/pke/lib $(BM_IFLAGS)
+BM_IFLAG := -Isrc/core/lib -Isrc/pke/lib $(BMLIB_IFLAG) $(NTLINCLUDE) $(GMPINCLUDE)
 
-#DBC included NTL and GMP
-BENCHMARK_INC = -Isrc/core/lib -Isrc/pke/lib $(BM_IFLAGS) $(NTLINCLUDE) $(GMPINCLUDE)
+PLIBS := $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB)
+
+# this builds executables from objects for benchmarks
+benchmark/bin/%$(EXESUFFIX): benchmark/build/%.o $(BMLIB_LIB) $(PLIBS)
+	@mkdir -p $(BMARK_BIN)
+	$(CC) $(BM_IFLAG) $(LIBBENCHMARK_FLAGS)  $< -o $@ $(PLIBS) $(RDYNAMIC) $(BMLIB_LIB) $(EXTLIB)  $(MINGWREGEX)
 
 # this builds objects from sources for benchmarks
-$(BENCHMARK_BUILD_DIR)/%.o: $(BENCHMARK_SRC_DIR)/%.cpp
-	@mkdir -p $(BENCHMARK_BUILD_DIR)
-	$(CC) $(CPPFLAGS) $(BENCHMARK_INC) $(LIBBENCHMARK_FLAGS)  $(BENCHMARK_INCLUDES) -c -g $< -o $@
-	@$(CC) -MM $(CPPFLAGS) $(BENCHMARK_INC) $(LIBBENCHMARK_FLAGS)  $(BENCHMARK_INCLUDES) $< > $(patsubst %.o,%.d,$@)
+.PRECIOUS: benchmark/build/%.o
+benchmark/build/%.o: benchmark/src/%.cpp
+	@mkdir -p benchmark/build
+	@$(CC) -MM $(CPPFLAGS) $(BM_IFLAG) $(LIBBENCHMARK_FLAGS)  $(BM_IFLAG) $(patsubst $(BMARK_BUILD)/%,$(BMARK_SRC)/%,$(patsubst %.o,%.cpp,$@))  > $(patsubst %.o,%.d,$@)
 	@mv -f $(patsubst %.o,%.d,$@) $(patsubst %.o,%.d.tmp,$@)
 	@sed -e 's|.*\.o:|$@:|' < $(patsubst %.o,%.d.tmp,$@) > $(patsubst %.o,%.d,$@)
 	@rm -f $(patsubst %.o,%.d.tmp,$@)
-
-# this builds executables from objects for benchmarks
-$(BENCHMARK_BIN_DIR)/%$(EXESUFFIX): $(BENCHMARK_BUILD_DIR)/%.o $(BM_LIB) $(EXTLIBDIR)/$(PALISADETRAPDOORLIB) $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB)
-	@mkdir -p $(BENCHMARK_BIN_DIR)
-	$(CC) $(BENCHMARK_INC) $(LIBBENCHMARK_FLAGS)  $< -o $@ $(EXTLIBDIR)/$(PALISADETRAPDOORLIB) $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB) $(RDYNAMIC) $(BM_LIB) $(EXTLIB)  $(MINGWREGEX)
-
-# this is the target that makes the actual benchmarks 
-.PHONY:benchmarktargets
-benchmarktargets: $(BENCHMARK_BIN)
+	$(CC) $(CPPFLAGS) $(BM_IFLAG) $(LIBBENCHMARK_FLAGS)  $(BM_IFLAG) -c -o $@ $(patsubst $(BMARK_BUILD)/%,$(BMARK_SRC)/%,$(patsubst %.o,%.cpp,$@))
 
 #this target is usesd to cleanup, it is called from the top Makefile
 .PHONEY: cleanbenchmark
 cleanbenchmark:
 	@echo " Cleaning Benchmarks...";
-	$(RM) -r $(BENCHMARK_BIN_DIR) $(BENCHMARK_BUILD_DIR) $(BM_OBJ) $(BM_LIB)
+	$(RM) -r $(BMARK_BIN) $(BMARK_BUILD) $(BMLIB_OBJ) $(BMLIB_LIB)
 
+bstrings:
+	@echo $(BMARKS)
