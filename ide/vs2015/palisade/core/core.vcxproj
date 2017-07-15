@@ -52,6 +52,7 @@
     <ClCompile Include="..\..\..\..\src\core\lib\utils\debug.cpp" />
     <ClCompile Include="..\..\..\..\src\core\lib\utils\hashutil.cpp" />
     <ClCompile Include="..\..\..\..\src\core\lib\utils\palisadebase64.cpp" />
+    <ClCompile Include="..\..\..\..\src\core\lib\utils\serializable.cpp" />
     <ClCompile Include="..\..\..\..\src\core\lib\utils\serializablehelper.cpp" />
     <ClCompile Include="..\..\..\..\src\core\lib\utils\utilities.cpp" />
   </ItemGroup>

@@ -36,6 +36,7 @@
     <ClCompile Include="..\..\..\..\src\core\lib\lattice\poly-impl.cpp" />
     <ClCompile Include="..\..\..\..\src\core\lib\lattice\dcrtpoly.cpp" />
     <ClCompile Include="..\..\..\..\src\core\lib\lattice\dcrtpoly-impl.cpp" />
+    <ClCompile Include="..\..\..\..\src\core\lib\utils\serializable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\core\lib\encoding\byteplaintextencoding.h" />
