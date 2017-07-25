@@ -7,7 +7,7 @@ PALISADE Lattice Cryptography Library
 
 [Library Contributors](Contributors.md)
 
-[Library Wiki with documentation](https://git.njit.edu/palisade/palisade-student-edition/wikis/home)
+[Library Wiki with documentation](https://git.njit.edu/palisade/PALISADE/wikis/home)
 
 This is a software library for general lattice crypto.  We implement this library in the following multiple layers:
 
