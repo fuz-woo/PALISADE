@@ -32,67 +32,108 @@
 
 namespace lbcrypto {
 
-	/**
-	* @brief Ciphertext
+template<typename Element>
+class CiphertextImpl;
+
+template<typename Element>
+using Ciphertext = shared_ptr<CiphertextImpl<Element>>;
+
+/**
+	* @brief CiphertextImpl
 	*
-	* The Ciphertext object is used to contain encrypted text in the PALISADE library
+	* The CiphertextImpl object is used to contain encrypted text in the PALISADE library
 	*
 	* @tparam Element a ring element.
 	*/
 	template <class Element>
-	class Ciphertext : public CryptoObject<Element>, public Serializable {
+	class CiphertextImpl : public CryptoObject<Element> {
 	public:
 
 		/**
 		* Default constructor
 		*/
-		Ciphertext() : m_isEncrypted(true) {}
+		CiphertextImpl() : CryptoObject<Element>(), m_depth(1), encodingType(Unknown) {}
 
 		/**
 		 * Construct a new ciphertext in the given context
 		 *
 		 * @param cc
 		 */
-		Ciphertext(shared_ptr<CryptoContext<Element>> cc) : CryptoObject<Element>(cc.get()), m_isEncrypted(true) {}
+		CiphertextImpl(CryptoContext<Element> cc, const string& id = "", PlaintextEncodings encType = Unknown) :
+			CryptoObject<Element>(cc, id), m_depth(1), encodingType(encType) {}
 
 		/**
-		 * Construct a new ciphertext in the given context
+		 * Construct a new ciphertext from the parameters of a given public key
 		 *
-		 * @param cc
+		 * @param k key whose CryptoObject parameters will get cloned
 		 */
-		Ciphertext(CryptoContext<Element>* cc) : CryptoObject<Element>(cc), m_isEncrypted(true)  {}
+		CiphertextImpl(const shared_ptr<LPKey<Element>> k) :
+			CryptoObject<Element>(k->GetCryptoContext(), k->GetKeyTag()), m_depth(1), encodingType(Unknown)  {}
 
 		/**
 		* Copy constructor
 		*/
-		Ciphertext(const Ciphertext<Element> &ciphertext) : CryptoObject<Element>(ciphertext.GetCryptoContext()) {
+		CiphertextImpl(const CiphertextImpl<Element> &ciphertext) : CryptoObject<Element>(ciphertext) {
 			m_elements = ciphertext.m_elements;
-			m_isEncrypted = ciphertext.m_isEncrypted;
+			m_depth = ciphertext.m_depth;
+			encodingType = ciphertext.encodingType;
+		}
+
+		CiphertextImpl(Ciphertext<Element> ciphertext) : CryptoObject<Element>(*ciphertext) {
+			m_elements = ciphertext->m_elements;
+			m_depth = ciphertext->m_depth;
+			encodingType = ciphertext->encodingType;
 		}
 
 		/**
 		* Move constructor
 		*/
-		Ciphertext(Ciphertext<Element> &&ciphertext) : CryptoObject<Element>(ciphertext.GetCryptoContext()) {
+		CiphertextImpl(CiphertextImpl<Element> &&ciphertext) : CryptoObject<Element>(ciphertext) {
 			m_elements = std::move(ciphertext.m_elements);
-			m_isEncrypted = std::move(ciphertext.m_isEncrypted);
+			m_depth = std::move(ciphertext.m_depth);
+			encodingType = std::move(ciphertext.encodingType);
+		}
+
+		CiphertextImpl(Ciphertext<Element> &&ciphertext) : CryptoObject<Element>(*ciphertext) {
+			m_elements = std::move(ciphertext->m_elements);
+			m_depth = std::move(ciphertext->m_depth);
+			encodingType = std::move(ciphertext->encodingType);
+		}
+
+		Ciphertext<Element> CloneEmpty() const {
+			Ciphertext<Element> ct( new CiphertextImpl<Element>(this->GetCryptoContext(), this->GetKeyTag(), this->GetEncodingType()) );
+			return ct;
 		}
 
 		/**
 		* Destructor
 		*/
-		virtual ~Ciphertext() {}
+		virtual ~CiphertextImpl() {}
+
+		/**
+		 * GetEncodingType
+		 * @return how the Plaintext that this CiphertextImpl was created from was encoded
+		 */
+		PlaintextEncodings GetEncodingType() const { return encodingType; }
+
+		/**
+		 * SetEncodingType - after Encrypt, remember the CiphertextImpl's encoding type
+		 * @param et
+		 */
+		void SetEncodingType(PlaintextEncodings et) { encodingType = et; }
 
 		/**
 		* Assignment Operator.
 		*
-		* @param &rhs the Ciphertext to assign from
-		* @return this Ciphertext
+		* @param &rhs the CiphertextImpl to assign from
+		* @return this CiphertextImpl
 		*/
-		Ciphertext<Element>& operator=(const Ciphertext<Element> &rhs) {
+		CiphertextImpl<Element>& operator=(const CiphertextImpl<Element> &rhs) {
 			if (this != &rhs) {
-				this->context = rhs.context;
+				CryptoObject<Element>::operator=(rhs);
 				this->m_elements = rhs.m_elements;
+				this->m_depth = rhs.m_depth;
+				this->encodingType = rhs.encodingType;
 			}
 
 			return *this;
@@ -101,25 +142,18 @@ namespace lbcrypto {
 		/**
 		* Move Assignment Operator.
 		*
-		* @param &rhs the Ciphertext to move from
-		* @return this Ciphertext
+		* @param &rhs the CiphertextImpl to move from
+		* @return this CiphertextImpl
 		*/
-		Ciphertext<Element>& operator=(Ciphertext<Element> &&rhs) {
+		CiphertextImpl<Element>& operator=(CiphertextImpl<Element> &&rhs) {
 			if (this != &rhs) {
-				this->context = rhs.context;
-				rhs.context = 0;
-				m_elements = std::move(rhs.m_elements);
+				CryptoObject<Element>::operator=(rhs);
+				this->m_elements = std::move(rhs.m_elements);
+				this->m_depth = std::move(rhs.m_depth);
+				this->encodingType = std::move(rhs.encodingType);
 			}
 
 			return *this;
-		}
-
-		const bool GetIsEncrypted() const {
-			return m_isEncrypted;
-		}
-
-		void SetIsEncrypted(bool isEncrypted) {
-			m_isEncrypted = isEncrypted;
 		}
 
 		/**
@@ -137,7 +171,7 @@ namespace lbcrypto {
 		}
 
 		/**
-		* GetElements: get all of the ring elements in the Ciphertext
+		* GetElements: get all of the ring elements in the CiphertextImpl
 		* @return vector of ring elements
 		*/
 		const std::vector<Element> &GetElements() const { return m_elements; }
@@ -171,6 +205,22 @@ namespace lbcrypto {
 		void SetElements(const std::vector<Element> &&elements) { m_elements = std::move(elements); }
 
 		/**
+		* Get the depth of the ciphertext.
+		* It will be used in multiplication/addition/subtraction to handle the keyswitching.
+		*/
+		const size_t GetDepth() const {
+			return m_depth;
+		}
+
+		/**
+		* Set the depth of the ciphertext.
+		* It will be used in multiplication/addition/subtraction to handle the keyswitching.
+		*/
+		void SetDepth(size_t depth) {
+			m_depth = depth;
+		}
+
+		/**
 		* Serialize the object into a Serialized
 		* @param serObj is used to store the serialized result. It MUST be a rapidjson Object (SetObject());
 		* @return true if successfully serialized
@@ -184,8 +234,11 @@ namespace lbcrypto {
 		*/
 		bool Deserialize(const Serialized& serObj);
 
-		inline bool operator==(const Ciphertext<Element>& rhs) const {
-			if( *this->GetCryptoParameters() != *rhs.GetCryptoParameters() )
+		bool operator==(const CiphertextImpl<Element>& rhs) const {
+			if( !CryptoObject<Element>::operator==(rhs) )
+				return false;
+
+			if( this->m_depth != rhs.m_depth )
 				return false;
 
 			const std::vector<Element> &lhsE = this->GetElements();
@@ -194,8 +247,8 @@ namespace lbcrypto {
 			if( lhsE.size() != rhsE.size() ) return false;
 
 			for( size_t i=0; i<lhsE.size(); i++ ) {
-				const Element& lE = lhsE.at(i);
-				const Element& rE = rhsE.at(i);
+				const Element& lE = lhsE[i];
+				const Element& rE = rhsE[i];
 
 				if( lE != rE ) return false;
 			}
@@ -203,99 +256,19 @@ namespace lbcrypto {
 			return true;
 		}
 
-		inline bool operator!=(const Ciphertext<Element>& rhs) const {
+		bool operator!=(const CiphertextImpl<Element>& rhs) const {
 			return ! (*this == rhs);
 		}
 
-		Ciphertext<Element> operator+(const Ciphertext<Element> &other) const {
-			shared_ptr<Ciphertext<Element>> a(new Ciphertext<Element>(*this));
-			shared_ptr<Ciphertext<Element>> b(new Ciphertext<Element>(other));
-			return *this->GetCryptoContext()->EvalAdd(a, b);
+		friend ostream& operator<<(ostream& out, const CiphertextImpl<Element>& c) {
+			out << "enc=" << c.encodingType << " depth=" << c.m_depth << endl;
+			for( size_t i=0; i<c.m_elements.size(); i++ )
+				out << i << ": " << c.m_elements[i] << endl;
+			return out;
 		}
 
-		/**
-		* Performs an addition operation and returns the result.
-		*
-		* @param &other is the ciphertext to add with.
-		* @return the result of the addition.
-		*/
-		const Ciphertext<Element>& operator+=(const Ciphertext<Element> &other) {
-			shared_ptr<Ciphertext<Element>> b(new Ciphertext<Element>(other));
-			// ciphertext object has no data yet, i.e., it is zero-initialized
-			if (m_elements.size() == 0)
-			{
-				m_elements = other.m_elements;
-			}
-			else
-			{
-				shared_ptr<Ciphertext<Element>> a(new Ciphertext<Element>(*this));
-				*this = *(this->GetCryptoContext()->EvalAdd(a, b));
-			}
-			return *this;
-		}
-
-		Ciphertext<Element> operator-(const Ciphertext<Element> &other) const {
-			shared_ptr<Ciphertext<Element>> a(new Ciphertext<Element>(*this));
-			shared_ptr<Ciphertext<Element>> b(new Ciphertext<Element>(other));
-			return *this->GetCryptoContext()->EvalSub(a, b);
-		}
-
-		const Ciphertext<Element>& operator-=(const Ciphertext<Element> &other) {
-			shared_ptr<Ciphertext<Element>> b(new Ciphertext<Element>(other));
-			// ciphertext object has no data yet, i.e., it is zero-initialized
-			if (m_elements.size() == 0)
-			{
-				m_elements = other.m_elements;
-			}
-			else
-			{
-				shared_ptr<Ciphertext<Element>> a(new Ciphertext<Element>(*this));
-				*this = *(this->GetCryptoContext()->EvalSub(a, b));
-			}
-			return *this;
-		}
-
-		/**
-		* Unary negation operator.
-		*
-		* @param &other is the ciphertext to add with.
-		* @return the result of the addition.
-		*/
-		const Ciphertext<Element> operator-() {
-			if (m_elements.size() == 0)
-				throw std::logic_error("No elements in the ciphertext to be negated");
-			else
-			{
-				shared_ptr<Ciphertext<Element>> a(new Ciphertext<Element>(*this));
-				return *(this->GetCryptoContext()->EvalNegate(a));
-			}
-		}
-
-		Ciphertext<Element> operator*(const Ciphertext<Element> &other) const {
-			shared_ptr<Ciphertext<Element>> a(new Ciphertext<Element>(*this));
-			shared_ptr<Ciphertext<Element>> b(new Ciphertext<Element>(other));
-			return *this->GetCryptoContext()->EvalMult(a, b);
-		}
-
-		/**
-		* Performs an addition operation and returns the result.
-		*
-		* @param &other is the ciphertext to add with.
-		* @return the result of the addition.
-		*/
-		const Ciphertext<Element>& operator*=(const Ciphertext<Element> &other) {
-			shared_ptr<Ciphertext<Element>> b(new Ciphertext<Element>(other));
-			// ciphertext object has no data yet, i.e., it is zero-initialized
-			if (m_elements.size() == 0)
-			{
-				m_elements = other.m_elements;
-			}
-			else
-			{
-				shared_ptr<Ciphertext<Element>> a(new Ciphertext<Element>(*this));
-				*this = *(this->GetCryptoContext()->EvalMult(a, b));
-			}
-			return *this;
+		friend ostream& operator<<(ostream& out, Ciphertext<Element> c) {
+			return out << *c;
 		}
 
 	private:
@@ -304,8 +277,8 @@ namespace lbcrypto {
 		//BigInteger m_norm;
 
 		std::vector<Element> m_elements;		/*!< vector of ring elements for this Ciphertext */
-		bool m_isEncrypted;
-
+		size_t m_depth; // holds the multiplicative depth of the ciphertext.
+		PlaintextEncodings	encodingType;	/*!< how was this Ciphertext encoded? */
 	};
 
 	/**
@@ -318,10 +291,28 @@ namespace lbcrypto {
 	* @return The result of addition.
 	*/
 	template <class Element>
-	Ciphertext<Element> operator+(const Ciphertext<Element> &a, const Ciphertext<Element> &b) {
-		shared_ptr<Ciphertext<Element>> aPtr(new Ciphertext<Element>(a));
-		shared_ptr<Ciphertext<Element>> bPtr(new Ciphertext<Element>(b));
-		return *a.GetCryptoContext()->EvalAdd(aPtr,bPtr);
+	Ciphertext<Element> operator+(const Ciphertext<Element> a, const Ciphertext<Element> b) {
+		return a->GetCryptoContext()->EvalAdd(a,b);
+	}
+
+	/**
+	 * += for ciphertexts
+	 * FIXME to make this more efficient
+	 */
+	template <class Element>
+	const Ciphertext<Element>& operator+=(Ciphertext<Element> a, const Ciphertext<Element> b) {
+		return a = a->GetCryptoContext()->EvalAdd(a, b);
+	}
+
+	/**
+	* Unary negation operator.
+	*
+	* @param &other is the ciphertext to add with.
+	* @return the result of the addition.
+	*/
+	template <class Element>
+	Ciphertext<Element> operator-(Ciphertext<Element> a) {
+		return a = a->GetCryptoContext()->EvalNegate(a);
 	}
 
 	/**
@@ -334,11 +325,19 @@ namespace lbcrypto {
 	* @return The result of subtraction.
 	*/
 	template <class Element>
-	Ciphertext<Element> operator-(const Ciphertext<Element> &a, const Ciphertext<Element> &b) {
-		shared_ptr<Ciphertext<Element>> aPtr(new Ciphertext<Element>(a));
-		shared_ptr<Ciphertext<Element>> bPtr(new Ciphertext<Element>(b));
-		return *a.GetCryptoContext()->EvalSub(aPtr, bPtr);
+	Ciphertext<Element> operator-(const Ciphertext<Element> a, const Ciphertext<Element> b) {
+		return a->GetCryptoContext()->EvalSub(a, b);
 	}
+
+	/**
+	 * -= for ciphertexts
+	 * FIXME to make this more efficient
+	 */
+	template <class Element>
+	const Ciphertext<Element>& operator-=(Ciphertext<Element> a, const Ciphertext<Element> b) {
+		return a = a->GetCryptoContext()->EvalSub(a, b);
+	}
+
 	/**
 	* Multiplication operator overload.  Performs EvalMult.
 	*
@@ -349,10 +348,18 @@ namespace lbcrypto {
 	* @return The result of multiplication.
 	*/
 	template <class Element>
-	Ciphertext<Element> operator*(const Ciphertext<Element> &a, const Ciphertext<Element> &b) {
-		shared_ptr<Ciphertext<Element>> aPtr(new Ciphertext<Element>(a));
-		shared_ptr<Ciphertext<Element>> bPtr(new Ciphertext<Element>(b));
-		return *a.GetCryptoContext()->EvalMult(aPtr, bPtr);
+	Ciphertext<Element> operator*(const Ciphertext<Element> a, const Ciphertext<Element> b) {
+		return a->GetCryptoContext()->EvalMult(a, b);
 	}
+
+	/**
+	 * *= for ciphertexts
+	 * FIXME to make this more efficient
+	 */
+	template <class Element>
+	const Ciphertext<Element>& operator*=(Ciphertext<Element> a, const Ciphertext<Element> b) {
+		return a = a->GetCryptoContext()->EvalMult(a, b);
+	}
+
 } // namespace lbcrypto ends
 #endif

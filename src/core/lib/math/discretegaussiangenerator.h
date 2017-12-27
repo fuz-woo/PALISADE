@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file discretegaussiangenerator.h This code provides generation of gaussian distibutions of discrete values. 
  * Discrete uniform generator relies on the built-in C++ generator for 32-bit unsigned integers defined in <random>.
  * @author  TPOC: palisade@njit.edu
@@ -24,6 +24,23 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
+/**
+ * This is the header file for DiscreteGaussianGenerator class, which contains 3 different sampling methods.
+ *
+ * First sampling method implemented is the rejection sampling defined in section 4.1 of https://eprint.iacr.org/2007/432.pdf. It is usable for arbitrary centers and standard deviations, and
+ * does not require any form of precomputation. However, it has high rejection rates and is prone to timing attacks. It is not used anywhere in the
+ * library at the moment and is here for historical reasons.
+ *
+ * Second sampling method implemented is Karney's method defined in Algorithm D from https://arxiv.org/pdf/1303.6257.pdf, which is an improved method
+ * based on rejection sampling. It also works for arbitrary centers and standard deviations without any precomputation. Its rejection rate is smaller than in
+ * the rejection sampling method but it may still be vulnerable to timing attacks.
+ *
+ *
+ * Final sampling method defined in this class is the Peikert's inversion method discussed in section 4.1 of https://eprint.iacr.org/2010/088.pdf and
+ * summarized in section 3.2.2 of https://link.springer.com/content/pdf/10.1007%2Fs00200-014-0218-3.pdf. It requires CDF tables of probabilities centered around
+ * single center to be kept, which are precalculated in constructor. The method is not prone to timing attacks but it is usable for single center, single deviation only.
+ * It should be also noted that the memory requirement grows with the standard deviation, therefore it is advised to use it with smaller deviations.   */
 
 #ifndef LBCRYPTO_MATH_DISCRETEGAUSSIANGENERATOR_H_
 #define LBCRYPTO_MATH_DISCRETEGAUSSIANGENERATOR_H_
@@ -78,17 +95,17 @@ public:
 	//BigVector DiscreteGaussianGenerator::GenerateIdentity(usint size, const BigInteger &modulus);
 
 	/**
-	* @brief      Returns a generated char.
-	* @return     an schar value generated with the distribution.
+	* @brief      Returns a generated signed integer. Uses Peikert's Inversion Method
+	* @return     a value generated with the distribution.
 	*/
-	sint GenerateInt () const;
+	int32_t GenerateInt () const;
 
 	/**
-	* @brief      Returns a generated char vector.
+	* @brief      Returns a generated integer vector. Uses Peikert's inversion method.
 	* @param size The number of values to return.
-	* @return     A pointer to an array of schar values generated with the distribution.
+	* @return     A pointer to an array of integer values generated with the distribution.
 	*/
-	std::shared_ptr<sint> GenerateIntVector (usint size) const;
+	std::shared_ptr<int32_t> GenerateIntVector (usint size) const;
 
 	/**
 	* @brief  Returns a generated integer. Uses Peikert's inversion method.
@@ -132,23 +149,18 @@ public:
 	*/
 	//int32_t GenerateInt32 (double mean, double stddev);
 	//will be defined later
-
-	/**
-	* @brief Generates the probability matrix of given distribution, which is used in Knuth-Yao method
-	* @param sttdev standard deviation of Discrete Gaussian Distribution
-	* @param mean Center of the distribution
-	*/
-	void GenerateProbMatrix(double stddev, double mean);
-
-	/**
-	* @ brief Returns a generated integer. Uses Knuth-Yao method defined as Algorithm 1 in http://link.springer.com/chapter/10.1007%2F978-3-662-43414-7_19#page-1
-	* @ return A random value within the Discrete Gaussian Distribution
-	*/
-	int32_t GenerateIntegerKnuthYao();
+	
 	/**
 	* @brief Destructor
 	*/
-	~DiscreteGaussianGeneratorImpl() { if (probMatrix != nullptr) { delete[] probMatrix;} }
+	~DiscreteGaussianGeneratorImpl() { }
+	/**
+	* @brief Returns a generated integer. Uses Karney's method defined as Algorithm D in https://arxiv.org/pdf/1303.6257.pdf
+	* @param mean center of discrecte Gaussian distribution.
+	* @param stddev standard deviation of discrete Gaussian distribution.
+	* @return A random value within this Discrete Gaussian Distribution.
+	*/
+	static int64_t GenerateIntegerKarney(double mean, double stddev);
 
 private:
 	usint FindInVector (const std::vector<double> &S, double search) const;
@@ -160,6 +172,48 @@ private:
 	static double UnnormalizedGaussianPDFOptimized(const double &mean, const double &sigmaFactor, int32_t x) {
 		return pow(M_E, sigmaFactor*(x - mean)*(x - mean));
 	}
+
+	/**
+	* @brief Subroutine used by Karney's Method to accept an integer with probability exp(−n/2).
+	* @param g Mersenne Twister Engine used for deviates
+	* @param n Number to test with exp(-n/2) probability
+	* @return Accept/Reject result
+	*/
+	static bool AlgorithmP(std::mt19937 &g, int32_t n);
+	/**
+	* @brief Subroutine used by Karney's Method to generate an integer with probability exp(−k/2)(1 − exp(-1/2)).
+	* @param g Mersenne Twister Engine used for deviates
+	* @return Random number k
+	*/
+	static int32_t AlgorithmG(std::mt19937 &g);
+	/**
+	* @brief Generates a Bernoulli random value H which is true with probability exp(-1/2).
+	* @param g Mersenne Twister Engine used for uniform deviates
+	* @return Bernoulli random value H
+	*/
+	static bool AlgorithmH(std::mt19937 &g);
+	/**
+	* @brief Generates a Bernoulli random value H which is true with probability exp(-1/2). Uses double precision.
+	* @param g Mersenne Twister Engine used for uniform deviates
+	* @return Bernoulli random value H
+	*/
+	static bool AlgorithmHDouble(std::mt19937 &g);
+	/**
+	* @brief Bernoulli trial with probability exp(−x(2k + x)/(2k + 2)).
+	* @param g Mersenne Twister Engine used for uniform deviates
+	* @param k Deviate k used for calculations
+	* @param x Deviate x used for calculations
+	* @return Whether the number of runs are even or not
+	*/
+	static bool AlgorithmB(std::mt19937 &g, int32_t k, double x);
+	/**
+	* @brief Bernoulli trial with probability exp(−x(2k + x)/(2k + 2)). Uses double precision.
+	* @param g Mersenne Twister Engine used for uniform deviates
+	* @param k Deviate k used for calculations
+	* @param x Deviate x used for calculations
+	* @return Whether the number of runs are even or not
+	*/
+	static bool AlgorithmBDouble(std::mt19937 &g, int32_t k, double x);
 
 
 	// Gyana to add precomputation methods and data members
@@ -173,24 +227,6 @@ private:
 	*/
 	float m_std;
 	
-	/**
-	*The probability matrix used in Knuth-Yao sampling
-	*/
-	uint32_t * probMatrix = nullptr;
-	
-	/**
-	*Array that stores the Hamming Weights of the probability matrix used in Knuth-Yao sampling
-	*/
-	//uint32_t hammingWeights[32] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	/**
-	*Size of probability matrix
-	*/
-	uint32_t probMatrixSize;
-	
-	/**
-	*Mean of the distribution used for Knuth-Yao probability table
-	*/
-	double probMean;
 };
 
 }  // namespace lbcrypto

@@ -183,16 +183,16 @@ public:
    */
   const mubintvec& operator=(mubintvec &&rhs);
 
-  /**
-   * Initializer list for mubintvec.
-   *
-   * @param &&rhs is the list of ubints to be assigned to the mubintvec.
-   * @return mubintvec object 
-   * note if  modulus is set then mod(input) is stored
-   * note modulus remains unchanged.
-   */
-
-  const mubintvec& operator=(std::initializer_list<ubint_el_t> rhs);
+//  /**
+//   * Initializer list for mubintvec.
+//   *
+//   * @param &&rhs is the list of ubints to be assigned to the mubintvec.
+//   * @return mubintvec object
+//   * note if  modulus is set then mod(input) is stored
+//   * note modulus remains unchanged.
+//   */
+//
+//  const mubintvec& operator=(std::initializer_list<ubint_el_t> rhs);
 
   /**
    * Initializer list for mubintvec.
@@ -203,18 +203,18 @@ public:
    * note modulus remains unchanged.
    */
 
-  const mubintvec& operator=(std::initializer_list<usint> rhs);
+  const mubintvec& operator=(std::initializer_list<uint64_t> rhs);
 
-  /**
-   * Initializer list for mubintvec.
-   *
-   * @param &&rhs is the list of sints to be assigned to the mubintvec.
-   * @return mubintvec object 
-   * note if  modulus is set then mod(input) is stored
-   * note modulus remains unchanged.
-   */
-
-  const mubintvec& operator=(std::initializer_list<sint> rhs);
+//  /**
+//   * Initializer list for mubintvec.
+//   *
+//   * @param &&rhs is the list of sints to be assigned to the mubintvec.
+//   * @return mubintvec object
+//   * note if  modulus is set then mod(input) is stored
+//   * note modulus remains unchanged.
+//   */
+//
+//  const mubintvec& operator=(std::initializer_list<int32_t> rhs);
 
   /**
    * Initializer list for mubintvec.
@@ -242,7 +242,7 @@ public:
     if (this->m_modulus != b.m_modulus)
       return false;
     for (size_t i = 0; i < this->GetLength(); ++i) {
-      if (this->GetValAtIndex(i) != b.GetValAtIndex(i)) {
+      if (this->at(i) != b.at(i)) {
         return false;
       }
     }
@@ -276,7 +276,7 @@ public:
       return false;
     }      //todo replace with vector equality check.
     for (size_t i = 0; i < this->GetLength(); ++i) {
-      if (this->GetValAtIndex(i) != b.GetValAtIndex(i)) {
+      if (this->at(i) != b.at(i)) {
         return false;
       }
     }
@@ -312,14 +312,11 @@ public:
     for (size_t i = 1; i < this->ubintvec<ubint_el_t>::GetLength(); ++i) {
       this->m_data[i] = 0;
     }
-    //m_modulus=0;
-    //m_modulus_state = GARBAGE;
-    //std::cout<<"inline operator=usint "<<val<<std::endl;
     return *this;
   }
   
-  //assignment from sint
-  inline const mubintvec& operator=(sint val) {
+  //assignment from int32_t
+  inline const mubintvec& operator=(int32_t val) {
     //todo this is the way kurt and yuri want it
     if (val<0) 
       throw std::logic_error("mubintvec() = with  negative number");
@@ -327,9 +324,6 @@ public:
     for (size_t i = 1; i < this->ubintvec<ubint_el_t>::GetLength(); ++i) {
       this->m_data[i] = 0;
     }
-    //m_modulus=0;
-    //m_modulus_state = GARBAGE;
-    //std::cout<<"inline operator=sint "<<val<<std::endl;
     return *this;
   }
   
@@ -346,10 +340,6 @@ public:
     for (size_t i = 1; i < this->m_data.size(); ++i) {
       this->m_data[i] = 0;
     }
-    //      m_modulus=0;
-    // m_modulus_state = GARBAGE;
-
-    //std::cout<<"inline operator=ubint "<<val.ToString()<<std::endl;
     return *this;
   }
 
@@ -382,7 +372,6 @@ public:
     return os;
   }
 
-  void PrintValues() const { std::cout << *this; }
 
   /**
    * checks the vector modulus state.
@@ -436,6 +425,16 @@ public:
 
   //METHODS
 
+  /**
+   * write to index with bounds check and with MOD
+   * @param index is the index to write to
+   * @param value is value to write, using vector's mod
+   * @return is the value at the index.
+   */
+  
+  void atMod(size_t index, const ubint_el_t &value);
+  void atMod(size_t index, const std::string &valstr);
+  
   /**
    * returns the vector modulus with respect to the input value.
    *

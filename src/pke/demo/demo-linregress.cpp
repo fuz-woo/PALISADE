@@ -45,8 +45,7 @@ We configured parameters (namely the ring dimension and ciphertext modulus) to p
 #include "palisade.h"
 #include "cryptocontexthelper.h"
 
-#include "encoding/byteplaintextencoding.h"
-#include "encoding/packedintplaintextencoding.h"
+#include "encoding/encodings.h"
 
 #include "utils/debug.h"
 
@@ -59,21 +58,21 @@ using namespace lbcrypto;
 
 
 
-void ArbBVLinearRegressionPackedArray();
-void ArbFVLinearRegressionPackedArray();
+void ArbBGVLinearRegressionPackedArray();
+void ArbBFVLinearRegressionPackedArray();
 
 int main() {
 
-	std::cout << "\nThis code demonstrates the use of packing for linear regression using the BV and FV schemes. " << std::endl;
+	std::cout << "\nThis code demonstrates the use of packing for linear regression using the BGV and BFV schemes. " << std::endl;
 	std::cout << "This code shows how parameters can be manually set in our library. " << std::endl;
 	
-	std::cout << "\n===========BV TESTS (LINEAR-REGRESSION-ARBITRARY)===============: " << std::endl;
+	std::cout << "\n===========BGV TESTS (LINEAR-REGRESSION-ARBITRARY)===============: " << std::endl;
 
-	ArbBVLinearRegressionPackedArray();
+	ArbBGVLinearRegressionPackedArray();
 
-	std::cout << "\n===========FV TESTS (INNER-PRODUCT-ARBITRARY)===============: " << std::endl;
+	std::cout << "\n===========BFV TESTS (INNER-PRODUCT-ARBITRARY)===============: " << std::endl;
 
-	ArbFVLinearRegressionPackedArray();
+	ArbBFVLinearRegressionPackedArray();
 
 	std::cout << "Please press any key to continue..." << std::endl;
 
@@ -81,13 +80,13 @@ int main() {
 	return 0;
 }
 
-void ArbBVLinearRegressionPackedArray() {
+void ArbBGVLinearRegressionPackedArray() {
 
-	PackedIntPlaintextEncoding::Destroy();
+	PackedEncoding::Destroy();
 
 	usint m = 22;
 	//usint p = 524591;
-	usint p = 2333;
+	PlaintextModulus p = 2333;
 	BigInteger modulusP(p);
 	/*BigInteger modulusQ("577325471560727734926295560417311036005875689");
 	BigInteger squareRootOfRoot("576597741275581172514290864170674379520285921");*/
@@ -105,9 +104,9 @@ void ArbBVLinearRegressionPackedArray() {
 	//std::cout << bigroot << std::endl;
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	float stdDev = 4;
 
@@ -115,9 +114,9 @@ void ArbBVLinearRegressionPackedArray() {
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP,PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP),batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextBV(params, encodingParams, 8, stdDev, OPTIMIZED);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev, OPTIMIZED);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -131,19 +130,19 @@ void ArbBVLinearRegressionPackedArray() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<PackedIntPlaintextEncoding>(); };
+	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
 
-	Matrix<PackedIntPlaintextEncoding> xP = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 1, 2);
+	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 1, 2);
 
-	xP(0, 0) = { 0, 2, 1, 3,  2,  2, 1, 2 };
-	xP(0, 1) = { 1 , 1 , 2 , 1 , 1 , 1, 3 , 2 };
+	xP(0, 0) = cc->MakePackedPlaintext({ 0, 2, 1, 3, 2, 2, 1, 2 });
+	xP(0, 1) = cc->MakePackedPlaintext({ 1, 1, 2, 1, 1, 1, 3, 2 });
 
 	std::cout << "Input array X0 \n\t" << xP(0, 0) << std::endl;
 	std::cout << "Input array X1 \n\t" << xP(0, 1) << std::endl;
 
-	Matrix<PackedIntPlaintextEncoding> yP = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> yP = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	yP(0, 0) = { 0, 1, 2, 6, 1, 2, 3, 4};
+	yP(0, 0) = cc->MakePackedPlaintext({ 0, 1, 2, 6, 1, 2, 3, 4});
 	std::cout << "Input array Y \n\t" << yP(0, 0) << std::endl;
 
 	////////////////////////////////////////////////////////////
@@ -168,21 +167,21 @@ void ArbBVLinearRegressionPackedArray() {
 	//Decryption
 	////////////////////////////////////////////////////////////
 
-	Matrix<PackedIntPlaintextEncoding> numerator = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
-	Matrix<PackedIntPlaintextEncoding> denominator = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	shared_ptr<Matrix<Plaintext>> numerator;
+	shared_ptr<Matrix<Plaintext>> denominator;
 
 	cc->DecryptMatrix(kp.secretKey, result, &numerator, &denominator);
 
-	std::cout << numerator(0, 0)[0] << "," << numerator(1, 0)[0] << std::endl;
-	std::cout << denominator(0, 0)[0] << "," << denominator(1, 0)[0] << std::endl;
+	std::cout << (*numerator)(0, 0)->GetPackedValue()[0] << "," << (*numerator)(1, 0)->GetPackedValue()[0] << std::endl;
+	std::cout << (*denominator)(0, 0)->GetPackedValue()[0] << "," << (*denominator)(1, 0)->GetPackedValue()[0] << std::endl;
 
 }
 
-void ArbFVLinearRegressionPackedArray() {
+void ArbBFVLinearRegressionPackedArray() {
 
 	usint m = 22;
 
-	usint p = 2333; // we choose s.t. 2m|p-1 to leverage CRTArb
+	PlaintextModulus p = 2333; // we choose s.t. 2m|p-1 to leverage CRTArb
 	BigInteger modulusQ("1152921504606847009");
 	BigInteger modulusP(p);
 	BigInteger rootOfUnity("1147559132892757400");
@@ -191,7 +190,7 @@ void ArbFVLinearRegressionPackedArray() {
 	BigInteger bigroot("13201431150704581233041184864526870950");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulusQ);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
 	float stdDev = 4;
@@ -204,25 +203,25 @@ void ArbFVLinearRegressionPackedArray() {
 	BigInteger bigEvalMultRootOfUnityAlt("37861550304274465568523443986246841530644847113781666728121717722285667862085");
 
 	auto cycloPolyBig = GetCyclotomicPolynomial<BigVector, BigInteger>(m, bigEvalMultModulus);
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulusQ);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPolyBig, bigEvalMultModulus);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	usint batchSize = 8;
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP, PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP), batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
 	BigInteger delta(modulusQ.DividedBy(modulusP));
 
-	//genCryptoContextFV(shared_ptr<typename Element::Params> params,
+	//genCryptoContextBFV(shared_ptr<typename Element::Params> params,
 	//	shared_ptr<typename EncodingParams> encodingParams,
 	//	usint relinWindow, float stDev, const std::string& delta,
 	//	MODE mode = RLWE, const std::string& bigmodulus = "0", const std::string& bigrootofunity = "0",
 	//	int depth = 0, int assuranceMeasure = 0, float securityLevel = 0,
 	//	const std::string& bigmodulusarb = "0", const std::string& bigrootofunityarb = "0")
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextFV(params, encodingParams, 1, stdDev, delta.ToString(), OPTIMIZED,
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(params, encodingParams, 1, stdDev, delta.ToString(), OPTIMIZED,
 		bigEvalMultModulus.ToString(), bigEvalMultRootOfUnity.ToString(), 1, 9, 1.006, bigEvalMultModulusAlt.ToString(), bigEvalMultRootOfUnityAlt.ToString());
 
 	cc->Enable(ENCRYPTION);
@@ -237,19 +236,19 @@ void ArbFVLinearRegressionPackedArray() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<PackedIntPlaintextEncoding>(); };
+	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
 
-	Matrix<PackedIntPlaintextEncoding> xP = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 1, 2);
+	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 1, 2);
 
-	xP(0, 0) = { 0, 2, 1, 3,  2,  2, 1, 2 };
-	xP(0, 1) = { 1 , 1 , 2 , 1 , 1 , 1, 3 , 2 };
+	xP(0, 0) = cc->MakePackedPlaintext({ 0, 2, 1, 3,  2,  2, 1, 2 });
+	xP(0, 1) = cc->MakePackedPlaintext({ 1 , 1 , 2 , 1 , 1 , 1, 3 , 2 });
 
 	std::cout << "Input array X0 \n\t" << xP(0, 0) << std::endl;
 	std::cout << "Input array X1 \n\t" << xP(0, 1) << std::endl;
 
-	Matrix<PackedIntPlaintextEncoding> yP = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> yP = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	yP(0, 0) = { 0, 1, 2, 6, 1, 2, 3, 4 };
+	yP(0, 0) = cc->MakePackedPlaintext({ 0, 1, 2, 6, 1, 2, 3, 4 });
 	std::cout << "Input array Y \n\t" << yP(0, 0) << std::endl;
 
 	////////////////////////////////////////////////////////////
@@ -274,12 +273,12 @@ void ArbFVLinearRegressionPackedArray() {
 	//Decryption
 	////////////////////////////////////////////////////////////
 
-	Matrix<PackedIntPlaintextEncoding> numerator = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
-	Matrix<PackedIntPlaintextEncoding> denominator = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	shared_ptr<Matrix<Plaintext>> numerator;
+	shared_ptr<Matrix<Plaintext>> denominator;
 
 	cc->DecryptMatrix(kp.secretKey, result, &numerator, &denominator);
 
-	std::cout << numerator(0, 0)[0] << "," << numerator(1, 0)[0] << std::endl;
-	std::cout << denominator(0, 0)[0] << "," << denominator(1, 0)[0] << std::endl;
+	std::cout << (*numerator)(0, 0)->GetPackedValue()[0] << "," << (*numerator)(1, 0)->GetPackedValue()[0] << std::endl;
+	std::cout << (*denominator)(0, 0)->GetPackedValue()[0] << "," << (*denominator)(1, 0)->GetPackedValue()[0] << std::endl;
 
 }

@@ -30,18 +30,17 @@
 ################
 
 PKESRCDIR := src/pke
-PKEBINDIR := src/pke/bin
+PKEBINDIR := $(BINDIR)/build/pke
 PKETESTDIR := src/pke/unittest
 PKEDEMODIR := src/pke/demo
 
-PKESOURCES := $(shell find $(PKESRCDIR)/lib -name '*.cpp')
+PKESOURCES := $(shell find $(PKESRCDIR)/lib -name '*.cpp' ! -name '*-public.cpp')
 PKEUNITSOURCES := $(wildcard $(PKESRCDIR)/unittest/*.cpp)
 PKEDEMOSOURCES := $(wildcard $(PKESRCDIR)/demo/*.cpp)
 
 PKEOBJECTSALL = $(patsubst $(PKESRCDIR)/%,$(PKEBINDIR)/%,$(patsubst %.cpp,%.o,$(PKESOURCES)))
 PKEOBJECTS = $(filter %-impl.o,$(PKEOBJECTSALL))
 PKEUNITOBJECTS := $(patsubst $(PKESRCDIR)/%,$(PKEBINDIR)/%,$(patsubst %.cpp,%.o,$(PKEUNITSOURCES)))
-PKEUNITOBJECTS += test/include/gtest/gtest-all.o
 PKEDEMOOBJECTS += $(patsubst $(PKESRCDIR)/%,$(PKEBINDIR)/%,$(patsubst %.cpp,%.o,$(PKEDEMOSOURCES)))
 
 PKE_TEST_TARGET := $(EXTTESTDIR)/pke/tests$(EXESUFFIX)
@@ -53,17 +52,21 @@ PKE_TEST_TARGET := $(EXTTESTDIR)/pke/tests$(EXESUFFIX)
 .PHONY:allpke
 allpke: allcore $(EXTLIBDIR)/$(PALISADEPKELIB) $(PKE_TEST_TARGET) allpkedemos
 
-allpkedemos: $(patsubst $(PKEBINDIR)/demo/%,bin/demo/pke/%,$(patsubst %.o,%$(EXESUFFIX),$(PKEDEMOOBJECTS)))
+allpkedemos: $(patsubst $(PKEBINDIR)/demo/%,$(BINDIR)/demo/pke/%,$(patsubst %.o,%$(EXESUFFIX),$(PKEDEMOOBJECTS)))
 
-bin/demo/pke/%$(EXESUFFIX): src/pke/bin/demo/%.o $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB)
+$(BINDIR)/demo/pke/%$(EXESUFFIX): $(PKEBINDIR)/demo/%.o $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
 	@mkdir -p $(@D)
-	$(CC) -o $@ $^ $(EXTLIB)
+	$(CC) -o $@ $< $(EXTLIB) -lPALISADEpke -lPALISADEcore $(NTLLIB) $(GMPLIB)
 
 #this builds the palisade library out of the objects 
-$(EXTLIBDIR)/$(PALISADEPKELIB): $(PKEOBJECTS) $(EXTLIBDIR)/$(PALISADECORELIB)
+$(EXTLIBDIR)/$(PALISADEPKELIB): $(PKEOBJECTS) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
 	@echo " -- pke:linking $@ from PKEOBJECTS"
-	mkdir -p $(EXTLIBDIR)
-	$(CC) $(LIBCMD) -o $@ $(PKEOBJECTS) -L$(EXTLIBDIR) -lPALISADEcore
+	@mkdir -p $(EXTLIBDIR)
+ifdef COVERAGE
+	$(LIBCMD) $@ $(PKEOBJECTS) 
+else
+	$(LIBCMD) $@ $(PKEOBJECTS) $(EXTLIB) -lPALISADEcore $(NTLLIB) $(GMPLIB)
+endif
 
 ### #this builds the individual objects that make up the library .
 .PRECIOUS: $(PKEBINDIR)/%
@@ -83,12 +86,12 @@ $(PKEBINDIR)/%:
 
 #this target is used to cleanup, it is called from the top Makefile
 cleanpke: 
-	$(RM) -fr $(PKEBINDIR) $(EXTLIBDIR)/$(PALISADEPKELIB) `dirname $(PKE_TEST_TARGET)` bin/demo/pke
+	$(RM) -fr $(PKEBINDIR) $(EXTLIBDIR)/$(PALISADEPKELIB) `dirname $(PKE_TEST_TARGET)` $(BINDIR)/demo/pke
 
 # this links test executable  from objects in the test build directory
-$(PKE_TEST_TARGET): $(PKEUNITOBJECTS) $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB)
+$(PKE_TEST_TARGET): $(UNITTESTMAINOBJ) $(PKEUNITOBJECTS) $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
 	@mkdir -p `dirname $(PKE_TEST_TARGET)`
-	$(CC) $(PKEUNITOBJECTS) -o $(PKE_TEST_TARGET) -L$(EXTLIBDIR) -lPALISADEpke -L$(EXTLIBDIR) -lPALISADEcore $(TEST_LIB)
+	$(CC) -o $(PKE_TEST_TARGET) $(UNITTESTMAINOBJ) $(PKEUNITOBJECTS) $(EXTLIB) -lPALISADEpke -lPALISADEcore $(TEST_LIB) $(NTLLIB) $(GMPLIB)
 
 #used to run tests from make
 .PHONY: testpke

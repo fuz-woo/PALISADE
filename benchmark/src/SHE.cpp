@@ -34,15 +34,15 @@
 
 #include "cryptocontexthelper.h"
 
-#include "encoding/byteplaintextencoding.h"
+#include "encoding/encodings.h"
 
 #include "EncryptHelper.h"
 
 using namespace std;
 using namespace lbcrypto;
 
-static std::vector<uint32_t> makeVector(int siz, int ptmi) {
-	std::vector<uint32_t>			elem;
+static std::vector<int64_t> makeVector(int siz, const PlaintextModulus& ptmi) {
+	std::vector<int64_t>			elem;
 
 	for( int i=0; i<siz; i++ )
 		elem.push_back(i%ptmi);
@@ -50,28 +50,30 @@ static std::vector<uint32_t> makeVector(int siz, int ptmi) {
 	return elem;
 }
 
-static void setup_SHE(shared_ptr<CryptoContext<Poly>> cc, shared_ptr<Ciphertext<Poly>>& ct1, shared_ptr<Ciphertext<Poly>>& ct2) {
+static bool setup_SHE(CryptoContext<Poly> cc, Ciphertext<Poly>& ct1, Ciphertext<Poly>& ct2) {
 	int nel = cc->GetCyclotomicOrder()/2;
-	const BigInteger& ptm = cc->GetCryptoParameters()->GetPlaintextModulus();
-	uint32_t ptmi = ptm.ConvertToInt();
+	auto ptm = cc->GetCryptoParameters()->GetPlaintextModulus();
 
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	IntPlaintextEncoding p1( makeVector(nel, ptmi) );
-	IntPlaintextEncoding p2( makeVector(nel, ptmi) );
+	Plaintext p1 = cc->MakeCoefPackedPlaintext( makeVector(nel, ptm) );
+	Plaintext p2 = cc->MakeCoefPackedPlaintext( makeVector(nel, ptm) );
 
-	vector<shared_ptr<Ciphertext<Poly>>> ct1V = cc->Encrypt(kp.publicKey, p1, false);
-	vector<shared_ptr<Ciphertext<Poly>>> ct2V = cc->Encrypt(kp.publicKey, p2, false);
+	ct1 = cc->Encrypt(kp.publicKey, p1);
+	ct2 = cc->Encrypt(kp.publicKey, p2);
 
-	cc->EvalMultKeyGen(kp.secretKey);
+	try {
+		cc->EvalMultKeyGen(kp.secretKey);
+	} catch(...) {
+		return false;
+	}
 
-	ct1 = ct1V[0];
-	ct2 = ct2V[0];
+	return true;
 }
 
 void BM_evalAdd_SHE(benchmark::State& state) { // benchmark
-	shared_ptr<CryptoContext<Poly>> cc;
-	shared_ptr<Ciphertext<Poly>> ct1, ct2;
+	CryptoContext<Poly> cc;
+	Ciphertext<Poly> ct1, ct2;
 
 	if( state.thread_index == 0 ) {
 		state.PauseTiming();
@@ -84,15 +86,15 @@ void BM_evalAdd_SHE(benchmark::State& state) { // benchmark
 	}
 
 	while (state.KeepRunning()) {
-		shared_ptr<Ciphertext<Poly>> ctP = cc->EvalAdd(ct1, ct2);
+		Ciphertext<Poly> ctP = cc->EvalAdd(ct1, ct2);
 	}
 }
 
 BENCHMARK_PARMS(BM_evalAdd_SHE)
 
 void BM_evalMult_SHE(benchmark::State& state) { // benchmark
-	shared_ptr<CryptoContext<Poly>> cc;
-	shared_ptr<Ciphertext<Poly>> ct1, ct2;
+	CryptoContext<Poly> cc;
+	Ciphertext<Poly> ct1, ct2;
 
 	if( state.thread_index == 0 ) {
 		state.PauseTiming();
@@ -100,20 +102,22 @@ void BM_evalMult_SHE(benchmark::State& state) { // benchmark
 		cc->Enable(ENCRYPTION);
 		cc->Enable(SHE);
 
-		setup_SHE(cc, ct1, ct2);
+		bool isSetup = setup_SHE(cc, ct1, ct2);
 		state.ResumeTiming();
+		if( !isSetup )
+			state.SkipWithError("Setup failed: EvalMultKeyGen not supported?");
 	}
 
 	while (state.KeepRunning()) {
-		shared_ptr<Ciphertext<Poly>> ctP = cc->EvalMult(ct1, ct2);
+		Ciphertext<Poly> ctP = cc->EvalMult(ct1, ct2);
 	}
 }
 
 BENCHMARK_PARMS(BM_evalMult_SHE)
 
 void BM_baseDecompose_SHE(benchmark::State& state) { // benchmark
-	shared_ptr<CryptoContext<Poly>> cc;
-	shared_ptr<Ciphertext<Poly>> ct1, ct2;
+	CryptoContext<Poly> cc;
+	Ciphertext<Poly> ct1, ct2;
 
 	if( state.thread_index == 0 ) {
 		state.PauseTiming();
@@ -143,6 +147,4 @@ BENCHMARK_PARMS(BM_baseDecompose_SHE)
 
 //execute the benchmarks
 BENCHMARK_MAIN()
-
-
 

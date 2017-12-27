@@ -40,14 +40,13 @@ using std::shared_ptr;
 #include "../lattice/ilparams.h"
 #include "../lattice/ildcrtparams.h"
 #include "../lattice/ilelement.h"
+#include "../encoding/encodingparams.h"
 #include "../math/nbtheory.h"
 #include "../math/transfrm.h"
 #include "../math/distrgen.h"
 
 namespace lbcrypto
 {
-
-const usint SAMPLE_SIZE = 30; //!< @brief The maximum number of samples used for random variable sampling.
 
 /**
  * @class PolyImpl
@@ -67,6 +66,7 @@ public:
 	typedef DiscreteUniformGeneratorImpl<IntType,VecType> DugType;
 	typedef TernaryUniformGeneratorImpl<IntType,VecType> TugType;
 	typedef BinaryUniformGeneratorImpl<IntType,VecType> BugType;
+	typedef PolyImpl<NativeInteger,NativeInteger,NativeVector,ILNativeParams> PolyNative;
 
 	/**
 	 * @brief Return the element name.
@@ -187,6 +187,14 @@ public:
 	PolyImpl(const PolyType &element, shared_ptr<ParmType> parms = 0);
 
 	/**
+	 * @brief Copy constructor from a Poly of native integers.
+	 *
+	 * @param &element the copied element.
+	 * @param &format sets the format for the new Poly object
+	 */
+	PolyImpl(const PolyNative &element, Format format);
+
+	/**
 	 * @brief Move constructor.
 	 *
 	 * @param &&element the copied element.
@@ -253,8 +261,23 @@ public:
 	 * @param &rhs the list to set the PolyImpl to.
 	 * @return the resulting PolyImpl.
 	 */
-	const PolyType& operator=(std::initializer_list<sint> rhs);
-	//todo: this should be changed from sint to usint!
+	const PolyType& operator=(std::initializer_list<uint64_t> rhs);
+
+	/**
+	* @brief Creates a Poly from a vector of signed integers (used for trapdoor sampling)
+	*
+	* @param &rhs the vector to set the PolyImpl to.
+	* @return the resulting PolyImpl.
+	*/
+	const PolyType& operator=(std::vector<int64_t> rhs);
+
+	/**
+	* @brief Creates a Poly from a vector of signed integers (used for trapdoor sampling)
+	*
+	* @param &rhs the vector to set the PolyImpl to.
+	* @return the resulting PolyImpl.
+	*/
+	const PolyType& operator=(std::vector<int32_t> rhs);
 
 	/**
 	 * @brief Initalizer list
@@ -339,13 +362,21 @@ public:
 		return m_params->GetRootOfUnity();
 	}
 
+	/**
+	 * @brief Get value of element at index i.
+	 *
+	 * @return value at index i.
+	 */
+	IntType& at(usint i) ;
+	const IntType& at(usint i) const;
 
 	/**
 	 * @brief Get value of element at index i.
 	 *
 	 * @return value at index i.
 	 */
-	const IntType GetValAtIndex(usint i) const;
+	IntType& operator[](usint i);
+	const IntType& operator[](usint i) const;
 
 	//SETTERS
 	/**
@@ -354,34 +385,6 @@ public:
 	 * @param index is the index at which the value is to be set.
 	 * @param val is the value to be set.
 	 */
-	inline void SetValAtIndex(size_t index, std::string val) {
-		m_values->SetValAtIndex(index, IntType(val));
-	}
-
-	/**
-	 * @brief Set VecType value to val
-	 *
-	 * @param index is the index at which the value is to be set.
-	 * @param val is the value to be set.
-	 */
-	inline void SetValAtIndex(size_t index, const IntType& val) {
-		m_values->SetValAtIndex(index, val);
-	}
-
-	/**
-	 * @brief Set the value of the element at a given index to a given value without performing a modulus operation.
-	 * @param index the index to put data at.
-	 * @param val the value to assign.
-	 */
-	inline void SetValAtIndexWithoutMod(size_t index, const IntType& val) {
-#if MATHBACKEND !=6
-		m_values->SetValAtIndex(index, val);
-#else
-		m_values->SetValAtIndexWithoutMod(index, val);
-#endif
-
-	}
-
 	// SCALAR OPERATIONS
 
 	/**
@@ -578,13 +581,15 @@ public:
 
 	/**
 	 * @brief Interpolates based on the Chinese Remainder Transform Interpolation.
-	 * Does nothing for PolyImpl. Needed to support the 0linear CRT interpolation in DCRTPoly.
+	 * Does nothing for PolyImpl. Needed to support the linear CRT interpolation in DCRTPoly.
 	 *
 	 * @return the original ring element.
 	 */
 	PolyImpl CRTInterpolate() const {
 		return *this;
 	}
+
+	NativePoly DecryptionCRTInterpolate(PlaintextModulus ptm) const;
 
 	/**
 	 * @brief Transpose the ring element using the automorphism operation
@@ -613,7 +618,7 @@ public:
 	 * @param modulus is the modulus to use.
 	 * @return is the return value of the modulus.
 	 */
-	PolyImpl SignedMod(const IntType &modulus) const;
+	PolyImpl Mod(const IntType &modulus) const;
 
 	/**
 	 * @brief Switch modulus and adjust the values
@@ -630,11 +635,6 @@ public:
 	 * @brief Convert from Coefficient to Evaluation or vice versa; calls FFT and inverse FFT.
 	 */
 	void SwitchFormat();
-
-	/**
-	 * @brief Prints values of the element.
-	 */
-	void PrintValues() const;
 
 	/**
 	 * @brief Make the element values sparse. Sets every index not equal to zero mod the wFactor to zero.
@@ -711,32 +711,6 @@ public:
 	 * @return is the resulting vector from shifting right.
 	 */
 	PolyImpl ShiftRight(unsigned int n) const;
-
-	/**
-	 * @brief Pre computes the Dgg samples.
-	 *
-	 * @param &dgg the discrete Gaussian Generator.
-	 * @param &params are the relevant ring parameters.
-	 */
-	static void PreComputeDggSamples(const DiscreteGaussianGeneratorImpl<IntType,VecType> &dgg, const shared_ptr<ParmType> params);
-
-	/**
-	 * @brief Pre computes the Tug samples.
-	 *
-	 * @param &tug the ternary uniform generator.
-	 * @param &params are the relevant ring parameters.
-	 */
-	static void PreComputeTugSamples(const TernaryUniformGeneratorImpl<IntType,VecType> &tug, const shared_ptr<ParmType> params);
-
-	/**
-	 * @brief Clear the pre-computed discrete Gaussian samples.
-	 */
-	static void DestroyPreComputedSamples();
-
-	/**
-	 * @brief Clear the pre-computed ternary uniform samples.
-	 */
-	static void DestroyPreComputedTugSamples();
 
 	/**
 	 * @brief Serialize the object into a Serialized
@@ -843,20 +817,6 @@ public:
 		return b.Times(a);
 	}
 
-	// 
-	/**
-	 * @brief Gets a pre-computed sample discrete Gaussian polynomial element.
-	 * @return the sampled element.
-	 */
-	static const PolyImpl GetPrecomputedVector();
-
-	// gets a random polynomial generated using ternary uniform distribution
-	/**
-	 * @brief Gets a pre-computed sample ternary uniform distribution polynomial element.
-	 * @return the sampled element.
-	 */
-	static const PolyImpl GetPrecomputedTugVector();
-
 private:
 
 	// stores either coefficient or evaluation representation
@@ -865,41 +825,46 @@ private:
 	// 1 for coefficient and 0 for evaluation format
 	Format m_format;
 
-	// noise norm associated with this vector - to be defined later
-	// IntType m_norm;
-
 	// parameters for ideal lattices
 	shared_ptr<ParmType> m_params;
-
-	// static variables to store pre-computed samples and the parms that went with them
-	static std::vector<PolyImpl> m_dggSamples;
-	static shared_ptr<ParmType> m_dggSamples_params;
-
-	// static variables to store pre-computed samples and the parms that went with them
-	static std::vector<PolyImpl> m_tugSamples;
-	static shared_ptr<ParmType> m_tugSamples_params;
-
-	// static variable to store the sample size for each set of ILParams
-	static const usint m_sampleSize = SAMPLE_SIZE;
 
 	void ArbitrarySwitchFormat();
 };
 
-} //namespace lbcrypto ends
+// biginteger version
+template<>
+inline NativePoly
+PolyImpl<BigInteger, BigInteger, BigVector, ILParams>::DecryptionCRTInterpolate(PlaintextModulus ptm) const {
 
+	Poly smaller = this->Mod(ptm);
+	NativePoly interp(
+			shared_ptr<ILNativeParams>( new ILNativeParams(this->GetCyclotomicOrder(), ptm, 1) ),
+															this->GetFormat(), true);
 
-namespace native_int
-{
+	for (usint i = 0; i<smaller.GetLength(); i++) {
+		interp[i] = smaller[i].ConvertToInt();
+	}
 
-typedef lbcrypto::PolyImpl<native_int::BigInteger, native_int::BigInteger, native_int::BigVector, native_int::ILParams> Poly;
-
+	return std::move( interp );
 }
+
+// native poly version
+template<>
+inline NativePoly
+PolyImpl<NativeInteger, NativeInteger, NativeVector, ILNativeParams>::DecryptionCRTInterpolate(PlaintextModulus ptm) const {
+
+	return this->Mod(ptm);
+}
+
+
+} //namespace lbcrypto ends
 
 namespace lbcrypto
 {
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType> class PolyImpl;
 typedef PolyImpl<BigInteger, BigInteger, BigVector, ILParams> Poly;
+typedef PolyImpl<NativeInteger, NativeInteger, NativeVector, ILNativeParams> NativePoly;
 
 }
 

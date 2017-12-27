@@ -38,10 +38,10 @@ BigVector ZeroPadForward(const BigVector &InputPoly,usint target_order){
 		BigVector ans(target_order);
 
 		for(usint i=0;i<InputPoly.GetLength();i++)
-			ans.SetValAtIndex(i,InputPoly.GetValAtIndex(i));
+		  ans.at(i)=InputPoly.at(i);
 
 		for(usint i=InputPoly.GetLength();i<target_order;i++)
-			ans.SetValAtIndex(i, BigInteger(0));
+		  ans.at(i)= BigInteger(0);
 
 		ans.SetModulus(InputPoly.GetModulus());
 
@@ -63,8 +63,8 @@ BigVector ZeroPadInverse(const BigVector &InputPoly,usint target_order){
 
 		for(usint i=0;i<InputPoly.GetLength();i++)
 		{
-			ans.SetValAtIndex(2*i,BigInteger("0"));
-			ans.SetValAtIndex(2*i+1,InputPoly.GetValAtIndex(i));
+		  ans.at(2*i)=BigInteger("0");
+		  ans.at(2*i+1)=InputPoly.at(i);
 		}
 
 		ans.SetModulus(InputPoly.GetModulus());

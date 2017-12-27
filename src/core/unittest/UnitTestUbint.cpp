@@ -70,8 +70,6 @@ protected:
 /* here are all the methods that need to be tested (or have been
    tested but not removed from this list -- oops)
 
-printLimbsInDec
-printLimbsInHex
 SetValue(str)
 SetValue(&exp_int::xubint)
 
@@ -118,10 +116,7 @@ TEST(UTubint,string_conversions_msb){
     <<"Failure Convert 1 limb to float";
   EXPECT_EQ(163841.0, q1.ConvertToDouble())
     <<"Failure Convert 1 limb to double";
-#if 0
-  EXPECT_EQ(163841.0L, q1.ConvertToLongDouble())
-    <<"Failure Convert 1 limb to longdouble";
-#endif
+
   //test GetMSB() for 1 limb
   usint msb = q1.GetMSB();
 
@@ -162,32 +157,12 @@ TEST(UTubint,string_conversions_msb){
   EXPECT_NE(testd, (double)q2.ConvertToFloat())
     <<"Failure Convert 2 limb to float loss of precision";    
 
-#if 0
-  long double testld = 4057816419532801.0L;
-  //cout << "sizeoflongdouble "<< sizeof(long double) << endl;  
-  //cout << "testld "<< testld << endl;
-  EXPECT_EQ(testld, q2.ConvertToLongDouble())
-    <<"Failure Convert 2 limb to long double";
-#endif
 
   //test GetMSB()
   msb = q2.GetMSB();
   //DEBUG("q2 msb "<<msb);
   EXPECT_EQ(msb, 52U)<<  "Failure testing 2 limb msb test ";
 
-#if 0 //this 'feature' was removed to match BBI operation.
-  bool thrown = false;
-  try {
-    //test the ctor()
-
-    exp_int::xubint b;
-    usint bout = b.ConvertToUsint(); //should thrown since b is not initialised.
-  } catch (...) {
-    thrown = true;
-  }
-  EXPECT_TRUE(thrown) 
-    << "Failure testing ConvertToUsint() throw on uninitialed exp_int::xubint";
-#endif
 }
 TEST(UTubint,ctor){    
 
@@ -413,8 +388,8 @@ TEST(UTubint, compare){
   // Result is stored in signed integer, and then the result is
   // typecasted to int as  if  takes integer
 
-  sint c;
-  sint expectedResult;
+  int c;
+  int expectedResult;
   bool cbool;
   
   // TEST CASE WHEN FIRST NUMBER IS GREATER THAN SECOND NUMBER
@@ -1046,7 +1021,6 @@ TEST(UTubint,mod_operations){
       modresult = first.Mod(second);
     }
     catch (exception& e){
-      std::cout<<e.what()<<std::endl;
       thrown = true;
     }
 
@@ -1114,10 +1088,8 @@ TEST(UTubint,mod_inverse){
       calculatedResult = m.ModInverse(p);
     }
     catch (exception& e){
-      std::cout<<e.what()<<std::endl;
       thrown = true;
     }
-    //expectedResult = 77;
 
     EXPECT_TRUE(thrown)
       << "Failure testing ModInverse() non co-prime arguments";
@@ -1139,7 +1111,6 @@ TEST(UTubint,mod_inverse){
     }
     catch (exception& e){
       thrown = true;
-      std::cout<<e.what()<<std::endl;
       modIresult = 0;
     }
 
@@ -1231,8 +1202,6 @@ TEST(UTubint,mod_arithmetic){
     exp_int::xubint n("399");
     exp_int::xubint q("406");
 
-    //std::cout << "Before : " << std::endl;
-
     calculatedResult = m.ModSub(n,q);
     expectedResult = 196;
 
@@ -1317,8 +1286,6 @@ TEST(UTubint, misc_functions){
   exp_int::xubint expectedResult("100633769475");
   EXPECT_EQ(expectedResult, b)
     << "Failure testing BinaryToUbint()";
-#else
-  cout<<"No BinaryStringToUbint()"<<endl;
 #endif
 
 }

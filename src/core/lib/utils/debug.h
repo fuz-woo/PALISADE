@@ -58,7 +58,7 @@
 
 // debugging macro prints value of x and location in codex on cerr
 #define DEBUGWHERE(x) do {					\
-    if (dbg_flag) { std::cerr << #x << ":" << x << " at " << __FILE__ << " line "<< __LINE__ LL std::endl; }	\
+    if (dbg_flag) { std::cerr << #x << ":" << x << " at " << __FILE__ << " line "<< __LINE__ << std::endl; }	\
   } while (0)
 
 #if defined(PROFILE) //Profiler works
@@ -75,7 +75,7 @@
 
 // debugging macro prints value of x and location in codex on cerr
 #define PROFILELOGWHERE(x) do {					\
-    if (true){ std::cout << #x << ":" << x << " at " << __FILE__ << " line "<< __LINE__ LL std::endl;} \
+    if (true){ std::cout << #x << ":" << x << " at " << __FILE__ << " line "<< __LINE__ << std::endl;} \
   } while (0)
 
 #else //#if defined(PROFILE) //profiling a noop

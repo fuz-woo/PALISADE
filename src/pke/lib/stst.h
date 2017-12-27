@@ -28,7 +28,7 @@
  * This code provides support for the Stehle-Steinfeld cryptoscheme.
  *
  * Our Stehle-Steinfeld scheme implementation is described here:
- *   - Cristian Borcea, Arnab “Bobby” Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
+ *   - Cristian Borcea, Arnab "Bobby" Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
  *
  * This scheme is based on the subfield lattice attack immunity condition proposed in the Conclusions section here:
  *   - Albrecht, Martin, Shi Bai, and Léo Ducas. "A subfield lattice attack on overstretched NTRU assumptions." Annual Cryptology Conference. Springer Berlin Heidelberg, 2016.
@@ -59,7 +59,7 @@ namespace lbcrypto {
  * @brief This is the parameters class for the Stehle-Stenfeld encryption scheme.
  *
  *  Parameters for this scheme are defined here:
- *   - Cristian Borcea, Arnab “Bobby” Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
+ *   - Cristian Borcea, Arnab "Bobby" Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
  *
  * @tparam Element a ring element type.
  */
@@ -102,7 +102,7 @@ public:
 	 */
 	LPCryptoParametersStehleSteinfeld(
 			shared_ptr<typename Element::Params> params,
-			const BigInteger &plaintextModulus,
+			const PlaintextModulus &plaintextModulus,
 			float distributionParameter,
 			float assuranceMeasure,
 			float securityLevel,
@@ -110,7 +110,7 @@ public:
 			float distributionParmStst,
 			int depth = 1)
 	: LPCryptoParametersRLWE<Element>(params,
-			plaintextModulus,
+			EncodingParams( new EncodingParamsImpl(plaintextModulus) ),
 			distributionParameter,
 			assuranceMeasure,
 			securityLevel,
@@ -138,7 +138,7 @@ public:
 	*/
 	LPCryptoParametersStehleSteinfeld(
 		shared_ptr<typename Element::Params> params,
-		shared_ptr<EncodingParams> encodingParams,
+		EncodingParams encodingParams,
 		float distributionParameter,
 		float assuranceMeasure,
 		float securityLevel,
@@ -254,7 +254,7 @@ private:
  * @brief This is the algorithms class for the basic public key encrypt, decrypt and key generation methods for the Stehle-Stenfeld scheme encryption scheme.  
  *
  * Our Stehle-Steinfeld scheme implementation is described here:
- *   - Cristian Borcea, Arnab “Bobby” Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
+ *   - Cristian Borcea, Arnab "Bobby" Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
  *
  * This scheme is based on the subfield lattice attack immunity condition proposed in the Conclusions section here:
  *   - Albrecht, Martin, Shi Bai, and Léo Ducas. "A subfield lattice attack on overstretched NTRU assumptions." Annual Cryptology Conference. Springer Berlin Heidelberg, 2016.
@@ -281,13 +281,13 @@ public:
 	 * @param makeSparse True to generate a saprse key pair.
 	 * @return Public and private key pair.
 	 */
-	LPKeyPair<Element> KeyGen(CryptoContext<Element>* cc, bool makeSparse=false) { 		//makeSparse is not used
+	LPKeyPair<Element> KeyGen(CryptoContext<Element> cc, bool makeSparse=false) { 		//makeSparse is not used
 
-		LPKeyPair<Element>	kp(new LPPublicKey<Element>(cc), new LPPrivateKey<Element>(cc));
+		LPKeyPair<Element>	kp(new LPPublicKeyImpl<Element>(cc), new LPPrivateKeyImpl<Element>(cc));
 
 		const shared_ptr<LPCryptoParametersStehleSteinfeld<Element>> cryptoParams = std::dynamic_pointer_cast<LPCryptoParametersStehleSteinfeld<Element>>(cc->GetCryptoParameters());
 
-		const BigInteger &p = cryptoParams->GetPlaintextModulus();
+		const auto &p = cryptoParams->GetPlaintextModulus();
 
 		const typename Element::DggType &dgg = cryptoParams->GetDiscreteGaussianGeneratorStSt();
 
@@ -339,11 +339,36 @@ public:
 	* @param originalPrivateKey private key to start from when key switching.
 	* @return resulting evalkeyswitch hint
 	*/
-	shared_ptr<LPEvalKey<Element>> EvalMultKeyGen(const shared_ptr<LPPrivateKey<Element>> originalPrivateKey) const {
+	LPEvalKey<Element> EvalMultKeyGen(const LPPrivateKey<Element> originalPrivateKey) const {
 		std::string errMsg = "LPAlgorithmStSt::EvalMultKeyGen is not implemented for the Stehle-Steinfeld Scheme.";
 		throw std::runtime_error(errMsg);
 	}
 
+	/**
+	* Unimplemented function to generate an evaluation key for the Stehle-Steinfeld scheme.
+	*
+	* @param originalPrivateKey private key to start from when key switching.
+	* @return resulting evalkeyswitch hint
+	*/
+	vector<LPEvalKey<Element>> EvalMultKeysGen(const LPPrivateKey<Element> originalPrivateKey) const {
+		std::string errMsg = "LPAlgorithmStSt::EvalMultKeysGen is not implemented for the Stehle-Steinfeld Scheme.";
+		throw std::runtime_error(errMsg);
+	}
+
+	/**
+	* Unimplemented function to support  a multiplication with depth larger than 2 for the Stehle-Steinfeld scheme.
+	*
+	* @param ciphertext1 The first input ciphertext.
+	* @param ciphertext2 The second input ciphertext.
+	* @param evalKey The evaluation key input.
+	* @return A shared pointer to the ciphertext which is the EvalMult of the two inputs.
+	*/
+	Ciphertext<Element> EvalMultAndRelinearize(const Ciphertext<Element> ciphertext1,
+		const Ciphertext<Element> ciphertext2,
+		const vector<LPEvalKey<Element>> &ek) const {
+		std::string errMsg = "LPAlgorithmStSt::EvalMultAndRelinearize is not implemented for the Stehle-Steinfeld Scheme.";
+		throw std::runtime_error(errMsg);
+	}
 
 	/**
 	* Unimplemented function to generate an evaluation key for the Stehle-Steinfeld scheme. 
@@ -354,9 +379,9 @@ public:
 	* @param &k2 New private key to generate the keyswitch hint.
 	* @result A shared point to the resulting key switch hint.
 	*/
-	shared_ptr<LPEvalKey<Element>> KeySwitchGen(
-		const shared_ptr<LPPrivateKey<Element>> k1,
-		const shared_ptr<LPPrivateKey<Element>> k2) const {
+	LPEvalKey<Element> KeySwitchGen(
+		const LPPrivateKey<Element> k1,
+		const LPPrivateKey<Element> k2) const {
 		std::string errMsg = "LPAlgorithmStSt::KeySwitchGen is not implemented for the Stehle-Steinfeld Scheme.";
 		throw std::runtime_error(errMsg);
 	}
@@ -365,12 +390,12 @@ public:
 	/**
 	* Generate automophism keys for a given private key.  Thess methods are not currently supported.
 	*/
-	shared_ptr<std::map<usint, shared_ptr<LPEvalKey<Element>>>> EvalAutomorphismKeyGen(const shared_ptr<LPPublicKey<Element>> publicKey,
-		const shared_ptr<LPPrivateKey<Element>> origPrivateKey, const std::vector<usint> &indexList) const {
+	shared_ptr<std::map<usint, LPEvalKey<Element>>> EvalAutomorphismKeyGen(const LPPublicKey<Element> publicKey,
+		const LPPrivateKey<Element> origPrivateKey, const std::vector<usint> &indexList) const {
 		throw std::runtime_error("LPAlgorithmSHELTV::EvalAutomorphismKeyGen is not implemented for Stehle-Steinfeld SHE Scheme.");
 	}
 
-	shared_ptr<std::map<usint, shared_ptr<LPEvalKey<Element>>>> EvalAutomorphismKeyGen(const shared_ptr<LPPrivateKey<Element>> privateKey,
+	shared_ptr<std::map<usint, LPEvalKey<Element>>> EvalAutomorphismKeyGen(const LPPrivateKey<Element> privateKey,
 		const std::vector<usint> &indexList) const {
 		throw std::runtime_error("LPAlgorithmSHELTV::EvalAutomorphismKeyGen is not implemented for Stehle-Steinfeld SHE Scheme.");
 	}
@@ -385,7 +410,7 @@ public:
 * @brief This is the algorithms class for to enable deatures for the Stehle-Stenfeld scheme encryption scheme.  
  *
  * Our Stehle-Steinfeld scheme implementation is described here:
- *   - Cristian Borcea, Arnab “Bobby” Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
+ *   - Cristian Borcea, Arnab "Bobby" Deb Gupta, Yuriy Polyakov, Kurt Rohloff, Gerard Ryan, PICADOR: End-to-end encrypted Publish–Subscribe information distribution with proxy re-encryption, Future Generation Computer Systems, Volume 71, June 2017, Pages 177-191. http://dx.doi.org/10.1016/j.future.2016.10.013
  *
  * This scheme is based on the subfield lattice attack immunity condition proposed in the Conclusions section here:
  *   - Albrecht, Martin, Shi Bai, and Léo Ducas. "A subfield lattice attack on overstretched NTRU assumptions." Annual Cryptology Conference. Springer Berlin Heidelberg, 2016.
@@ -400,6 +425,12 @@ public:
 	*/
 	LPPublicKeyEncryptionSchemeStehleSteinfeld() : LPPublicKeyEncryptionSchemeLTV<Element>() {}
 
+	bool operator==(const LPPublicKeyEncryptionScheme<Element>& sch) const {
+		if( dynamic_cast<const LPPublicKeyEncryptionSchemeStehleSteinfeld<Element> *>(&sch) == 0 )
+			return false;
+		return true;
+	}
+
 	/**
 	* Function to enable a scheme.
 	*
@@ -413,10 +444,14 @@ public:
 				this->m_algorithmEncryption = new LPAlgorithmStSt<Element>();
 			break;
 		case PRE:
+			if (this->m_algorithmEncryption == NULL)
+				this->m_algorithmEncryption = new LPAlgorithmStSt<Element>();
 			if (this->m_algorithmPRE == NULL)
 				this->m_algorithmPRE = new LPAlgorithmPRELTV<Element>();
 			break;
 		case SHE:
+			if (this->m_algorithmEncryption == NULL)
+				this->m_algorithmEncryption = new LPAlgorithmStSt<Element>();
 			if (this->m_algorithmSHE == NULL)
 				this->m_algorithmSHE = new LPAlgorithmSHEStSt<Element>();
 			break;

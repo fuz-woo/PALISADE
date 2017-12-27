@@ -77,13 +77,13 @@ int main(int argc, char* argv[]){
 //function to compare two BigVectors and print differing indicies
 void vec_diff(BigVector &a, BigVector &b) {
   for (usint i= 0; i < a.GetLength(); ++i){  
-    if (a.GetValAtIndex(i) != b.GetValAtIndex(i)) {
+    if (a.at(i) != b.at(i)) {
       cout << "i: "<< i << endl;
       cout << "first vector " <<endl;
-      cout << a.GetValAtIndex(i);
+      cout << a.at(i);
       cout << endl;
       cout << "second vector " <<endl;
-      cout << b.GetValAtIndex(i);
+      cout << b.at(i);
       cout << endl;
 
     }
@@ -146,10 +146,10 @@ void test_NTT (const usint level, const usint nloop) {
   Poly x1b(dug1, x1p, Format::COEFFICIENT);
 
   for (size_t ix = 0; ix < m/2; ix++){
-    if (x1a.GetValues().GetValAtIndex(ix)>=q1) {
+    if (x1a.GetValues().at(ix)>=q1) {
       cout<<"bad value x1a "<<endl;
     }
-    if (x1b.GetValues().GetValAtIndex(ix)>=q1) {
+    if (x1b.GetValues().at(ix)>=q1) {
       cout<<"bad value x1a "<<endl;
     }
   }
@@ -209,11 +209,11 @@ void test_NTT (const usint level, const usint nloop) {
 
   //Precomputations for FTT
   TIC(t_setup);
-  ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().PreCompute(rootOfUnity1, m, q1);
-  ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().PreCompute(rootOfUnity2, m, q2);
+  ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(rootOfUnity1, m, q1);
+  ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(rootOfUnity2, m, q2);
   cout<<"CRT 2 setup time "<<TOC_US(t_setup)<<" usec"<<endl;
   TIC(t_setup);
-  ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().PreCompute(rootOfUnity3, m, q3);
+  ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(rootOfUnity3, m, q3);
   cout<<"CRT 3 setup time "<<TOC_US(t_setup)<<" usec"<<endl;
 
   time1af = 0.0;

@@ -32,8 +32,8 @@ File Listing
   - [ildcrtparams.h](src/lib/lattice/ildcrtparams.h): This file represents a parameter class for the more advanced and computationally efficient double-CRT lattice parameters.  This class inherits from the class in [ilparams.h](src/lib/lattice/ilparams.h), [ilparams.cpp](src/lib/lattice/ilparams.cpp).
 * Element classes files
   - [ilelement.h](src/lib/lattice/ilelement.h): This file presents a basic interface class for elements from ideal lattices.
-  - [poly.h](src/lib/lattice/poly.h), [poly.cpp](src/lib/lattice/poly.cpp): These files present a basic class for elements from ideal lattices using a single-CRT representation.  This class inherits from the class in [ilelement.h](src/lib/lattice/ilelement.h).
-  - [dcrtpoly.h](src/lib/lattice/dcrtpoly.h), [dcrtpoly.cpp](src/lib/lattice/dcrtpoly.cpp): These files present a basic class for elements from ideal lattices using a double-CRT representation.  This class inherits from the class in [ilelement.h](src/lib/lattice/ilelement.h).
+  - [poly.h](src/lib/lattice/poly.h), [poly.cpp](src/lib/lattice/poly.cpp): These files present a basic class for Poly, elements from ideal lattices using a single-CRT representation.  This class inherits from the class in [ilelement.h](src/lib/lattice/ilelement.h). This file also defines a NativePoly, which is simply a Poly using NativeInteger coefficients. A NativePoly is an important part of a DCRTPoly.
+  - [dcrtpoly.h](src/lib/lattice/dcrtpoly.h), [dcrtpoly.cpp](src/lib/lattice/dcrtpoly.cpp): These files present a basic class for DCRTPoly, elements from ideal lattices using a double-CRT representation.  This class inherits from the class in [ilelement.h](src/lib/lattice/ilelement.h).
 * Documentation files
   - [README.md](src/lib/lattice/README.md): This file.
 
@@ -46,15 +46,19 @@ The primary objective of the code in this directory is to represent polynomial r
 
 Support for arbitrary cyclotomic rings is also available but in experimental mode. The case of m = p and m = 2*p, where m is a cyclotomic order and p is a prime, have been tested relatively well. Other cases of m have not been tested.
 
-The two main data classes in this layer are Poly and DCRTPoly.
+The three main data classes in this layer are Poly, NativePoly and DCRTPoly.
 
-The primary differences between Poly and DCRTPoly are that Poly uses single-CRT representation and DCRTPoly uses double-CRT representation.  In practice, this means that Poly uses a single large modulus q, while  DCRTPoly uses multiple smaller moduli.  Hence, Poly runs slower than DCRTPoly because DCRTPoly operations can be easier to fit into the native bitwidths of commodity processors.
+A Poly is a single-CRT representation using BigInteger types as coefficients, and supporting a large modulus q.
 
-Poly and DCRTPoly implement the interface ILElement.  If new ring polynomials classes need to be built, we recommend building from ILElement, as we did with Poly and DCRTPoly.
+A NativePoly is a single-CRT representation using NativeInteger types, which limites the size of the coefficients and the modulus q to 64 bits.
 
-Supporting Poly and DCRTPoly are the classes ILParams and ILDCRTParams which respectively contain parameters for the ring element representations.  In the case of Poly, this includes the order, modulus and root of unity.  In the case of DCRTPoly, this includes the order, double-CRT width, moduli and roots of unity.
+A DCRTPoly is a double-CRT representation.  In practice, this means that Poly uses a single large modulus q, while  DCRTPoly uses multiple smaller moduli.  Hence, Poly runs slower than DCRTPoly because DCRTPoly operations can be easier to fit into the native bitwidths of commodity processors.
 
-ILParams and ILDCRTParams implement the interface ElemParams.  If new ring polynomials classes need to be built, we recommend building from ElemParams, as we did with ILParams and ILDCRTParams.
+Poly, NativePoly and DCRTPoly all implement the interface ILElement.  Any new ring polynomial classes should be built to conform to this interface.
+
+The classes ILParams and ILDCRTParams contain parameters for the ring element representations.  In the case of Poly and NativePoly, this includes the order, modulus and root of unity.  In the case of DCRTPoly, this includes the order, double-CRT width, moduli and roots of unity.
+
+ILParams and ILDCRTParams implement the interface ElemParams.  Any new parameter should be built to conform to this interface.
 
 FORMAT
 ------
@@ -62,7 +66,7 @@ The coefficients of the polynomial ring, in their initial form, are just coeffic
 Translated into one of Poly or DCRTPoly, can be simply seen
 as vector's representing polynomial rings.
 
-We internally represent polynomial ring elements as being either in coefficient or evaluation format.  The initial or raw format, is noted as COEFFICIENT through out the code. By applying the Chinese-Remainder-Transform (CRT), which is a Number Theoretic Transform (NTT)  and variant of the Discrete Fourier Transform (DFT), we convert the ring elements into the EVALUATION format. The EVALUATION format, with respect to multiplying two or more ring polynomials, allows us to do element-wise multiplication on the vectors.
+We internally represent polynomial ring elements as being either in coefficient or evaluation format.  The initial or raw format, is noted as COEFFICIENT throughout the code. By applying the Chinese-Remainder-Transform (CRT), which is a Number Theoretic Transform (NTT)  and variant of the Discrete Fourier Transform (DFT), we convert the ring elements into the EVALUATION format. The EVALUATION format, with respect to multiplying two or more ring polynomials, allows us to do element-wise multiplication on the vectors.
 
 Note that it is generally computationally less expensive to carry on all operations in the evaluation former.  However, the CRT and inverse CRT operations take O(nlogn) time using current best known algorithms, where n is the ring dimension.
 
@@ -72,4 +76,4 @@ ASSUMPTIONS
 * It is assumed that any scalar or vector operation such as multiplication, addition etc. done on one or more operations contain the same params.
   - Checks need to be added to the code to test the compatibility of parameters.
 * Multiplication is currently only implemented in the EVALUATION format.
-  - Code needs to be added to either implement COEFFICIENT format multiplication, or guard against COEFFICIENT format multiplication being called.
+  - Code needs to be added to implement COEFFICIENT format multiplication, if desired.

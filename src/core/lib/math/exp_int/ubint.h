@@ -162,18 +162,6 @@ namespace exp_int{
   };
 #endif
 
-#if 0
-  /**
-   * @brief Struct for calculating bit width from data type. 
-   * Sets value to the bitwidth of uint_type
-   *
-   * @tparam uint_type native integer data type.
-   */
-  template <typename uint_type>
-  struct UIntBitWidth{
-    const static int value = 8*sizeof(uint_type);
-  };
-#endif
   /**
    * @brief Struct to determine a datatype that is twice as big(bitwise) as utype.
    * sets T as of type void for default case
@@ -327,6 +315,12 @@ namespace exp_int{
      * @param &&rhs is the ubint to be moved from.
      */
      explicit ubint(ubint&& rhs);
+
+     /**
+      * Construct from a NativeInteger
+      * @param n
+      */
+     ubint(const NativeInteger& n) : ubint(n.ConvertToInt()) {}
     
     /**
      * Destructor.
@@ -408,15 +402,15 @@ namespace exp_int{
     //Auxillary Functions
 
     /**
-     * Prints the value of the vector of limbs to console in decimal format
-     */
-    void PrintLimbsInDec() const;
-
-   /**
-    * Prints the value of the vector of limbs to console in hex format
+    * Delivers value of the internal limb storage
+    * Used primarily for debugging
+    * @return STL vector of uint_type    
     */
-    void PrintLimbsInHex() const;
-
+    vector<limb_t> GetInternalRepresentation(void) const {
+      vector<limb_t> ret = m_value;
+      return ret;
+    }
+    
     /**
      * Basic set method for setting the value of a ubint
      *
@@ -438,14 +432,14 @@ namespace exp_int{
      */
     usint GetMSB()const;
 
-    //usshort GetMSB()const; //TODO: deprecate shouldn't be using shorts!
-
     /**
      * Returns the size of the underlying vector of Limbs
      *
      * @return the size
      */
     usint GetNumberOfLimbs()const;
+
+
 
     /**
      * Converts the value to a usint.
@@ -746,6 +740,18 @@ namespace exp_int{
     ubint ModBarrettMul(const ubint& b, const ubint& modulus,const ubint& mu) const;
 
     /**
+     * Scalar modular multiplication where Barrett modular reduction is used - In-place version
+     * Implements generalized Barrett modular reduction algorithm (no interleaving between multiplication and modulo).
+     * Uses one precomputed value \mu.
+     * See the cpp file for details of the implementation.
+     *
+     * @param b is the scalar to multiply.
+     * @param modulus is the modulus to perform operations with.
+     * @param mu is the precomputed Barrett value.
+     */
+    void ModBarrettMulInPlace(const ubint& b, const ubint& modulus, const ubint& mu);
+    
+    /**
     * Scalar modular multiplication where Barrett modular reduction is used.
     * NOTE this actually just calls ModMul, mu_arr is ignored
     * @param &b is the scalar to multiply.
@@ -772,10 +778,24 @@ namespace exp_int{
     const std::string ToString() const;		
 
     //Serialization functions
-    const std::string Serialize(const ubint& mod = 0) const;
-    const char * Deserialize(const char * str, const ubint& mod = 0);
+    const std::string SerializeToString(const ubint& mod = 0) const;
+    const char * DeserializeFromString(const char * str, const ubint& mod = 0);
 
 
+    /**
+     * Serialize the object into a Serialized
+     * @param serObj is used to store the serialized result. It MUST be a rapidjson Object (SetObject());
+     * @return true if successfully serialized
+     */
+    bool Serialize(lbcrypto::Serialized* serObj) const;
+
+    /**
+     * Populate the object from the deserialization of the Serialized
+     * @param serObj contains the serialized object
+     * @return true on success
+     */
+    bool Deserialize(const lbcrypto::Serialized& serObj);
+    
     // helper functions
 
     /**
@@ -845,6 +865,7 @@ namespace exp_int{
      * @return true if the inputs are equal.
      */
     bool operator==(const ubint& a) const;
+    bool operator==(const usint& a) const;    
 
     /**
      * Test inequality of the inputs.
@@ -853,6 +874,7 @@ namespace exp_int{
      * @return true if the inputs are inequal.
      */
     bool operator!=(const ubint& a) const;
+    bool operator!=(const usint& a) const;
 
     /**
      * Test if first input is great than the second input.
@@ -966,29 +988,19 @@ namespace exp_int{
 
 	//print_VALUE = print_VALUE*2
 	ubint::double_bitVal(print_VALUE);
-#ifdef DEBUG_OSTREAM
-	for(sint i=0;i<ptr_obj.m_numDigitInPrintval;i++)
-	  std::cout<<(sint)*(print_VALUE+i);
-	std::cout<<std::endl;
-#endif
+
 	//adds the bit value to the print_VALUE
 	ubint::add_bitVal(print_VALUE,print_obj->GetBitAtIndex(i));
-#ifdef DEBUG_OSTREAM
-	for(sint i=0;i<ptr_obj.m_numDigitInPrintval;i++)
-	  std::cout<<(sint)*(print_VALUE+i);
-	std::cout<<std::endl;
-#endif
-
       }
 
       //find the first occurence of non-zero value in print_VALUE
       for(counter=0;counter<ptr_obj.m_numDigitInPrintval-1;counter++){
-	if((sint)print_VALUE[counter]!=0)break;							
+    	  	  if(print_VALUE[counter]!=0)break;
       }
 
       //start inserting values into the ostream object 
       for(;counter<ptr_obj.m_numDigitInPrintval;counter++){
-	os<<(int)print_VALUE[counter];
+    	  	  os<<(int)print_VALUE[counter];
       }
 
       //os<<endl;
@@ -997,9 +1009,6 @@ namespace exp_int{
       delete print_obj;
       return os;
     }
-
-	//TODO get rid of all PrintValues
-    void PrintValues() const { std::cout << *this; }
 
  private:
     static inline limb_t base64_to_value(const char &b64);
@@ -1050,7 +1059,7 @@ namespace exp_int{
      * @param a is the ubint to be compared with.
      * @return  -1 for strictly less than, 0 for equal to and 1 for strictly greater than conditons.
      */
-    sint Compare(const ubint& a) const;
+    int Compare(const ubint& a) const;
 
     /**
      *  Set this int to 1.
@@ -1257,7 +1266,18 @@ namespace exp_int{
   //todo: does this go here?
   template<typename limb_t>
     inline ubint<limb_t> operator/(const ubint<limb_t> &a, const ubint<limb_t> &b) {return a.Div(b);}
-  
+
+  // stream helper function for vector of objects
+  template < typename limb_t >
+    inline std::ostream& operator << (std::ostream& os, const std::vector<limb_t>& v) {
+    os << "[";
+    for (const auto& itr : v){
+      os << " " << itr;
+    }
+    os << " ]";
+    return os;
+  };
+
 }//namespace ends
 
 #endif //LBCRYPTO_MATH_EXPINT_UBINT_H

@@ -25,35 +25,16 @@
  */
 
 #include "../math/backend.h"
+#include "../math/native_int/binint.h"
+#include "../math/native_int/binvect.cpp"
 #include "../math/discretegaussiangenerator.cpp"
 #include "../math/discreteuniformgenerator.cpp"
 #include "../math/binaryuniformgenerator.cpp"
 #include "../math/ternaryuniformgenerator.cpp"
 
-namespace native_int
-{
-template class NativeInteger<uint64_t>;
-template<> const NativeInteger<uint64_t> NativeInteger<uint64_t>::ZERO = (0);
-template<> const NativeInteger<uint64_t> NativeInteger<uint64_t>::ONE = (1);
-template<> const NativeInteger<uint64_t> NativeInteger<uint64_t>::TWO = (2);
-template<> const NativeInteger<uint64_t> NativeInteger<uint64_t>::THREE = (3);
-template<> const NativeInteger<uint64_t> NativeInteger<uint64_t>::FOUR = (4);
-template<> const NativeInteger<uint64_t> NativeInteger<uint64_t>::FIVE = (5);
-
-template<> unique_ptr<NativeInteger<uint64_t>> NativeInteger<uint64_t>::Allocator() {
-	return lbcrypto::make_unique<NativeInteger<uint64_t>>();
-};
-
-}
-
 #include "elemparams.cpp"
 #include "ilparams.cpp"
 #include "poly.cpp"
-
-namespace cpu_int
-{
-template class BigVectorImpl<native_int::NativeInteger<uint64_t>>;
-}
 
 namespace lbcrypto
 {
@@ -66,26 +47,17 @@ template class DiscreteUniformGeneratorImpl<BigInteger,BigVector>;
 namespace lbcrypto
 {
 template class ILParamsImpl<BigInteger>;
-
 template class PolyImpl<BigInteger,BigInteger,BigVector,ILParams>;
-
-//template<>
-//PolyImpl<native_int::BigInteger,native_int::BigInteger,native_int::BigVector,native_int::ILParams>::PolyImpl(const shared_ptr<ILDCRTParams> params, Format format, bool initializeElementToZero) : m_values(nullptr), m_format(format) {
-//	throw std::logic_error("cannot use this constructor with a native vector");
-//}
-
 }
 
-// FIXME the MATH_BACKEND check is a hack and needs to go away
-#if MATHBACKEND != 7
 namespace lbcrypto
 {
-template class DiscreteGaussianGeneratorImpl<native_int::BigInteger,native_int::BigVector>;
-template class BinaryUniformGeneratorImpl<native_int::BigInteger,native_int::BigVector>;
-template class TernaryUniformGeneratorImpl<native_int::BigInteger,native_int::BigVector>;
-template class DiscreteUniformGeneratorImpl<native_int::BigInteger,native_int::BigVector>;
+template class DiscreteGaussianGeneratorImpl<NativeInteger,NativeVector>;
+template class BinaryUniformGeneratorImpl<NativeInteger,NativeVector>;
+template class TernaryUniformGeneratorImpl<NativeInteger,NativeVector>;
+template class DiscreteUniformGeneratorImpl<NativeInteger,NativeVector>;
 
-template class PolyImpl<native_int::BigInteger,native_int::BigInteger,native_int::BigVector,ILNativeParams>;
-template class ILParamsImpl<native_int::BigInteger>;
+template class ElemParams<NativeInteger>;
+template class ILParamsImpl<NativeInteger>;
+template class PolyImpl<NativeInteger,NativeInteger,NativeVector,ILNativeParams>;
 }
-#endif

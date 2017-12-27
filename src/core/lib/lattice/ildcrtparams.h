@@ -59,20 +59,21 @@ public:
 	 *
 	 * @param order the order of the ciphertext.
 	 * @param depth is the modulus for the entire tower.
-	 * @param bits is the number of bits of the moduli.  This determines whether native data types can be used if # of bits
-	 * is less than 64.
+	 * @param bits is the number of bits of each moduli.
 	 */
 	ILDCRTParams(usint order=0, usint depth=1, usint bits=20);
 
 	/**
-	 * @brief Constructor with some pre-computed parameters. That value is automatically calculated. Root of unity of the modulus is also calculated.
+	 * @brief Constructor with basic parameters
 	 *
 	 * @param cyclotomic_order the order of the ciphertext
 	 * @param &modulus is the modulus for the primary ciphertext.
 	 * @param rootsOfUnity is unused
 	 */
-	ILDCRTParams(const usint cyclotomic_order, const BigInteger &modulus, const BigInteger& rootsOfUnity)
-		: ElemParams<IntType>(cyclotomic_order, modulus, 0, 0, 0) {}
+	ILDCRTParams(const usint cyclotomic_order, const BigInteger &modulus, const BigInteger& rootOfUnity)
+		: ElemParams<IntType>(cyclotomic_order, modulus, 0, 0, 0) {
+		// note this does not create a tower of native params
+	}
 
 	/**
 	 * @brief Constructor with some pre-computed parameters provided as input.
@@ -84,8 +85,8 @@ public:
 	 * @return
 	 */
 	ILDCRTParams(const usint cyclotomic_order, 
-		const std::vector<native_int::BigInteger> &moduli, const std::vector<native_int::BigInteger>& rootsOfUnity,
-		const std::vector<native_int::BigInteger> &moduliBig = {}, const std::vector<native_int::BigInteger>& rootsOfUnityBig = {})
+		const std::vector<NativeInteger> &moduli, const std::vector<NativeInteger>& rootsOfUnity,
+		const std::vector<NativeInteger> &moduliBig = {}, const std::vector<NativeInteger>& rootsOfUnityBig = {})
 		: ElemParams<IntType>(cyclotomic_order, 0, 0, 0, 0) {
 		if( moduli.size() != rootsOfUnity.size() )
 			throw std::logic_error("sizes of moduli and roots of unity do not match");
@@ -93,14 +94,14 @@ public:
 		if(moduliBig.size() == moduli.size())
 		{ 
 			for (size_t i = 0; i < moduli.size(); i++) {
-				m_parms.push_back(std::shared_ptr<native_int::ILParams>(new native_int::ILParams(cyclotomic_order, moduli[i], rootsOfUnity[i], moduliBig[i], rootsOfUnityBig[i])));
+				m_parms.push_back(std::shared_ptr<ILNativeParams>(new ILNativeParams(cyclotomic_order, moduli[i], rootsOfUnity[i], moduliBig[i], rootsOfUnityBig[i])));
 			}
 			RecalculateBigModulus();
 		}
 		else
 		{
 			for (size_t i = 0; i < moduli.size(); i++) {
-				m_parms.push_back(std::shared_ptr<native_int::ILParams>(new native_int::ILParams(cyclotomic_order, moduli[i], rootsOfUnity[i])));
+				m_parms.push_back(std::shared_ptr<ILNativeParams>(new ILNativeParams(cyclotomic_order, moduli[i], rootsOfUnity[i])));
 			}
 		}
 		RecalculateModulus();
@@ -112,10 +113,10 @@ public:
 	 * @param cyclotomic_order the order of the ciphertext
 	 * @param &moduli is the tower of moduli
 	 */
-	ILDCRTParams(const usint cyclotomic_order, const std::vector<native_int::BigInteger> &moduli)
+	ILDCRTParams(const usint cyclotomic_order, const std::vector<NativeInteger> &moduli)
 		: ElemParams<IntType>(cyclotomic_order, 0, 0, 0, 0) {
 		for( size_t i=0; i<moduli.size(); i++ ) {
-			m_parms.push_back( std::shared_ptr<native_int::ILParams>( new native_int::ILParams(cyclotomic_order, moduli[i], 0, 0, 0) ) );
+			m_parms.push_back( std::shared_ptr<ILNativeParams>( new ILNativeParams(cyclotomic_order, moduli[i], 0, 0, 0) ) );
 		}
 		RecalculateModulus();
 	}
@@ -126,7 +127,7 @@ public:
 	 * @param parms the componet parameters.
 	 * @return
 	 */
-	ILDCRTParams(const usint cyclotomic_order, std::vector<std::shared_ptr<native_int::ILParams>>& parms)
+	ILDCRTParams(const usint cyclotomic_order, std::vector<std::shared_ptr<ILNativeParams>>& parms)
 		: ElemParams<IntType>(cyclotomic_order, 0, 0, 0, 0), m_parms(parms) {
 		RecalculateModulus();
 	}
@@ -150,16 +151,16 @@ public:
 	 * @brief Getter method for the component parameters.
 	 * @return A vector of the component polynomial parameters.
 	 */
-	const std::vector<std::shared_ptr<native_int::ILParams>> &GetParams() const {
+	const std::vector<std::shared_ptr<ILNativeParams>> &GetParams() const {
 		return m_parms;
 	}
 
 	/**
-	 * @brief Getter method for the component parameters of a specific index.
+	 * @brief Getter method for the comp19onent parameters of a specific index.
 	 * @param i the index of the parameters to return.  Note this this call is unguarded if the index is out of bounds.
 	 * @return the parameters at index i.
 	 */
-	std::shared_ptr<native_int::ILParams>& operator[](const usint i) {
+	std::shared_ptr<ILNativeParams>& operator[](const usint i) {
 		return m_parms[i];
 	}
 
@@ -251,7 +252,7 @@ private:
 
 private:
 	// array of smaller ILParams
-	std::vector<std::shared_ptr<native_int::ILParams>>	m_parms;
+	std::vector<std::shared_ptr<ILNativeParams>>	m_parms;
 
 };
 

@@ -26,157 +26,123 @@
 #include "include/gtest/gtest.h"
 #include <iostream>
 #include <vector>
+#include <list>
 
 #include "palisade.h"
-#include "cryptolayertests.h"
 #include "cryptocontexthelper.h"
 #include "cryptocontextgen.h"
+#include "utils/testcasegen.h"
 
 using namespace std;
 using namespace lbcrypto;
 
-class UnitTestPRE : public ::testing::Test {
-protected:
-	virtual void SetUp() {}
+// This file unit tests the PRE capabilities for all schemes, using all known elements
 
-	virtual void TearDown() {}
-
+class ReEncrypt : public ::testing::Test {
 public:
+	virtual ~ReEncrypt() {}
+
+protected:
+	void SetUp() {}
+
+	void TearDown() {
+		CryptoContextFactory<NativePoly>::ReleaseAllContexts();
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+		CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+	}
 };
 
-// NOTE the PRE tests are all based on these
-static const usint ORDER = 2048;
-static const usint PTM = 256;
-static const usint TOWERS = 3;
+// FIXME StSt will not work with NativePoly because the bits for q are too big for a NativeInteger
+//GENERATE_PKE_TEST_CASE_BITS(x, y, NativePoly, StSt, ORD, PTM, 80)
 
-template <class Element>
-void
-UnitTestReEncrypt(shared_ptr<CryptoContext<Element>> cc, bool publicVersion) {
-	BytePlaintextEncoding plaintextShort;
-	BytePlaintextEncoding plaintextFull;
-	BytePlaintextEncoding plaintextLong;
+#define GENERATE_TEST_CASES_FUNC(x,y,ORD,PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, Null, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, LTV, ORD, PTM) \
+GENERATE_PKE_TEST_CASE_BITS(x, y, Poly, StSt, ORD, PTM, 80) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BGV_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BGV_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFV_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFV_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrns_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, Null, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, LTV, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BGV_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BGV_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFV_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFV_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrns_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, Null, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, LTV, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, StSt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BGV_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BGV_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_opt, ORD, PTM)
 
-	GenerateTestPlaintext(cc->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder(),
-			cc->GetCryptoParameters()->GetPlaintextModulus(),
-			plaintextShort, plaintextFull, plaintextLong);
+static const usint ORDER = 4096;
+static const usint PTMOD = 256;
 
-	size_t intSize = cc->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder() / 2;
-	auto ptm = cc->GetCryptoParameters()->GetPlaintextModulus().ConvertToInt();
+template<typename Element>
+static void ReEncryption(const CryptoContext<Element> cc, const string& failmsg) {
+	size_t vecSize = cc->GetRingDimension();
 
-	vector<uint32_t> intvec;
-	for( size_t ii=0; ii<intSize; ii++)
-		intvec.push_back( rand() % ptm );
-	IntPlaintextEncoding plaintextInt(intvec);
+	auto randchar = []() -> char {
+		const char charset[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        const size_t max_index = (sizeof(charset) - 1);
+        return charset[ rand() % max_index ];
+	};
 
-	////////////////////////////////////////////////////////////
-	//Perform the key generation operations
-	////////////////////////////////////////////////////////////
+	string shortStr(vecSize/2,0);
+	std::generate_n(shortStr.begin(), vecSize/2, randchar);
+	Plaintext plaintextShort( new StringEncoding(cc->GetElementParams(), cc->GetEncodingParams(), shortStr) );
 
-	// Initialize the key containers.
+	string fullStr(vecSize,0);
+	std::generate_n(fullStr.begin(), vecSize, randchar);
+	Plaintext plaintextFull( new StringEncoding(cc->GetElementParams(), cc->GetEncodingParams(), fullStr) );
+
+	auto ptm = cc->GetCryptoParameters()->GetPlaintextModulus();
+
+	vector<int64_t> intvec;
+	for( size_t ii=0; ii<vecSize; ii++)
+		intvec.push_back( (rand() % (ptm/2)) * (rand()%2 ? 1 : -1) );
+	Plaintext plaintextInt( new CoefPackedEncoding(cc->GetElementParams(), cc->GetEncodingParams(), intvec) );
+
 	LPKeyPair<Element> kp = cc->KeyGen();
-
-	if (!kp.good()) {
-		std::cout << "Key generation failed!" << std::endl;
-		exit(1);
-	}
-
-	////////////////////////////////////////////////////////////
-	//Perform the second key generation operation.
-	// This generates the keys which should be able to decrypt the ciphertext after the re-encryption operation.
-	////////////////////////////////////////////////////////////
+	EXPECT_EQ(kp.good(), true) << failmsg << " key generation for scalar encrypt/decrypt failed";
 
 	LPKeyPair<Element> newKp = cc->KeyGen();
+	EXPECT_EQ(newKp.good(), true) << failmsg << " second key generation for scalar encrypt/decrypt failed";
 
-
-	if (!newKp.good()) {
-		std::cout << "Key generation 2 failed!" << std::endl;
-		exit(1);
-	}
-	////////////////////////////////////////////////////////////
-	//Perform the proxy re-encryption key generation operation.
 	// This generates the keys which are used to perform the key switching.
-	////////////////////////////////////////////////////////////
-
-	shared_ptr<LPEvalKey<Element>> evalKey;
-	if( publicVersion )
-		evalKey = cc->ReKeyGen(newKp.publicKey, kp.secretKey);
-	else
+	LPEvalKey<Element> evalKey;
+	if( failmsg.substr(0,3) == "BGV" || failmsg.substr(0,3) == "BFV" || failmsg.substr(0,6) == "BFVrns" ) {
 		evalKey = cc->ReKeyGen(newKp.secretKey, kp.secretKey);
+	} else {
+		evalKey = cc->ReKeyGen(newKp.publicKey, kp.secretKey);
+	}
 
+	Ciphertext<Element> ciphertext = cc->Encrypt(kp.publicKey, plaintextShort);
+	Plaintext plaintextShortNew;
+	Ciphertext<Element> reCiphertext = cc->ReEncrypt(evalKey, ciphertext);
+	DecryptResult result = cc->Decrypt(newKp.secretKey, reCiphertext, &plaintextShortNew);
+	EXPECT_EQ(plaintextShortNew->GetStringValue(), plaintextShort->GetStringValue()) << failmsg << " ReEncrypt short string plaintext with padding";
 
-	vector<shared_ptr<Ciphertext<Element>>> ciphertext = cc->Encrypt(kp.publicKey, plaintextShort, true);
-	BytePlaintextEncoding plaintextShortNew;
-	vector<shared_ptr<Ciphertext<Element>>> reCiphertext = cc->ReEncrypt(evalKey, ciphertext);
-	DecryptResult result = cc->Decrypt(newKp.secretKey, reCiphertext, &plaintextShortNew, true);
-	EXPECT_EQ(plaintextShortNew, plaintextShort) << "ReEncrypt short plaintext with padding";
+	Ciphertext<Element> ciphertext2 = cc->Encrypt(kp.publicKey, plaintextFull);
+	Plaintext plaintextFullNew;
+	Ciphertext<Element> reCiphertext2 = cc->ReEncrypt(evalKey, ciphertext2);
+	result = cc->Decrypt(newKp.secretKey, reCiphertext2, &plaintextFullNew);
+	EXPECT_EQ(plaintextFullNew->GetStringValue(), plaintextFull->GetStringValue()) << failmsg << " ReEncrypt full string plaintext";
 
-	vector<shared_ptr<Ciphertext<Element>>> ciphertext2 = cc->Encrypt(kp.publicKey, plaintextFull, false);
-	BytePlaintextEncoding plaintextFullNew;
-	vector<shared_ptr<Ciphertext<Element>>> reCiphertext2 = cc->ReEncrypt(evalKey, ciphertext2);
-	result = cc->Decrypt(newKp.secretKey, reCiphertext2, &plaintextFullNew, false);
-	EXPECT_EQ(plaintextFullNew, plaintextFull) << "ReEncrypt regular plaintext";
-
-	vector<shared_ptr<Ciphertext<Element>>> ciphertext3 = cc->Encrypt(kp.publicKey, plaintextLong, false);
-	BytePlaintextEncoding plaintextLongNew;
-	vector<shared_ptr<Ciphertext<Element>>> reCiphertext3 = cc->ReEncrypt(evalKey, ciphertext3);
-	result = cc->Decrypt(newKp.secretKey, reCiphertext3, &plaintextLongNew, false);
-	EXPECT_EQ(plaintextLongNew, plaintextLong) << "ReEncrypt long plaintext";
-
-	vector<shared_ptr<Ciphertext<Element>>> ciphertext4 = cc->Encrypt(kp.publicKey, plaintextInt, false);
-	IntPlaintextEncoding plaintextIntNew;
-	vector<shared_ptr<Ciphertext<Element>>> reCiphertext4 = cc->ReEncrypt(evalKey, ciphertext4);
-	result = cc->Decrypt(newKp.secretKey, reCiphertext4, &plaintextIntNew, false);
-	EXPECT_EQ(plaintextIntNew, plaintextInt) << "ReEncrypt integer plaintext";
+	Ciphertext<Element> ciphertext4 = cc->Encrypt(kp.publicKey, plaintextInt);
+	Plaintext plaintextIntNew;
+	Ciphertext<Element> reCiphertext4 = cc->ReEncrypt(evalKey, ciphertext4);
+	result = cc->Decrypt(newKp.secretKey, reCiphertext4, &plaintextIntNew);
+	EXPECT_EQ(plaintextIntNew->GetCoefPackedValue(), plaintextInt->GetCoefPackedValue()) << failmsg << " ReEncrypt integer plaintext";
 }
 
-TEST(UTPRE, LTV_Poly_ReEncrypt_pub) {
-	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementLTV(ORDER, PTM);
-	UnitTestReEncrypt<Poly>(cc, true);
-}
-
-//TEST(UTPRE, LTV_DCRTPoly_ReEncrypt_pub) {
-//	shared_ptr<CryptoContext<DCRTPoly>> cc = GenCryptoContextElementArrayLTV(ORDER, TOWERS, PTM);
-//	UnitTestReEncrypt<DCRTPoly>(cc, true);
-//}
-
-//TEST(UTPRE, StSt_Poly_ReEncrypt_pub) {
-//	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementStSt(ORDER, PTM);
-//	UnitTestReEncrypt<Poly>(cc, true);
-//}
-//
-//TEST(UTPRE, StSt_DCRTPoly_ReEncrypt_pub) {
-//	shared_ptr<CryptoContext<DCRTPoly>> cc = GenCryptoContextElementArrayStSt(ORDER, TOWERS, PTM);
-//	UnitTestReEncrypt<DCRTPoly>(cc, true);
-//}
-
-TEST(UTPRE, Null_Poly_ReEncrypt_pub) {
-	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementNull(ORDER, PTM);
-	UnitTestReEncrypt<Poly>(cc, true);
-}
-
-TEST(UTPRE, Null_DCRTPoly_ReEncrypt_pub) {
-	shared_ptr<CryptoContext<DCRTPoly>> cc = GenCryptoContextElementArrayNull(ORDER, TOWERS, PTM, 30);
-	UnitTestReEncrypt<DCRTPoly>(cc, true);
-}
-
-TEST(UTPRE, BV_Poly_ReEncrypt_pri) {
-	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementBV(ORDER, PTM);
-	UnitTestReEncrypt<Poly>(cc, false);
-}
-
-#if !defined(_MSC_VER)
-TEST(UTPRE, BV_DCRTPoly_ReEncrypt_pri) {
-	shared_ptr<CryptoContext<DCRTPoly>> cc = GenCryptoContextElementArrayBV(ORDER, TOWERS, PTM);
-	UnitTestReEncrypt<DCRTPoly>(cc, false);
-}
-#endif
-
-TEST(UTPRE, FV_Poly_ReEncrypt_pri) {
-	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementFV(ORDER, PTM);
-	UnitTestReEncrypt<Poly>(cc, false);
-}
-
-//TEST(UTPRE, FV_DCRTPoly_ReEncrypt_pri) {
-//	shared_ptr<CryptoContext<DCRTPoly>> cc = GenCryptoContextElementArrayFV(ORDER, TOWERS, PTM);
-//	UnitTestReEncrypt<DCRTPoly>(cc, false);
-//}
+GENERATE_TEST_CASES_FUNC(ReEncrypt, ReEncryption, ORDER, PTMOD)

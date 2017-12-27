@@ -135,14 +135,22 @@ TEST(UTNbTheory, method_miller_rabin_primality) {
 }
 // TEST CASE FOR FACTORIZATION
 
+template<typename Element>
+::testing::AssertionResult isMemberOf(Element val, const vector<Element>& values) {
+	if( std::find(values.begin(), values.end(), val) != values.end() )
+	    return ::testing::AssertionSuccess();
+    return ::testing::AssertionFailure();
+}
+
 TEST(UTNbTheory, method_factorize_returns_factors){
 	BigInteger comp("53093040");
 	std::set<BigInteger> factors;
+	vector<BigInteger> answers({2, 3, 5, 7, 11, 13, 15, 17});
+
 	lbcrypto::PrimeFactorize(comp, factors);
 
 	for(std::set<BigInteger>::iterator it = factors.begin(); it != factors.end(); ++it) {
-		// std::cout << *it << std::endl;
-		// ASSERT_THAT(*it, ElementsAre(2, 3, 5));
+		EXPECT_TRUE(isMemberOf(*it, answers));
 	}
 }
 
@@ -346,20 +354,20 @@ TEST(UTNbTheory, test_nextQ){
 	usint bits = 22;
 
 	BigVector moduliBBV(10);
-    moduliBBV.SetValAtIndex(0, "4263937");
-    moduliBBV.SetValAtIndex(1, "4270081");
-    moduliBBV.SetValAtIndex(2, "4274177");
-    moduliBBV.SetValAtIndex(3, "4294657");
-    moduliBBV.SetValAtIndex(4, "4300801");
-    moduliBBV.SetValAtIndex(5, "4304897");
-    moduliBBV.SetValAtIndex(6, "4319233");
-    moduliBBV.SetValAtIndex(7, "4323329");
-    moduliBBV.SetValAtIndex(8, "4360193");
-    moduliBBV.SetValAtIndex(9, "4366337");
+	moduliBBV.at(0)= "4263937";
+	moduliBBV.at(1)= "4270081";
+	moduliBBV.at(2)= "4274177";
+	moduliBBV.at(3)= "4294657";
+	moduliBBV.at(4)= "4300801";
+	moduliBBV.at(5)= "4304897";
+	moduliBBV.at(6)= "4319233";
+	moduliBBV.at(7)= "4323329";
+	moduliBBV.at(8)= "4360193";
+	moduliBBV.at(9)= "4366337";
 
 	q = FirstPrime<BigInteger>(bits,m);
 	for(usint i=0; i<10; i++){
         q = NextPrime(q, m);
-		EXPECT_EQ(q, moduliBBV.GetValAtIndex(i));
+		EXPECT_EQ(q, moduliBBV.at(i));
 	}
 }

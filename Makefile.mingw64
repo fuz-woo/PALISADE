@@ -6,17 +6,24 @@ BOOSTLIB := -L C:/boost_1_60_0/stage/lib/
 #BOOSTINCLUDE := 
 #BOOSTLIB := 
 
+ifneq ($(wildcard third-party/include), )
+  #$(info GMP/NTL directory third-party/include exists)
+  NTLLIB := third-party/lib/libntl.a
+  GMPLIB := third-party/lib/libgmp.a
+else
+  #$(info GMP/NTL directory third-party does not exist)
+endif
+
 OMPINCLUDE := 
 CPPSTD := -std=gnu++11
 CC := g++ $(CPPSTD)
 
-LIBCMD := -s -shared -Wl,--subsystem,windows  -fopenmp
+LIBCMD := $(CC) -s -shared -Wl,--subsystem,windows  -fopenmp -o #libname to follow
 
 LIBSUFFIX := .dll
 EXESUFFIX := .exe
 
-MINGWREGEX := -Lc:/Mingw64/mingw64/opt/lib -lregex -lshlwapi
-
+SHLWAPI := -lshlwapi
 RDYNAMIC := 
 
 JNIBUILD :=  -I "C:/Program Files/java/jdk1.8.0_91/include" -I "C:/Program Files/java/jdk1.8.0_91/include/win32"

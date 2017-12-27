@@ -40,19 +40,23 @@
 
 #include "../../utils/inttypes.h"
 #include "../../utils/serializable.h"
+#include "../../utils/exception.h"
 #include <initializer_list>
-#include "gmpintvec.h"
-#include "mgmpint.h"
+#include "gmpint.h"
 
-#if 1
 #include <NTL/vector.h>
 #include <NTL/vec_ZZ.h>
 #include <NTL/SmartPtr.h>
-#include <NTL/vec_ZZ_p.h>
-#endif
 
-//defining this forces modulo when you write to the vector (except with SetValAtIndexWithoutMod)
-#define FORCE_NORMALIZATION 
+//defining this forces modulo when you write to the vector (except with at())
+//this is becuase NTL required inputs to modmath to be < modulus but BU does not
+// play with this and you will see different tests in pke pass and fail.
+//I think this will go away soon
+//#define FORCE_NORMALIZATION 
+
+
+//defining this enables a run time warning when a vector with uninitialized modulus is used in math operations (A very bad thing) 
+//#define WARN_BAD_MODULUS
 
 /**
  * @namespace NTL
@@ -62,9 +66,6 @@ namespace NTL {
   /**
    * @brief The class for representing vectors of ubint with associated modulo math
    */
-  //note this inherits from gmpintvec
-
-  //JSON FACILITY
 
   template<class myT>
     class myVecP : public NTL::Vec<myT> {
@@ -72,57 +73,43 @@ namespace NTL {
 
 
   public:
-    //note gmpint.h puts constructor bodies here, 
-    //mubint.h moves them to .cpp, so we may do that too. 
 
 
   myVecP(): Vec<myT>() {};
     //constructors without moduli
-    explicit myVecP(const usint n): Vec<myT>(INIT_SIZE, n) {m_modulus_state = GARBAGE;}; 
-   myVecP(const INIT_SIZE_TYPE, const long n): Vec<myT>(INIT_SIZE, n) {m_modulus_state = GARBAGE;}; 
-   myVecP(const INIT_SIZE_TYPE, const long n,  myT const& a): Vec<myT>(INIT_SIZE, n, a)  {m_modulus_state = GARBAGE;}; 
+    explicit myVecP(const size_t length): Vec<myT>(INIT_SIZE, length) {m_modulus_state = GARBAGE;}; 
+   myVecP(INIT_SIZE_TYPE, const long length): Vec<myT>(INIT_SIZE, length) {m_modulus_state = GARBAGE;};
 
 
     //copy
     // copy ctors with vector inputs
     explicit myVecP(const myVecP<myT> &a);
-    explicit myVecP(const myVec<myZZ> &a);
     
     //movecopy
     myVecP(myVecP<myT> &&a);
-    myVecP(myVec<myZZ> &&a);
     
     //constructors with moduli
     //ctor myZZ moduli
     myVecP(const long n, const myZZ &q);
-    myVecP(const INIT_SIZE_TYPE, const long n, const myZZ &q);
-    myVecP(const INIT_SIZE_TYPE, const long n, const myT& a, const myZZ &q);
 
     //constructors with moduli and initializer lists
-    myVecP(const long n, const myZZ &q, std::initializer_list<usint> rhs);
+    myVecP(const long n, const myZZ &q, std::initializer_list<uint64_t> rhs);
     myVecP(const long n, const myZZ &q, std::initializer_list<std::string> rhs);
     
     //copy with myZZ moduli
     myVecP(const myVecP<myT> &a, const myZZ &q);
-    myVecP(const myVec<myZZ> &a, const myZZ &q);
     
     //ctor with char * moduli
-    myVecP(usint n, const char *sq);
-    myVecP(INIT_SIZE_TYPE, long n, const char *sq);
-    myVecP(INIT_SIZE_TYPE, long n, const myT& a, const char *sq);
+    myVecP(size_t n, const std::string &sq);
     
      //copy with char * moduli
-     myVecP(const myVecP<myT> &a, const char *sq);
-    myVecP(const myVec<myZZ> &a, const char *sq);
+    myVecP(const myVecP<myT> &a, const std::string &sq);
 
-    //ctor with usint moduli
-    myVecP(usint n, usint q);
-    myVecP(INIT_SIZE_TYPE, long n, usint q);
-    myVecP(INIT_SIZE_TYPE, long n, const myT& a, usint q);
+    //ctor with uint64_t moduli
+    myVecP(size_t n, uint64_t q);
 
-    //copy with unsigned int moduli
-    myVecP(const myVecP<myT> &a, const usint q);
-    myVecP(const myVec<myZZ> &a, const usint q);
+    //copy with uint64_t moduli
+    myVecP(const myVecP<myT> &a, const uint64_t q);
     
     //destructor
     ~myVecP();
@@ -132,34 +119,25 @@ namespace NTL {
     
     myVecP(std::vector<std::string>& s, const myZZ &q); // with modulus
     myVecP(std::vector<std::string>& s, const char *sq); // with modulus
-    myVecP(std::vector<std::string>& s, const usint q); // with modulusu
+    myVecP(std::vector<std::string>& s, const uint64_t q); // with modulusu
 
     const myVecP& operator=(const myVecP &a);
+    const myVecP& operator=(myVecP &&a);
 
 
-    const myVecP& operator=(std::initializer_list<myT> rhs);
-    const myVecP& operator=(std::initializer_list<int> rhs);
-    const myVecP& operator=(std::initializer_list<usint> rhs);
+    const myVecP& operator=(std::initializer_list<uint64_t> rhs);
+    const myVecP& operator=(std::initializer_list<int32_t> rhs);
     const myVecP& operator=(std::initializer_list<std::string> rhs);
-    const myVecP& operator=(std::initializer_list<const char *> rhs);
-    const myVecP& operator=(myT &rhs);
-    const myVecP& operator=(const myT &rhs);
-    const myVecP& operator=(unsigned int &rhs);
-    const myVecP& operator=(unsigned int rhs);
+    const myVecP& operator=(uint64_t rhs);
 
     void clear(myVecP& x); //why isn't this inhereted?
 
+    // the following are like writing to this->at(i) but with modulus implied.
+    void atMod(size_t index, const myT&value);
+    void atMod(size_t index, const std::string& str);
 
-    // Note, SetValAtIndex should be deprecated by .at() and []
-    void SetValAtIndex(usint index, const myT&value);
-    void SetValAtIndex(usint index, const myZZ&value);
-    void SetValAtIndex(usint index, const char *s);
-    void SetValAtIndex(usint index, const std::string& str);
-
-    void SetValAtIndexWithoutMod(usint index, const myZZ&value);
-
-    //DBC could not get & return to work!!!
-    const myZZ GetValAtIndex(size_t index) const;
+    const myZZ& at(size_t index) const;
+    myZZ& at(size_t index);
 
     /**
      * Returns a vector of digit at a specific index for all entries
@@ -170,7 +148,7 @@ namespace NTL {
      * @param base is the base to use for the operation.
      * @return is the resulting vector.
      */
-    myVecP  GetDigitAtIndexForBase(usint index, usint base) const;
+    myVecP  GetDigitAtIndexForBase(size_t index, usint base) const;
   
     inline void push_back(const myT& a) { this->append(a);};
 
@@ -211,7 +189,7 @@ namespace NTL {
     //vector addition assignment
     inline myVecP& operator+=(const myVecP& a) {
       this->ArgCheckVector(a, "myVecP::op +=");
-      add(*this, *this, a);
+      modadd_p(*this, *this, a);
       return *this;
     };
     
@@ -220,34 +198,36 @@ namespace NTL {
     { 
       ModulusCheck("Warning: myVecP::op+=");
       for (unsigned int i = 0; i < this->size(); i++){
-#ifdef FORCE_NORMALIZATION	
-	//(*this)[i]=(*this)[i]+a%m_modulus; //+= not defined yet
-	AddMod((*this)[i]._ZZ_p__rep,(*this)[i]._ZZ_p__rep, a, m_modulus); 
-#else
-	AddMod((*this)[i]._ZZ_p__rep,(*this)[i]._ZZ_p__rep, a, m_modulus); 
-#endif
+	AddMod((*this)[i],(*this)[i], a, m_modulus); 
       }
       return *this;
     };
     
-    myVecP operator+(const myVecP& b) const;
-    myVecP operator+(const myZZ& b) const;
+    myVecP operator+(const myVecP& b) const; //becomes modulo addition
+    myVecP operator+(const myZZ& b) const; //becomes modulo addition
     
     inline myVecP Add(const myZZ& b) const {ModulusCheck("Warning: myVecP::Add"); return (*this)+b%m_modulus; };
-    inline myVecP ModAdd(const myZZ& b) const {ModulusCheck("Warning: myVecP::ModAdd"); return (*this)+b%m_modulus; };
-    void add(myVecP& x, const myVecP& a, const myVecP& b) const; //define procedural
+    inline myVecP ModAdd(const myZZ& b) const {ModulusCheck("Warning: myVecP::ModAdd"); return this->Add(b); };
+
+    void modadd_p(myVecP& x, const myVecP& a, const myVecP& b) const; //define procedural version
     
-    myVecP ModAddAtIndex(usint i, const myZZ &b) const;
+    myVecP ModAddAtIndex(size_t i, const myZZ &b) const;
     
     //vector add
-    inline myVecP Add(const myVecP& b) const { ArgCheckVector(b, "myVecP Add()"); return (*this)+b;};
-    inline myVecP ModAdd(const myVecP& b) const { return (this->Add(b));};
+    inline myVecP Add(const myVecP& b) const { 
+      ArgCheckVector(b, "myVecP Add()"); 
+      return (*this)+b;
+    };
+    inline myVecP ModAdd(const myVecP& b) const { 
+      return (this->Add(b));
+    };
     
     //Subtraction
-    //vector subtraction assignment
+    //vector subtraction assignment note uses DIFFERNT modsub than standard math
+    //this is a SIGNED mod sub
     inline myVecP& operator-=(const myVecP& a) {
       ArgCheckVector(a, "myVecP -="); 
-      sub(*this, *this, a);
+      modsub_p(*this, *this, a);
       return *this;
     };
     
@@ -255,10 +235,7 @@ namespace NTL {
     inline myVecP& operator-=(const myZZ& a)
     { 
       ModulusCheck("Warning: myVecP::op-=");
-      for (size_t i = 0; i < this->size(); i++){
-	SubMod((*this)[i]._ZZ_p__rep,(*this)[i]._ZZ_p__rep, a, m_modulus); 	
-	//(*this)[i]-=a%m_modulus;
-      }
+      *this = *this-a;
       return *this;
     };
     
@@ -287,15 +264,16 @@ namespace NTL {
     
     //deprecated vector
     inline myVecP Minus(const myVecP& b) const {ArgCheckVector(b, "myVecP Minus()"); return (this->Sub(b));};
-    
-    void sub(myVecP& x, const myVecP& a, const myVecP& b) const; //define procedural
+
+    //procecural
+    void modsub_p(myVecP& x, const myVecP& a, const myVecP& b) const; //define procedural
     
     //Multiplication
     //vector multiplication assignments
     inline myVecP& operator*=(const myVecP& a)
     { 
       ArgCheckVector(a, "myVecP *="); 
-      mul(*this, *this, a);
+      modmul_p(*this, *this, a);
       return *this;
     };
     
@@ -304,8 +282,7 @@ namespace NTL {
     { 
       ModulusCheck("Warning: myVecP::op-=");
       for (size_t i = 0; i < this->size(); i++){
-	MulMod((*this)[i]._ZZ_p__rep,(*this)[i]._ZZ_p__rep, a, m_modulus); 
-	//
+	MulMod((*this)[i],(*this)[i], a%m_modulus, m_modulus); 
       }
       return *this;
     };
@@ -321,7 +298,7 @@ namespace NTL {
     inline myVecP Mul(const myVecP& b) const {ArgCheckVector(b, "myVecP Mul()"); return (*this)*b;};
     inline myVecP ModMul(const myVecP& b) const {ArgCheckVector(b, "myVecP Mul()");return (this->Mul(b));};
     
-    void mul(myVecP& x, const myVecP& a, const myVecP& b) const; //define procedural
+    void modmul_p(myVecP& x, const myVecP& a, const myVecP& b) const; //define procedural
     
     
     /**
@@ -355,18 +332,18 @@ namespace NTL {
 	     (this->m_modulus == a.m_modulus));
     };
     
-    //sets modulus and the NTL init function usint argument
-    inline void SetModulus(const usint& value){
+    //sets modulus and the NTL init function uint64_t argument
+    inline void SetModulus(const uint64_t& value){
       bool dbg_flag = false;
-      DEBUG("SetModulus(const usint& "<<value<<")");
+      DEBUG("SetModulus(const uint64_t& "<<value<<")");
       if (value == 0) {
-	throw std::logic_error("SetModulus(usint) cannot be zero");
+	PALISADE_THROW(lbcrypto::palisade_error, "SetModulus(uint64_t) cannot be zero");
       }
       this->m_modulus= myZZ(value);
       this->m_modulus_state = INITIALIZED;
       DEBUG("this->modulus = "<<this->m_modulus);
-      ZZ_p::init(this->m_modulus);
-      this->Renormalize();
+      // ZZ_p::init(this->m_modulus);
+      //this->Renormalize();
     };
     
     //sets modulus and the NTL init function myZZ argument
@@ -374,28 +351,13 @@ namespace NTL {
       bool dbg_flag = false;
       DEBUG("SetModulus(const myZZ& "<<value<<")");
       if (value == myZZ::ZERO) {
-	throw std::logic_error("SetModulus(myZZ) cannot be zero");
+	PALISADE_THROW( lbcrypto::palisade_error, "SetModulus(myZZ) cannot be zero");
       }
       this->m_modulus= value;
       DEBUG("this->modulus = "<<this->m_modulus);
       this->m_modulus_state = INITIALIZED;
-      ZZ_p::init(this->m_modulus);
-      this->Renormalize();
-    };
-    
-    //sets modulus and the NTL init function using myZZ_p.modulus argument
-    //note this is not the same as setting the modulus to value!
-    inline void SetModulus(const myZZ_p& value){
-      bool dbg_flag = false;
-      DEBUG("SetModulus(const myZZ_p& "<<value<<")");
-      if (value.GetModulus() == myZZ::ZERO) {
-	throw std::logic_error("SetModulus(myZZ_p) cannot be zero");
-      }
-      this->m_modulus= value.GetModulus();
-      DEBUG("this->modulus = "<<this->m_modulus);
-      this->m_modulus_state = INITIALIZED;
-      ZZ_p::init(this->m_modulus);
-      this->Renormalize();
+      //ZZ_p::init(this->m_modulus);
+      //this->Renormalize();
     };
     
     //sets modulus and the NTL init function string argument
@@ -404,12 +366,12 @@ namespace NTL {
       DEBUG("SetModulus(const string& "<<value<<")");
       this->m_modulus = myZZ(value);
       if (this->m_modulus == myZZ::ZERO) {
-	throw std::logic_error("SetModulus(string) cannot be zero");
+	PALISADE_THROW( lbcrypto::palisade_error, "SetModulus(string) cannot be zero");
       }
       this->m_modulus_state = INITIALIZED;
       DEBUG("this->modulus = "<<this->m_modulus);
-      ZZ_p::init(this->m_modulus);
-      this->Renormalize();
+      //ZZ_p::init(this->m_modulus);
+      //this->Renormalize();
     };
     //sets modulus and the NTL init function uses same modulus
     inline void SetModulus(const myVecP& value){
@@ -417,12 +379,12 @@ namespace NTL {
       DEBUG("SetModulus(const myVecP& "<<value<<")");
       this->m_modulus = value.GetModulus();
       if (this->m_modulus == myZZ::ZERO) {
-	throw std::logic_error("SetModulus(myVecP) cannot be zero");
+	PALISADE_THROW( lbcrypto::palisade_error, "SetModulus(myVecP) cannot be zero");
       }
       this->m_modulus_state = INITIALIZED;
       DEBUG("this->modulus = "<<this->m_modulus);
-      ZZ_p::init(this->m_modulus);
-      this->Renormalize();
+      //ZZ_p::init(this->m_modulus);
+      //this->Renormalize();
     };
 
     inline const myZZ& GetModulus() const{
@@ -431,7 +393,6 @@ namespace NTL {
 	DEBUG("GetModulus returns "<<this->m_modulus);
 	return (this->m_modulus);
       }else{
-	std::cout<<"myZZ GetModulus() on uninitialized modulus"<<std::endl;
 	return myZZ::ZERO;
       }
     };
@@ -443,27 +404,34 @@ namespace NTL {
       this->m_modulus = rhs.m_modulus;
       this->m_modulus_state = rhs.m_modulus_state;
       if (isModulusSet()){
-	ZZ_p::init(this->m_modulus);
+	//ZZ_p::init(this->m_modulus);
 	return (0);
       } else{
-	//std::cout<<"Warning: myVec_p::CopyModulus() from uninitialized modulus"<<std::endl; //happens many many times
 	this->m_modulus_state = GARBAGE;
 	return (-1);
       }
     };
 
     inline size_t GetLength(void) const{ //deprecated by size()
-      return this->length();
+      // size() is STL::Vector standard call for this functionality.
+      //note it returns size_type, but we will use size_t
+      return this->size();
     };
 
     inline size_t size(void) const{
+      //note length() returns a long in NTL, which triggers issues with
+      // comparison against  
       return this->length();
     };
 
+    inline void resize(size_t n) {
+      //resize is the STL::vector standard call for this functionality
+      this->SetLength(n); //SetLength() is an NTL call
+    }
 
     //need to add comparison operators == and !=
     //note these should fail if the modulii are different!
-    // inline sint Compare(const myVecP& a) const {return compare(this->_ZZ_p__rep,a._ZZ_p__rep); };
+    // inline int32_t Compare(const myVecP& a) const {return compare(this->_ZZ_p__rep,a._ZZ_p__rep); };
     // myvecP and myvecP
     inline bool operator==(const myVecP& b) const
     { 
@@ -484,78 +452,6 @@ namespace NTL {
     
     inline bool operator!=( const myVecP& b) const
     { return !(this->operator==(b)); };
-    
-    // myvecP and myvec<myZZ>
-    inline bool operator==(const myVec<myZZ>& b) const
-    { 
-      if ((this->size()==b.size())) { //TODO: define size() for b
-	//loop over each entry and fail if !=
-	for (size_t i = 0; i < this->size(); ++i) {
-	  if ((*this)[i]!=b[i]){
-	    return false;
-	  }
-	}
-	return true;// all entries ==
-	
-      }else{ //fails check of size
-	return false;
-      }
-    };
-    
-    inline bool operator!=( const myVec<myZZ>& b) const
-    { return !(this->operator==(b)); };
-    
-    
-    // inline long operator<( const myZZ_p& b) const
-    // { return this->Compare(b) < 0; }
-    // inline long operator>( const myZZ_p& b) const
-    // { return this->Compare(b) > 0; }
-    // inline long operator<=( const myZZ_p& b) const
-    // { return this->Compare(b) <= 0; }
-    // inline long operator>=( const myZZ_p& b) const
-    // { return this->Compare(b) >= 0; }
-
-
-    /* operators to get a value at an index.
-       * @param idx is the index to get a value at.
-       * @return is the value at the index. return NULL if invalid index.
-       */
-#if 0 //this has problems 
-    inline myZZ_p& operator[](std::size_t idx) {
-      //myZZ_p tmp((*this)[idx]._ZZ_p__rep);
-      //tmp.SetModulus(this->GetModulus());
-      myZZ_p tmp = this->NTL::operator[](idx);
-      
-
-      if(! tmp.isModulusSet()){
-	std::cout<<"op[] mod not set"<<std::endl;
-	tmp.SetModulus(this->GetModulus());
-      }
-      return tmp;
-
-      //here we have the problem we return the element, but it never had it's modulus value set. 
-      //we need to somehow beable to set that modulus. 
-    }
-
-    inline const myZZ_p& operator[](std::size_t idx) const {
-      if(! (*this)[idx].isModulusSet()){
-	std::cout<<"const op[] mod not set"<<std::endl;
-	//(*this)[idx].SetModulus(this->GetModulus());
-      }
-	//how do we get this to work for the const???
-      return (*this)[idx];
-    }
-#endif
- 
-
-#if 0
-    // ostream 
-    friend std::ostream& operator<<(std::ostream& os, const myVecP &ptr_obj);
-#endif
-
-
-    //Todo: get rid of printvalues everywhere
-    void PrintValues() const { std::cout << *this; }
     
 
     //JSON FACILITY
@@ -586,33 +482,23 @@ namespace NTL {
       if (!isModulusSet()){
 	std::cout<<msg<<" uninitialized this->modulus"<<std::endl;
       } else {
-	ZZ_p::init(this->m_modulus); //set global modulus to this 
+	//ZZ_p::init(this->m_modulus); //set global modulus to this 
       }
     };
 
-    //utility function to check argument consistency for vector scalar fns
-    //use when argument to function is myZZ_p (myT)
-    inline void ArgCheckScalar(const myT &b, std::string fname) const {
-      if(this->m_modulus!=b.GetModulus()) {
-	throw std::logic_error(fname+" modulus vector modulus scalar op of different moduli");
-      } else if (!isModulusSet()) {
-	throw std::logic_error(fname+" modulus vector modulus scalar op GARBAGE  moduli");
-      }
-      ZZ_p::init(this->m_modulus); //set global modulus to this 
-    };
-    
+
     //utility function to check argument consistency for vector vector fns
     //use when argument to function is myVecP
     inline void ArgCheckVector(const myVecP &b, std::string fname) const {
       if(this->m_modulus!=b.m_modulus) {
-	throw std::logic_error(fname+" modulus vector modulus vector op of different moduli");
+	PALISADE_THROW( lbcrypto::palisade_error, fname+" modulus vector modulus vector op of different moduli");
       }else if (!isModulusSet()) {
-	throw std::logic_error(fname+" modulus vector modulus vector op GARBAGE  moduli");
+	PALISADE_THROW( lbcrypto::palisade_error, fname+" modulus vector modulus vector op GARBAGE  moduli");
       }else if(this->size()!=b.size()){
-	throw std::logic_error(fname +" vectors of different lengths");
+	PALISADE_THROW( lbcrypto::palisade_error,  fname+" vectors of different lengths");
       }
       
-      ZZ_p::init(this->m_modulus); //set global modulus to this 
+      //ZZ_p::init(this->m_modulus); //set global modulus to this 
     };
     
     //used to make sure all entries in this are <=current modulus
@@ -621,7 +507,7 @@ namespace NTL {
       DEBUG("mgmpintvec Renormalize modulus"<<m_modulus);     
       DEBUG("mgmpintvec size"<< this->size());     
       //loop over each entry and fail if !=
-      for (auto i = 0; i < this->size(); ++i) {
+      for (size_t i = 0; i < this->size(); ++i) {
 	(*this)[i] %=m_modulus;
 	DEBUG("this ["<<i<<"] now "<< (*this)[i]);     
       }
@@ -629,6 +515,7 @@ namespace NTL {
     
     
     myZZ m_modulus;
+    //TODO: BE 2 has gotten rid of this, we may too.
     enum ModulusState {
       GARBAGE,INITIALIZED //note different order, Garbage is the default state
     };
@@ -636,33 +523,12 @@ namespace NTL {
     ModulusState m_modulus_state;
     
   protected:
-    bool IndexCheck(usint) const;
+    bool IndexCheck(size_t index) const;
   }; //template class ends
-  
-  
-  
-  //comparison operators with two operands must be defined outside the class
-  //myVec<myZZ> and myVecP
-  inline long operator==(const myVec<myZZ> &a, const myVecP<myZZ_p> &b) 
-  {
-    if ((a.size()==b.size())) { 
-      //loop over each entry and fail if !=
-      for (size_t i = 0; i < a.size(); ++i) {
-	if (a[i]!=b[i]){
-	  return false;
-	}
-      }
-      return true;// all entries ==
-    }else{ //fails check of size
-      return false;
-    }
-  };
-  
-  inline long operator!=(const myVec<myZZ> &a, const myVecP<myZZ_p> &b) 
-  { return !(operator==(a,b)); };
   
   
   
 } // namespace NTL ends
 
 #endif // LBCRYPTO_MATH_GMPINT_MGMPINTVEC_H
+

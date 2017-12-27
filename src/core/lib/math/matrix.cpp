@@ -24,6 +24,9 @@
  *
  */
 
+#ifndef _SRC_LIB_CORE_MATH_MATRIX_CPP
+#define _SRC_LIB_CORE_MATH_MATRIX_CPP
+
 #include "../utils/serializablehelper.h"
 //#include "rationalciphertext.h"
 #include "matrix.h"
@@ -69,18 +72,10 @@ Matrix<Element> Matrix<Element>::Mult(Matrix<Element> const& other) const {
         throw invalid_argument("incompatible matrix multiplication");
     }
     Matrix<Element> result(allocZero, rows, other.cols);
-#if 0
-    for (size_t row = 0; row < result.rows; ++row) {
-        for (size_t col = 0; col < result.cols; ++col) {
-			*result.data[row][col] = 0;
-            for (size_t i = 0; i < cols; ++i) {
-                *result.data[row][col] += *data[row][i] * *other.data[i][col];
-            }
-        }
-    }
-#else
     if (rows  == 1) {
-        #pragma omp parallel for
+#ifdef OMP
+#pragma omp parallel for
+#endif
         for (size_t col = 0; col < result.cols; ++col) {
 		for (size_t i = 0; i < cols; ++i) {
 		        *result.data[0][col] += *data[0][i] * *other.data[i][col];
@@ -89,7 +84,9 @@ Matrix<Element> Matrix<Element>::Mult(Matrix<Element> const& other) const {
     }
     else
     {
-	    #pragma omp parallel for
+#ifdef OMP
+#pragma omp parallel for
+#endif
 	    for (size_t row = 0; row < result.rows; ++row) {
 		for (size_t i = 0; i < cols; ++i) {
 		for (size_t col = 0; col < result.cols; ++col) {
@@ -98,7 +95,6 @@ Matrix<Element> Matrix<Element>::Mult(Matrix<Element> const& other) const {
 		}
 	    }
     }
-#endif
     return result;
 }
 
@@ -107,20 +103,15 @@ Matrix<Element>& Matrix<Element>::operator+=(Matrix<Element> const& other) {
     if (rows != other.rows || cols != other.cols) {
         throw invalid_argument("Addition operands have incompatible dimensions");
     }
-#if 0
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            data[i][j] += *other.data[i][j];
-        }
-    }
-#else
-    #pragma omp parallel for
-for (size_t j = 0; j < cols; ++j) {
+#ifdef OMP
+#pragma omp parallel for
+#endif
+    for (size_t j = 0; j < cols; ++j) {
 	for (size_t i = 0; i < rows; ++i) {
             *data[i][j] += *other.data[i][j];
         }
     }
-#endif
+
     return *this;
 }
 
@@ -129,20 +120,15 @@ Matrix<Element>& Matrix<Element>::operator-=(Matrix<Element> const& other) {
     if (rows != other.rows || cols != other.cols) {
         throw invalid_argument("Subtraction operands have incompatible dimensions");
     }
-#if 0
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            *data[i][j] -= *other.data[i][j];
-        }
-    }
-#else
-    #pragma omp parallel for
+#ifdef OMP
+#pragma omp parallel for
+#endif
     for (size_t j = 0; j < cols; ++j) {
         for (size_t i = 0; i < rows; ++i) {
             *data[i][j] -= *other.data[i][j];
         }
     }
-#endif
+
     return *this;
 }
 
@@ -316,20 +302,6 @@ void Matrix<Element>::deepCopyData(data_t const& src) {
     }
 }
 
-template<class Element>
-inline std::ostream& operator<<(std::ostream& os, const Matrix<Element>& m){
-    os << "[ ";
-    for (size_t row = 0; row < m.GetRows(); ++row) {
-        os << "[ ";
-        for (size_t col = 0; col < m.GetCols(); ++col) {
-            os << *m.GetData()[row][col] << " ";
-        }
-        os << "]\n";
-    }
-    os << " ]\n";
-    return os;
-}
-
 /*
  * Multiply the matrix by a vector of 1's, which is the same as adding all the
  * elements in the row together.
@@ -339,7 +311,9 @@ template<class Element>
 Matrix<Element> Matrix<Element>::MultByUnityVector() const {
 	Matrix<Element> result(allocZero, rows, 1);
 
+#ifdef OMP
 #pragma omp parallel for
+#endif
 	for (size_t row = 0; row < result.rows; ++row) {
 		for (size_t col= 0; col<cols; ++col){
 				*result.data[row][0] += *data[row][col];
@@ -358,7 +332,9 @@ template<class Element>
 Matrix<Element> Matrix<Element>::MultByRandomVector(std::vector<int> ranvec) const {
 	Matrix<Element> result(allocZero, rows, 1);
 
+#ifdef OMP
 #pragma omp parallel for
+#endif
 	for (size_t row = 0; row < result.rows; ++row) {
 		for (size_t col= 0; col<cols; ++col){
 			if (ranvec[col] == 1)
@@ -368,6 +344,6 @@ Matrix<Element> Matrix<Element>::MultByRandomVector(std::vector<int> ranvec) con
 	return result;
 }
 
-
 }
 
+#endif

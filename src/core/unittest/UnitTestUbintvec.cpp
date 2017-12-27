@@ -104,30 +104,30 @@ TEST(UTubintvec,ctor_access_eq_neq){
   // Old fashioned soon to be deprecated way of 
   // setting value of the value at different index locations
 
-  //test SetValAtIndex(string)
-  m.SetValAtIndex(0,"9868");  
-  m.SetValAtIndex(1,"5879");
-  m.SetValAtIndex(2,"4554");
-  m.SetValAtIndex(3,"2343");
-  m.SetValAtIndex(4,"4624");
+  //test at(string)
+  m.at(0)="9868";  
+  m.at(1)="5879";
+  m.at(2)="4554";
+  m.at(3)="2343";
+  m.at(4)="4624";
 
   //old fashioned way of expect
-  EXPECT_EQ(9868U,m.GetValAtIndex(0).ConvertToUsint())
-    << "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(5879U,m.GetValAtIndex(1).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(4554U,m.GetValAtIndex(2).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(2343U,m.GetValAtIndex(3).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(4624U,m.GetValAtIndex(4).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
+  EXPECT_EQ(9868U,m.at(0).ConvertToUsint())
+    << "Failure in at(str)";
+  EXPECT_EQ(5879U,m.at(1).ConvertToUsint())
+<< "Failure in at(str)";
+  EXPECT_EQ(4554U,m.at(2).ConvertToUsint())
+<< "Failure in at(str)";
+  EXPECT_EQ(2343U,m.at(3).ConvertToUsint())
+<< "Failure in at(str)";
+  EXPECT_EQ(4624U,m.at(4).ConvertToUsint())
+<< "Failure in at(str)";
 
-  EXPECT_EQ(exp_int::xubint(9868U),m.GetValAtIndex(0))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(5879U),m.GetValAtIndex(1))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(4554U),m.GetValAtIndex(2))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(2343U),m.GetValAtIndex(3))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(4624U),m.GetValAtIndex(4))<< "Failure in SetValAtIndex()";
+  EXPECT_EQ(exp_int::xubint(9868U),m.at(0))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(5879U),m.at(1))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(4554U),m.at(2))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(2343U),m.at(3))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(4624U),m.at(4))<< "Failure in at()";
 
   //new way of setting value of the value at different index locations
   n[0]="4";
@@ -143,19 +143,19 @@ TEST(UTubintvec,ctor_access_eq_neq){
   EXPECT_EQ(exp_int::xubint(33),n[3])<< "Failure in []";
   EXPECT_EQ(exp_int::xubint(7),n[4])<< "Failure in []";
 
-  //test SetValAtIndex(exp_int::xubint)
-  n.SetValAtIndex(0,exp_int::xubint("4"));
-  n.SetValAtIndex(1,exp_int::xubint("9"));
-  n.SetValAtIndex(2,exp_int::xubint("66"));
-  n.SetValAtIndex(3,exp_int::xubint("33"));
-  n.SetValAtIndex(4,exp_int::xubint("7"));
+  //test at(exp_int::xubint)
+  n.at(0)=exp_int::xubint("4");
+  n.at(1)=exp_int::xubint("9");
+  n.at(2)=exp_int::xubint("66");
+  n.at(3)=exp_int::xubint("33");
+  n.at(4)=exp_int::xubint("7");
 
 
-  EXPECT_EQ(exp_int::xubint(4),n[0])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(9),n[1])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(66),n[2])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(33),n[3])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(7),n[4])<< "Failure in SetValAtIndex(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(4),n[0])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(9),n[1])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(66),n[2])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(33),n[3])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(7),n[4])<< "Failure in at(exp_int::xubint)";
 
 
 
@@ -164,7 +164,7 @@ TEST(UTubintvec,ctor_access_eq_neq){
   usint expectedResult[5] = {9872,5888,4620,2376,4631};
 
   for (i=0,j=0;j<5;i++,j++) {
-    EXPECT_EQ (expectedResult[i], (m.GetValAtIndex(j)).ConvertToUsint())
+    EXPECT_EQ (expectedResult[i], (m.at(j)).ConvertToUsint())
       << "Failure testing method_plus_equals";
   }
 
@@ -243,16 +243,16 @@ TEST(UTubintvec,mod){
   usint j;
 	
   //setting value of the value at different index locations
-  m.SetValAtIndex(0,"987968");
-  m.SetValAtIndex(1,"587679");
-  m.SetValAtIndex(2,"456454");
-  m.SetValAtIndex(3,"234343");
-  m.SetValAtIndex(4,"769789");
-  m.SetValAtIndex(5,"465654");
-  m.SetValAtIndex(6,"79");
-  m.SetValAtIndex(7,"346346");
-  m.SetValAtIndex(8,"325328");
-  m.SetValAtIndex(9,"7698798");	
+  m.at(0)="987968";
+  m.at(1)="587679";
+  m.at(2)="456454";
+  m.at(3)="234343";
+  m.at(4)="769789";
+  m.at(5)="465654";
+  m.at(6)="79";
+  m.at(7)="346346";
+  m.at(8)="325328";
+  m.at(9)="7698798";	
 
   exp_int::xubint q("233");		//calling costructor of exp_int::xubint Class to create object for modulus
   exp_int::xubintvec calculatedResult = m.Mod(q);
@@ -260,7 +260,7 @@ TEST(UTubintvec,mod){
 
   for (i=0,j=0;i<10;i++,j++)
     {
-      EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(j)).ConvertToUsint());
+      EXPECT_EQ (expectedResult[i], (calculatedResult.at(j)).ConvertToUsint());
     }
 }
 
@@ -370,20 +370,7 @@ TEST(UTubintvec,basic_vector_vector_math_1_limb){
 	  "160515", "083430", };
 
   // sub1:
-#if 0//set to 1 if we allow b>a in subtraction
-  std::vector<std::string>  sub1sv = 
-    {"060980", "008134",
-     "18446744073709426615", "18446744073709433083",
-     "18446744073709540566", "18446744073709423419",
-     "18446744073709550242", "18446744073709465722",
-     "18446744073709541806", "18446744073709523323",
-     "025203", "012638",
-     "047306", "18446744073709517279",
-     "103511", "030628", };
-
-#else
   std::vector<std::string> sub1sv = 
-
     {"060980", "008134",
      "000000", "000000",
      "000000", "000000",
@@ -392,7 +379,7 @@ TEST(UTubintvec,basic_vector_vector_math_1_limb){
      "025203", "012638",
      "047306", "000000",
      "103511", "030628", };
-#endif
+
   exp_int::xubintvec sub1(sub1sv);
 
   // mul1:
@@ -670,18 +657,6 @@ TEST(UTubintvec,basic_vector_vector_math_2_limb){
      "5272176371413734", "3326240528363988", };
   exp_int::xubintvec add2(add2sv);
   // sub2:
-#if 0 //set to 1 if we allow b>a in subtraction
-  std::vector<std::string>  sub2sv = 
-    {"18446230400667224908", "0059047093523014",
-     "1661936831136476", "2970884463059287",
-     "0466868338124838", "18446445579403106561",
-     "1640853664009664", "1040158161418506",
-     "18446165366977018045", "18446477211996511393",
-     "1202588881034661", "1912733630447884",
-     "18443143169959719952", "0694453087476577",
-     "18446058765570457758", "18445820659315544014", };
-
-#else
   std::vector<std::string>  sub2sv = 
     {"0000000000000000", "0059047093523014",
      "1661936831136476", "2970884463059287",
@@ -692,7 +667,6 @@ TEST(UTubintvec,basic_vector_vector_math_2_limb){
      "0000000000000000", "0694453087476577",
      "0000000000000000", "0000000000000000", };
 
-#endif
   exp_int::xubintvec sub2(sub2sv);
 
   // mul2:
@@ -918,19 +892,6 @@ TEST(UTubintvec,basic_vector_vector_math_big_numbers){
   };
 
   exp_int::xubintvec sub3;
-#if 0 // if a <b != 0
-  sub3 = {
-
-    "512597535603578636284620600471706441361256218177317597892343972007351046282937957699448030289016340695226985347494856694864680738501332532337154369965",
-    "1258144990936911203380326908782167797434418468585961447166768171869509300176263104307921352873859541990711881935956355186437373393544036099224330319773",
-    "805842730693986557467234043205212783543391008567040812905713540778130676580166107684104083420854024129298497671985888277617739050093011724484112870671",
-    "-474081575629399307082420435757116743647743045784569313170976958376419216161202825635683612997283969873941442623130150672871948595720467953434033873898",
-    "-625705347761207061209086099508738809094217638615158461814232090856136578372156712207660771514262436865882789447078187273749125309887696518885099101081",
-    "693199162376459329128054716987553648346475871132117743341660758355345058542390369742037372302879022664441864154051826106098140959002251215605319777078",
-    "-881592858519541290571991719780520991425557923597426206610878445827937045076518259187604609108233587307670791752292846919368582099520406762482664375673",
-    "165016581053646305583802200792684936229797960441655784909448934591271278356760823782530076253342418118532753950587932901212416719129878255565055545816",
-  };
-#else
   sub3 = {
     "512597535603578636284620600471706441361256218177317597892343972007351046282937957699448030289016340695226985347494856694864680738501332532337154369965",
     "1258144990936911203380326908782167797434418468585961447166768171869509300176263104307921352873859541990711881935956355186437373393544036099224330319773",
@@ -941,8 +902,6 @@ TEST(UTubintvec,basic_vector_vector_math_big_numbers){
     "0",
     "165016581053646305583802200792684936229797960441655784909448934591271278356760823782530076253342418118532753950587932901212416719129878255565055545816",
   };
-
-#endif
 
   exp_int::xubintvec mul3;
   mul3 = {

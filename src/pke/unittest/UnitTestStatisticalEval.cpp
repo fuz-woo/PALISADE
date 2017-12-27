@@ -30,20 +30,24 @@
 
 #include "../lib/cryptocontext.h"
 
-#include "encoding/byteplaintextencoding.h"
-#include "encoding/intplaintextencoding.h"
+#include "encoding/encodings.h"
 
 #include "utils/debug.h"
 
 #include "math/matrix.h"
 
+#include <omp.h>
+
 using namespace lbcrypto;
 
-class UnitTestBV : public ::testing::Test {
+class UTStatisticalEval : public ::testing::Test {
 protected:
-	virtual void SetUp() {}
+	void SetUp() {}
 
-	virtual void TearDown() {}
+	void TearDown() {
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+		CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+	}
 
 public:
 };
@@ -53,15 +57,14 @@ public:
 /** Tests linear regression for the Null scheme
 * based on of a design matrix of 2x2 and response vector of 2x1
 */
-TEST(UTStatisticalEval, Null_Eval_Lin_Regression) {
+TEST_F(UTStatisticalEval, Null_Eval_Lin_Regression) {
 
 	usint plaintextModulus = 256;
 	usint m = 64;
-	typename Poly::Integer modulus("256");
+	typename Poly::Integer modulus(plaintextModulus);
 	typename Poly::Integer rootOfUnity("268585022");
 
-	shared_ptr<Poly::Params> ep( new Poly::Params(m, modulus, rootOfUnity) );
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextNull(ep, plaintextModulus);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextNull(m, plaintextModulus);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -71,30 +74,29 @@ TEST(UTStatisticalEval, Null_Eval_Lin_Regression) {
 
 	// Set the plaintext matrices
 
-	auto zeroAlloc = [=]() { return make_unique<IntPlaintextEncoding>(); };
+	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakeCoefPackedPlaintext({int64_t(0)})); };
 
-	Matrix<IntPlaintextEncoding> xP = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 2);
+	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
 
-	std::vector<uint32_t> vectorOfInts1 = { 1,0,1,1,0,1,0,1 };
-	xP(0, 0) = vectorOfInts1;
+	std::vector<int64_t> vectorOfInts1 = { 1,0,1,1,0,1,0,1 };
+	xP(0, 0) = cc->MakeCoefPackedPlaintext(vectorOfInts1);
 
-	std::vector<uint32_t> vectorOfInts2 = { 1,1,0,1,0,1,1,0 };
-	xP(0, 1) = vectorOfInts2;
+	std::vector<int64_t> vectorOfInts2 = { 1,1,0,1,0,1,1,0 };
+	xP(0, 1) = cc->MakeCoefPackedPlaintext(vectorOfInts2);
 
-	std::vector<uint32_t> vectorOfInts3 = { 1,1,1,1,0,1,0,1 };
-	xP(1, 0) = vectorOfInts3;
+	std::vector<int64_t> vectorOfInts3 = { 1,1,1,1,0,1,0,1 };
+	xP(1, 0) = cc->MakeCoefPackedPlaintext(vectorOfInts3);
 
-	std::vector<uint32_t> vectorOfInts4 = { 1,0,0,1,0,1,1,0 };
-	xP(1, 1) = vectorOfInts4;
+	std::vector<int64_t> vectorOfInts4 = { 1,0,0,1,0,1,1,0 };
+	xP(1, 1) = cc->MakeCoefPackedPlaintext(vectorOfInts4);
 
-	Matrix<IntPlaintextEncoding> yP = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> yP = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	std::vector<uint32_t> vectorOfInts5 = { 1,1,1,0,0,1,0,1 };
-	yP(0, 0) = vectorOfInts5;
+	std::vector<int64_t> vectorOfInts5 = { 1,1,1,0,0,1,0,1 };
+	yP(0, 0) = cc->MakeCoefPackedPlaintext(vectorOfInts5);
 
-	std::vector<uint32_t> vectorOfInts6 = { 1,0,0,1,0,1,1,0 };
-	yP(1, 0) = vectorOfInts6;
-
+	std::vector<int64_t> vectorOfInts6 = { 1,0,0,1,0,1,1,0 };
+	yP(1, 0) = cc->MakeCoefPackedPlaintext(vectorOfInts6);
 
 	////////////////////////////////////////////////////////////
 	//Perform the key generation operations.
@@ -121,8 +123,8 @@ TEST(UTStatisticalEval, Null_Eval_Lin_Regression) {
 	//Decryption
 	////////////////////////////////////////////////////////////
 
-	Matrix<IntPlaintextEncoding> numerator = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
-	Matrix<IntPlaintextEncoding> denominator = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
+	shared_ptr<Matrix<Plaintext>> numerator;
+	shared_ptr<Matrix<Plaintext>> denominator;
 
 	cc->DecryptMatrix(kp.secretKey, result, &numerator, &denominator);
 
@@ -130,17 +132,17 @@ TEST(UTStatisticalEval, Null_Eval_Lin_Regression) {
 	// Correct output
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding numerator1 = { 0, 0, 0, 254, 1, 0, 253, 5, 251, 255, 6, 251, 6, 1, 253, 3, 255, 1, 
-		0, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	IntPlaintextEncoding numerator2 = { 0, 0, 4, 6, 6, 11, 7, 8, 14, 8, 11, 8, 1, 7, 0, 4, 3, 254, 3, 254, 
+	std::vector<int64_t> numerator1 = { 0, 0, 0, -2, 1, 0, -3, 5, -5, -1, 6, -5, 6, 1, -3, 3, -1, 1,
+		0, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	std::vector<int64_t> numerator2 = { 0, 0, 4, 6, 6, 11, 7, 8, 14, 8, 11, 8, 1, 7, 0, 4, 3, -2, 3, -2,
 		2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	IntPlaintextEncoding denominatorExpected = { 0, 0, 4, 4, 5, 10, 5, 12, 12, 10, 12, 6, 8, 4, 5, 2, 1, 0, 0, 0, 0, 
+	std::vector<int64_t> denominatorExpected = { 0, 0, 4, 4, 5, 10, 5, 12, 12, 10, 12, 6, 8, 4, 5, 2, 1, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-	EXPECT_EQ(numerator1, numerator(0, 0));
-	EXPECT_EQ(numerator2, numerator(1, 0));
-	EXPECT_EQ(denominatorExpected, denominator(0, 0));
-	EXPECT_EQ(denominatorExpected, denominator(1, 0));
+	EXPECT_EQ(numerator1, (*numerator)(0, 0)->GetCoefPackedValue());
+	EXPECT_EQ(numerator2, (*numerator)(1, 0)->GetCoefPackedValue());
+	EXPECT_EQ(denominatorExpected, (*denominator)(0, 0)->GetCoefPackedValue());
+	EXPECT_EQ(denominatorExpected, (*denominator)(1, 0)->GetCoefPackedValue());
 
 }
 
@@ -149,42 +151,38 @@ TEST(UTStatisticalEval, Null_Eval_Lin_Regression) {
 * In contrast to the previous test, this one also converts an integer
 * into a binary polynomial
 */
-TEST(UTStatisticalEval, Null_Eval_Lin_Regression_Int) {
+TEST_F(UTStatisticalEval, Null_Eval_Lin_Regression_Int) {
 
-	usint plaintextModulus = 256;
+	PlaintextModulus plaintextModulus = 512;
 	usint m = 64;
-	typename Poly::Integer modulus("256");
+	typename Poly::Integer modulus(plaintextModulus);
 	typename Poly::Integer rootOfUnity("268585022");
 
-	shared_ptr<Poly::Params> ep( new Poly::Params(m, modulus, rootOfUnity) );
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextNull(ep, plaintextModulus);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextNull(m, plaintextModulus);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 
-	// Initialize the public key containers.
-	LPKeyPair<Poly> kp;
-
 	// Set the plaintext matrices
 
-	auto zeroAlloc = [=]() { return make_unique<IntPlaintextEncoding>(); };
+	auto zeroAlloc = [=]() { return make_unique<Plaintext>(); };
 
-	Matrix<IntPlaintextEncoding> xP = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 2);
+	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
 
-	xP(0, 0) = 173;
-	xP(0, 1) = 107;
-	xP(1, 0) = 175;
-	xP(1, 1) = 105;
+	xP(0, 0) = cc->MakeIntegerPlaintext(173);
+	xP(0, 1) = cc->MakeIntegerPlaintext(107);
+	xP(1, 0) = cc->MakeIntegerPlaintext(175);
+	xP(1, 1) = cc->MakeIntegerPlaintext(105);
 
-	Matrix<IntPlaintextEncoding> yP = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> yP = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	yP(0, 0) = 167;
-	yP(1, 0) = 105;
+	yP(0, 0) = cc->MakeIntegerPlaintext(167);
+	yP(1, 0) = cc->MakeIntegerPlaintext(105);
 
 	////////////////////////////////////////////////////////////
 	//Perform the key generation operations.
 	////////////////////////////////////////////////////////////
 
-	kp = cc->KeyGen();
+	LPKeyPair<Poly> kp = cc->KeyGen();
 	cc->EvalMultKeyGen(kp.secretKey);
 
 	////////////////////////////////////////////////////////////
@@ -205,8 +203,8 @@ TEST(UTStatisticalEval, Null_Eval_Lin_Regression_Int) {
 	//Decryption
 	////////////////////////////////////////////////////////////
 
-	Matrix<IntPlaintextEncoding> numerator = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
-	Matrix<IntPlaintextEncoding> denominator = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
+	shared_ptr<Matrix<Plaintext>> numerator;
+	shared_ptr<Matrix<Plaintext>> denominator;
 
 	cc->DecryptMatrix(kp.secretKey, result, &numerator, &denominator);
 
@@ -214,30 +212,30 @@ TEST(UTStatisticalEval, Null_Eval_Lin_Regression_Int) {
 	// Correct output
 	////////////////////////////////////////////////////////////
 
-	int32_t numerator1 = -3528000;
-	int32_t numerator2 = 6193600;
-	int32_t denominatorExpected = 313600;
+	int64_t numerator1 = -3528000;
+	int64_t numerator2 = 6193600;
+	int64_t denominatorExpected = 313600;
 
-	EXPECT_EQ(numerator1, numerator(0, 0).EvalToInt(plaintextModulus));
-	EXPECT_EQ(numerator2, numerator(1, 0).EvalToInt(plaintextModulus));
-	EXPECT_EQ(denominatorExpected, denominator(0, 0).EvalToInt(plaintextModulus));
-	EXPECT_EQ(denominatorExpected, denominator(1, 0).EvalToInt(plaintextModulus));
+	EXPECT_EQ(numerator1, (*numerator)(0, 0)->GetIntegerValue()) << "numerator(0,0) mismatch";
+	EXPECT_EQ(numerator2, (*numerator)(1, 0)->GetIntegerValue()) << "numerator(1,0) mismatch";
+	EXPECT_EQ(denominatorExpected, (*denominator)(0, 0)->GetIntegerValue()) << "denominator(0,0) mismatch";
+	EXPECT_EQ(denominatorExpected, (*denominator)(1, 0)->GetIntegerValue()) << "denominator(1,0) mismatch";
 
 }
 
-/** Tests linear regression for the FV scheme
+/** Tests linear regression for the BFV scheme
 * based on of a design matrix of 2x2 and response vector of 2x1
 * In contrast to the previous test, this one also converts an integer
 * into a binary polynomial
 */
-TEST(UTStatisticalEval, FV_Eval_Lin_Regression_Int) {
+TEST_F(UTStatisticalEval, BFV_Eval_Lin_Regression_Int) {
 
-	usint plaintextModulus = 256;
+	usint plaintextModulus = 512;
 	usint relWindow = 8;
 	float stdDev = 4;
 
 	//Set crypto parametes
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextFV(plaintextModulus, 1.06, relWindow, stdDev, 0, 4, 0);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(plaintextModulus, 1.06, relWindow, stdDev, 0, 3, 0);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 
@@ -246,19 +244,19 @@ TEST(UTStatisticalEval, FV_Eval_Lin_Regression_Int) {
 
 	// Set the plaintext matrices
 
-	auto zeroAlloc = [=]() { return make_unique<IntPlaintextEncoding>(); };
+	auto zeroAlloc = [=]() { return make_unique<Plaintext>(); };
 
-	Matrix<IntPlaintextEncoding> xP = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 2);
+	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
 
-	xP(0, 0) = 173;
-	xP(0, 1) = 107;
-	xP(1, 0) = 175;
-	xP(1, 1) = 105;
+	xP(0, 0) = cc->MakeIntegerPlaintext(173);
+	xP(0, 1) = cc->MakeIntegerPlaintext(107);
+	xP(1, 0) = cc->MakeIntegerPlaintext(175);
+	xP(1, 1) = cc->MakeIntegerPlaintext(105);
 
-	Matrix<IntPlaintextEncoding> yP = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> yP = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	yP(0, 0) = 167;
-	yP(1, 0) = 105;
+	yP(0, 0) = cc->MakeIntegerPlaintext(167);
+	yP(1, 0) = cc->MakeIntegerPlaintext(105);
 
 	////////////////////////////////////////////////////////////
 	//Perform the key generation operations.
@@ -286,8 +284,8 @@ TEST(UTStatisticalEval, FV_Eval_Lin_Regression_Int) {
 	//Decryption
 	////////////////////////////////////////////////////////////
 
-	Matrix<IntPlaintextEncoding> numerator = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
-	Matrix<IntPlaintextEncoding> denominator = Matrix<IntPlaintextEncoding>(zeroAlloc, 2, 1);
+	shared_ptr<Matrix<Plaintext>> numerator;
+	shared_ptr<Matrix<Plaintext>> denominator;
 
 	cc->DecryptMatrix(kp.secretKey, result, &numerator, &denominator);
 
@@ -295,14 +293,101 @@ TEST(UTStatisticalEval, FV_Eval_Lin_Regression_Int) {
 	// Correct output
 	////////////////////////////////////////////////////////////
 
-	int32_t numerator1 = -3528000;
-	int32_t numerator2 = 6193600;
-	int32_t denominatorExpected = 313600;
+	int64_t numerator1 = -3528000;
+	int64_t numerator2 = 6193600;
+	int64_t denominatorExpected = 313600;
 
-	EXPECT_EQ(numerator1, numerator(0, 0).EvalToInt(plaintextModulus));
-	EXPECT_EQ(numerator2, numerator(1, 0).EvalToInt(plaintextModulus));
-	EXPECT_EQ(denominatorExpected, denominator(0, 0).EvalToInt(plaintextModulus));
-	EXPECT_EQ(denominatorExpected, denominator(1, 0).EvalToInt(plaintextModulus));
+	EXPECT_EQ(numerator1, (*numerator)(0, 0)->GetIntegerValue());
+	EXPECT_EQ(numerator2, (*numerator)(1, 0)->GetIntegerValue());
+	EXPECT_EQ(denominatorExpected, (*denominator)(0, 0)->GetIntegerValue());
+	EXPECT_EQ(denominatorExpected, (*denominator)(1, 0)->GetIntegerValue());
 
 }
 
+/** Tests linear regression for the BFVrns scheme
+* based on of a design matrix of 2x2 and response vector of 2x1
+* In contrast to the previous test, this one also converts an integer
+* into a binary polynomial
+*/
+TEST_F(UTStatisticalEval, BFVrns_Eval_Lin_Regression_Int) {
+
+	usint plaintextModulus = 512;
+	float stdDev = 4;
+
+	//Set crypto parametes
+	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrns(plaintextModulus, 1.06, stdDev, 0, 4, 0, OPTIMIZED);
+
+	cc->Enable(ENCRYPTION);
+	cc->Enable(SHE);
+
+	// Initialize the public key containers.
+	LPKeyPair<DCRTPoly> kp;
+
+	// Set the plaintext matrices
+
+	auto zeroAlloc = [=]() { return make_unique<Plaintext>(); };
+
+	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
+
+	xP(0, 0) = cc->MakeIntegerPlaintext(173);
+	xP(0, 1) = cc->MakeIntegerPlaintext(107);
+	xP(1, 0) = cc->MakeIntegerPlaintext(175);
+	xP(1, 1) = cc->MakeIntegerPlaintext(105);
+
+	Matrix<Plaintext> yP = Matrix<Plaintext>(zeroAlloc, 2, 1);
+
+	yP(0, 0) = cc->MakeIntegerPlaintext(167);
+	yP(1, 0) = cc->MakeIntegerPlaintext(105);
+
+	////////////////////////////////////////////////////////////
+	//Perform the key generation operations.
+	////////////////////////////////////////////////////////////
+
+	kp = cc->KeyGen();
+
+	cc->EvalMultKeyGen(kp.secretKey);
+
+	////////////////////////////////////////////////////////////
+	//Encryption
+	////////////////////////////////////////////////////////////
+
+	shared_ptr<Matrix<RationalCiphertext<DCRTPoly>>> x = cc->EncryptMatrix(kp.publicKey, xP);
+
+	shared_ptr<Matrix<RationalCiphertext<DCRTPoly>>> y = cc->EncryptMatrix(kp.publicKey, yP);
+
+	////////////////////////////////////////////////////////////
+	//Linear Regression
+	/////////////////////////////////////////////////////////
+
+	shared_ptr<Matrix<RationalCiphertext<DCRTPoly>>> result;
+
+	// turns off loop parallelization for the main computation
+	omp_set_num_threads(1);
+#pragma omp parallel
+	{
+		result = cc->EvalLinRegression(x, y);
+	}
+
+	////////////////////////////////////////////////////////////
+	//Decryption
+	////////////////////////////////////////////////////////////
+
+	shared_ptr<Matrix<Plaintext>> numerator;
+	shared_ptr<Matrix<Plaintext>> denominator;
+
+	cc->DecryptMatrix(kp.secretKey, result, &numerator, &denominator);
+
+	////////////////////////////////////////////////////////////
+	// Correct output
+	////////////////////////////////////////////////////////////
+
+	int64_t numerator1 = -3528000;
+	int64_t numerator2 = 6193600;
+	int64_t denominatorExpected = 313600;
+
+	EXPECT_EQ(numerator1, (*numerator)(0, 0)->GetIntegerValue());
+	EXPECT_EQ(numerator2, (*numerator)(1, 0)->GetIntegerValue());
+	EXPECT_EQ(denominatorExpected, (*denominator)(0, 0)->GetIntegerValue());
+	EXPECT_EQ(denominatorExpected, (*denominator)(1, 0)->GetIntegerValue());
+
+}

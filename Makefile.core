@@ -30,39 +30,42 @@
 ################
 
 CORESRCDIR := src/core
-COREBINDIR := src/core/bin
+COREBINDIR := $(BINDIR)/build/core
 CORETESTDIR := src/core/unittest
 COREDEMODIR := src/core/demo
 
-CORESOURCES := $(shell find $(CORESRCDIR)/lib -name '*.cpp') 
+CORESOURCES := $(shell find $(CORESRCDIR)/lib -name '*.cpp' ! -name '*-public.cpp') 
 COREUNITSOURCES := $(wildcard $(CORESRCDIR)/unittest/*.cpp)
 COREDEMOSOURCES := $(wildcard $(CORESRCDIR)/demo/*.cpp)
 
 COREOBJECTS := $(patsubst $(CORESRCDIR)/%,$(COREBINDIR)/%,$(patsubst %.cpp,%.o,$(CORESOURCES)))
 COREUNITOBJECTS := $(patsubst $(CORESRCDIR)/%,$(COREBINDIR)/%,$(patsubst %.cpp,%.o,$(COREUNITSOURCES)))
-COREUNITOBJECTS += test/include/gtest/gtest-all.o
 COREDEMOOBJECTS := $(patsubst $(CORESRCDIR)/%,$(COREBINDIR)/%,$(patsubst %.cpp,%.o,$(COREDEMOSOURCES)))
 
-TEST_TARGET := $(EXTTESTDIR)/core/tests$(EXESUFFIX)
+CORE_TEST_TARGET := $(EXTTESTDIR)/core/tests$(EXESUFFIX)
 
 -include $(COREOBJECTS:.o=.d)
 -include $(COREUNITOBJECTS:.o=.d)
 -include $(COREDEMOOBJECTS:.o=.d)
 
 .PHONY:allcore
-allcore: $(EXTLIBDIR)/$(PALISADECORELIB) $(TEST_TARGET) allcoredemos
+allcore: $(EXTLIBDIR)/$(PALISADECORELIB) $(CORE_TEST_TARGET) allcoredemos
 
-allcoredemos: $(EXTLIBDIR)/$(PALISADECORELIB) $(patsubst $(COREBINDIR)/demo/%,bin/demo/core/%,$(patsubst %.o,%$(EXESUFFIX),$(COREDEMOOBJECTS)))
+allcoredemos: $(EXTLIBDIR)/$(PALISADECORELIB) $(patsubst $(COREBINDIR)/demo/%,$(BINDIR)/demo/core/%,$(patsubst %.o,%$(EXESUFFIX),$(COREDEMOOBJECTS)))
 
-bin/demo/core/%$(EXESUFFIX): src/core/bin/demo/%.o $(EXTLIBDIR)/$(PALISADECORELIB)
+$(BINDIR)/demo/core/%$(EXESUFFIX): $(COREBINDIR)/demo/%.o $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
 	@mkdir -p $(@D)
-	$(CC) -o $@ $^ $(EXTLIB) -lPALISADEcore
+	$(CC) -o $@ $< $(EXTLIB) -lPALISADEcore $(NTLLIB) $(GMPLIB)
 
 #this builds the palisade library out of the objects 
-$(EXTLIBDIR)/$(PALISADECORELIB): $(COREOBJECTS)
+$(EXTLIBDIR)/$(PALISADECORELIB): $(COREOBJECTS) $(NTLLIB) $(GMPLIB)
 	@echo " -- core:linking $@ from COREOBJECTS"
-	mkdir -p $(EXTLIBDIR)
-	$(CC) $(LIBCMD) -o $@ $(COREOBJECTS) $(TEST_LIB)
+	@mkdir -p $(EXTLIBDIR)
+ifdef COVERAGE
+	$(LIBCMD) $@ $(COREOBJECTS) 
+else
+	$(LIBCMD) $@ $(COREOBJECTS) $(NTLLIB) $(GMPLIB)
+endif
 
 ### #this builds the individual objects that make up the library .
 .PRECIOUS: $(COREBINDIR)/%
@@ -82,15 +85,18 @@ $(COREBINDIR)/%:
 .PHONY: cleancore 
 
 cleancore: 
-	$(RM) -fr $(COREBINDIR) $(EXTLIBDIR)/$(PALISADECORELIB) `dirname $(TEST_TARGET)` bin/demo/core
+	$(RM) -fr $(COREBINDIR) $(EXTLIBDIR)/$(PALISADECORELIB) `dirname $(CORE_TEST_TARGET)` $(BINDIR)/demo/core
 
 # this links test executable  from objects in the test build directory
-$(TEST_TARGET): $(COREUNITOBJECTS) $(EXTLIBDIR)/$(PALISADECORELIB) 
-	@mkdir -p `dirname $(TEST_TARGET)`
-	$(CC) -o $(TEST_TARGET) $^ $(EXTLIB) $(TEST_LIB) 
+$(CORE_TEST_TARGET): $(UNITTESTMAINOBJ) $(COREUNITOBJECTS) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
+	@mkdir -p `dirname $(CORE_TEST_TARGET)`
+	$(CC) -o $(CORE_TEST_TARGET) $(UNITTESTMAINOBJ) $(COREUNITOBJECTS) $(EXTLIB) -lPALISADEcore $(NTLLIB) $(GMPLIB) $(TEST_LIB) 
 
 #used to run tests from make
 .PHONY: testcore
-testcore: $(TEST_TARGET)
-	$(TEST_TARGET)
+testcore: $(CORE_TEST_TARGET)
+	$(CORE_TEST_TARGET)
 
+corestrings:
+	@echo $(CORESOURCES)
+	@echo $(COREOBJECTS)

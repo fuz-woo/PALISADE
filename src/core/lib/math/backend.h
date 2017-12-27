@@ -27,7 +27,24 @@
 
 #ifndef LBCRYPTO_MATH_BACKEND_H
 #define LBCRYPTO_MATH_BACKEND_H
+
+#include "utils/inttypes.h"
+
  
+// use of MS VC is not permitted because of various incompatibilities
+#ifdef _MSC_VER
+#error "MSVC COMPILER IS NOT SUPPORTED"
+#endif
+
+////////// definitions for native integer and native vector
+#include "native_int/binint.h"
+#include "native_int/binvect.h"
+#include <initializer_list>
+
+typedef native_int::NativeInteger<uint64_t>			NativeInteger;
+typedef native_int::BigVectorImpl<NativeInteger>	NativeVector;
+
+
 /*! Define the underlying default math implementation being used by defining MATHBACKEND */
 
 // Each math backend is defined in its own namespace, and can be used at any time by referencing
@@ -48,34 +65,53 @@
 // 		This backend supports arbitrary bitwidths; no memory pool is used; can grow up to RAM limitation
 //		Configurable type of underlying integer (either 32 or 64 bit)
 
+// passes all tests with UBINT_32
+// fails tests with UBINT_64
+// there is a bug in the way modulus is computed. do not use.
+
 // MATHBACKEND 6
 //		This uses gmp_int:: definition as default
 // 		GMP 6.1.2 / NTL 10.3.0 backend
 
-// MATHBACKEND 7
-// 		This uses native_int:: as the default
-// This backend provides a maximum size of 64 bits
-
 //To select backend, please UNCOMMENT the appropriate line rather than changing the number on the
-//uncommented line
+//uncommented line (and breaking the documentation of the line)
 
+#ifndef MATHBACKEND
 #define MATHBACKEND 2
 //#define MATHBACKEND 4
-//#define MATHBACKEND 6 
-//#define MATHBACKEND 7
+//#define MATHBACKEND 6
+#endif
+
+#if MATHBACKEND != 2 && MATHBACKEND != 4 && MATHBACKEND != 6
+#error "MATHBACKEND value is not valid"
+#endif
 
 ////////// cpu_int code
-#include "cpu_int/binint.cpp"
-#include "cpu_int/binvect.cpp"
 typedef uint32_t integral_dtype;
-static_assert(cpu_int::DataTypeChecker<integral_dtype>::value,"Data type provided is not supported in BigInteger");
 
 	/** Define the mapping for BigInteger
 	    1500 is the maximum bit width supported by BigIntegeregers, large enough for most use cases
-		The bitwidth can be decreased to the least value still supporting BBI multiplications for a specific application -
+		The bitwidth can be decreased to the least value still supporting BigInteger operations for a specific application -
 		to achieve smaller runtimes
 	**/
+
+#ifndef BigIntegerBitLength
 #define BigIntegerBitLength 1500 //for documentation on tests
+#endif
+
+#if BigIntegerBitLength < 600
+#error "BigIntegerBitLength is too small"
+#endif
+
+inline const std::string& GetMathBackendParameters() {
+	static std::string id = "Backend " + std::to_string(MATHBACKEND) +
+			(MATHBACKEND == 2 ? " internal int size " + std::to_string(sizeof(integral_dtype)*8) + " BitLength " + std::to_string(BigIntegerBitLength) : "");
+	return id;
+}
+
+#include "cpu_int/binint.h"
+#include "cpu_int/binvect.h"
+static_assert(cpu_int::DataTypeChecker<integral_dtype>::value,"Data type provided is not supported in BigInteger");
 
 ////////// for exp_int, decide if you want 32 bit or 64 bit underlying integers in the implementation
 #define UBINT_32
@@ -98,7 +134,7 @@ typedef uint64_t expdtype;
 #include "exp_int/mubintvec.h" //rings of ubints
 
 namespace exp_int {
-/** Define the mapping for ExpBigIntegereger (experimental) */
+/** Define the mapping for ExpBigInteger (experimental) */
 typedef ubint<expdtype> xubint;
 
 /** Define the mapping for Big Integer Vector */
@@ -108,27 +144,14 @@ typedef ubintvec<xubint> xubintvec;
 typedef mubintvec<xubint> xmubintvec;
 }
 
-#if defined(__linux__) && MATHBACKEND == 6
-////////// for gmp int
 #include "gmp_int/gmpint.h" //experimental gmp unsigned big ints
-#include "gmp_int/mgmpint.h" //experimental gmp modulo unsigned big ints
-#include "gmp_int/gmpintvec.h" //vectors of such
+//#include "gmp_int/mgmpint.h" //experimental gmp modulo unsigned big ints
+//#include "gmp_int/gmpintvec.h" //vectors of such
 #include "gmp_int/mgmpintvec.h" //rings of such
 
 namespace gmp_int {
 typedef NTL::myZZ ubint;
-typedef NTL::myZZ_p mubint;
-}
-#endif
 
-////////// for native int
-#include "native_int/binint.h"
-#include <initializer_list>
-#define MATH_NATIVEBITS	64
-
-namespace native_int {
-typedef NativeInteger<uint64_t> BigInteger;
-typedef cpu_int::BigVectorImpl<NativeInteger<uint64_t>> BigVector;
 }
 
 /**
@@ -142,49 +165,36 @@ namespace lbcrypto {
 	typedef cpu_int::BigInteger<integral_dtype,BigIntegerBitLength> BigInteger;
 	typedef cpu_int::BigVectorImpl<BigInteger> BigVector;
 
-#define MATH_DEFBITS BigIntegerBitLength
-
 #endif
 
 #if MATHBACKEND == 4
-        #ifdef UBINT_64
-	  #error MATHBACKEND 4 with UBINT_64 currently does not work do not use.
-	#endif
+#ifdef UBINT_64
+	#error MATHBACKEND 4 with UBINT_64 currently does not work do not use.
+#endif
 	typedef exp_int::xubint BigInteger;
 	typedef exp_int::xmubintvec BigVector;
 
-#define MATH_DEFBITS 0
-
 #endif
 
-#if defined(__linux__)&& MATHBACKEND == 6
+#if MATHBACKEND == 6
 
 	/** Define the mapping for BigInteger */
 	typedef NTL::myZZ BigInteger;
 	
 	/** Define the mapping for BigVector */
-        typedef NTL::myVecP<NTL::myZZ_p> BigVector;
+	typedef NTL::myVecP<NTL::myZZ> BigVector;
 
-#define MATH_DEFBITS 0
-
-#endif
-
-#if MATHBACKEND == 7
-
-	typedef native_int::BigInteger BigInteger;
-	typedef native_int::BigVector BigVector;
-
-#define MATH_DEFBITS MATH_NATIVEBITS
 #endif
 
 	template<typename IntType> class ILParamsImpl;
 	template<typename ModType, typename IntType, typename VecType, typename ParmType> class PolyImpl;
 
 	typedef ILParamsImpl<BigInteger> ILParams;
+	typedef ILParamsImpl<NativeInteger> ILNativeParams;
+
 	typedef PolyImpl<BigInteger, BigInteger, BigVector, ILParams> Poly;
-
-	typedef ILParamsImpl<native_int::BigInteger> ILNativeParams;
-
+	typedef PolyImpl<NativeInteger, NativeInteger, NativeVector, ILNativeParams> NativePoly;
+	
 } // namespace lbcrypto ends
 
 #endif

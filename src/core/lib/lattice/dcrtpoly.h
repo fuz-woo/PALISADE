@@ -32,6 +32,7 @@
 
 #include "../math/backend.h"
 #include "../utils/inttypes.h"
+#include "../utils/exception.h"
 #include "../lattice/elemparams.h"
 #include "../lattice/ilparams.h"
 #include "../lattice/ildcrtparams.h"
@@ -61,13 +62,13 @@ public:
 	typedef VecType Vector;
 
 	typedef DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyType;
-	typedef DiscreteGaussianGeneratorImpl<native_int::BigInteger,native_int::BigVector> DggType;
-	typedef DiscreteUniformGeneratorImpl<native_int::BigInteger,native_int::BigVector> DugType;
-	typedef TernaryUniformGeneratorImpl<native_int::BigInteger,native_int::BigVector> TugType;
-	typedef BinaryUniformGeneratorImpl<native_int::BigInteger,native_int::BigVector> BugType;
+	typedef DiscreteGaussianGeneratorImpl<NativeInteger,NativeVector> DggType;
+	typedef DiscreteUniformGeneratorImpl<NativeInteger,NativeVector> DugType;
+	typedef TernaryUniformGeneratorImpl<NativeInteger,NativeVector> TugType;
+	typedef BinaryUniformGeneratorImpl<NativeInteger,NativeVector> BugType;
 
 	// this class contains an array of these:
-	typedef PolyImpl<native_int::BigInteger,native_int::BigInteger,native_int::BigVector,native_int::ILParams> PolyType;
+	typedef PolyImpl<NativeInteger,NativeInteger,NativeVector,ILNativeParams> PolyType;
 	typedef PolyImpl<ModType,IntType,VecType,ILParams> PolyLargeType;
 
 	static const std::string GetElementName() {
@@ -90,8 +91,7 @@ public:
 	*/
 	DCRTPolyImpl(const shared_ptr<ParmType> params, Format format = EVALUATION, bool initializeElementToZero = false);
 
-	// FIXME should be private?
-	void FillPolyFromBigVector(const Poly& element, const shared_ptr<ParmType> params);
+	const DCRTPolyType& operator=(const Poly& element);
 
 	/**
 	* @brief Constructor based on discrete Gaussian generator.
@@ -103,7 +103,7 @@ public:
 	DCRTPolyImpl(const DggType &dgg, const shared_ptr<ParmType> params, Format format = EVALUATION);
 
 	/**
-	* @brief Constructor based on binary Gaussian generator. This is not implemented. Will throw a logic_error.
+	* @brief Constructor based on binary distribution generator. This is not implemented. Will throw a logic_error.
 	*
 	* @param &bug the input binary uniform generator. The bug will be the seed to populate the towers of the DCRTPoly with random numbers.
 	* @param params parameter set required for DCRTPoly.
@@ -114,18 +114,16 @@ public:
 	}
 
 	/**
-	* @brief Constructor based on binary Gaussian generator. This is not implemented. Will throw a logic_error.
+	* @brief Constructor based on ternary distribution generator.
 	*
 	* @param &tug the input ternary uniform generator. The bug will be the seed to populate the towers of the DCRTPoly with random numbers.
 	* @param params parameter set required for DCRTPoly.
 	* @param format the input format fixed to EVALUATION. Format is a enum type that indicates if the polynomial is in Evaluation representation or Coefficient representation. It is defined in inttypes.h.
 	*/
-	DCRTPolyImpl(const TugType &tug, const shared_ptr<ParmType> params, Format format = EVALUATION) {
-		throw std::logic_error("Cannot use TernaryUniformGenerator with DCRTPoly; not implemented");
-	}
+	DCRTPolyImpl(const TugType &tug, const shared_ptr<ParmType> params, Format format = EVALUATION);
 
 	/**
-	* @brief Constructor based on full methods.
+	* @brief Constructor based on discrete uniform generator.
 	*
 	* @param &dug the input discrete Uniform Generator.
 	* @param params the input params.
@@ -147,6 +145,49 @@ public:
 	* @param &towers vector of Polys which correspond to each tower of DCRTPoly.
 	*/
 	DCRTPolyImpl(const std::vector<PolyType> &elements);
+
+	/**
+	* @brief Create lambda that allocates a zeroed element for the case when it is called from a templated class
+	* @param params the params to use.
+	* @param format - EVALUATION or COEFFICIENT
+	*/
+	inline static function<unique_ptr<DCRTPolyType>()> MakeAllocator(const shared_ptr<ParmType> params, Format format) {
+		return [=]() {
+			return lbcrypto::make_unique<DCRTPolyType>(params, format, true);
+		};
+	}
+
+	/**
+	* @brief Allocator for discrete uniform distribution.
+	*
+	* @param params Params instance that is is passed.
+	* @param resultFormat resultFormat for the polynomials generated.
+	* @param stddev standard deviation for the discrete gaussian generator.
+	* @return the resulting vector.
+	*/
+	inline static function<unique_ptr<DCRTPolyType>()> MakeDiscreteGaussianCoefficientAllocator(shared_ptr<ParmType> params, Format resultFormat, int stddev) {
+		return [=]() {
+			DggType dgg(stddev);
+			auto ilvec = lbcrypto::make_unique<DCRTPolyType>(dgg, params, COEFFICIENT);
+			ilvec->SetFormat(resultFormat);
+			return ilvec;
+		};
+	}
+
+	/**
+	* @brief Allocator for discrete uniform distribution.
+	*
+	* @param params Params instance that is is passed.
+	* @param format format for the polynomials generated.
+	* @return the resulting vector.
+	*/
+	inline static function<unique_ptr<DCRTPolyType>()> MakeDiscreteUniformAllocator(shared_ptr<ParmType> params, Format format) {
+		return [=]() {
+			DugType dug;
+			return lbcrypto::make_unique<DCRTPolyType>(dug, params, format);
+		};
+	}
+
 
 	/**
 	* @brief Copy constructor.
@@ -302,6 +343,13 @@ public:
 	 */
 	std::vector<DCRTPolyType> PowersOfBase(usint baseBits) const ;
 
+	/**
+	 * CRT basis decomposition of c as [c qi/q]_qi
+	 *
+	 * @param &qDivqiInverse precomputed table of [qi_q]_qi
+	 * @return is the pointer where the resulting vector is stored
+	 */
+	std::vector<DCRTPolyType> CRTDecompose(const std::vector<NativeInteger> &qDivqiInverse) const;
 
 	//VECTOR OPERATIONS
 
@@ -327,7 +375,31 @@ public:
 	* @param &rhs the list to initalized the element.
 	* @return the resulting element.
 	*/
-	DCRTPolyType& operator=(std::initializer_list<sint> rhs);
+	DCRTPolyType& operator=(std::initializer_list<uint64_t> rhs);
+
+	/**
+	* @brief Assignment Operator. The usint val will be set at index zero and all other indices will be set to zero.
+	*
+	* @param val is the usint to assign to index zero.
+	* @return the resulting vector.
+	*/
+	DCRTPolyType& operator=(uint64_t val);
+
+	/**
+	* @brief Creates a Poly from a vector of signed integers (used for trapdoor sampling)
+	*
+	* @param &rhs the vector to set the PolyImpl to.
+	* @return the resulting PolyImpl.
+	*/
+	DCRTPolyType& operator=(std::vector<int64_t> rhs);
+
+	/**
+	* @brief Creates a Poly from a vector of signed integers (used for trapdoor sampling)
+	*
+	* @param &rhs the vector to set the PolyImpl to.
+	* @return the resulting PolyImpl.
+	*/
+	DCRTPolyType& operator=(std::vector<int32_t> rhs);
 
 	/**
 	 * @brief Unary minus on a element.
@@ -374,6 +446,22 @@ public:
 			result.m_vectors[k] = m_vectors[k].AutomorphismTransform(i);
 		}
 		return result;
+	}
+
+	/**
+	* @brief Transpose the ring element using the automorphism operation
+	*
+	* @return is the result of the transposition.
+	*/
+	DCRTPolyType Transpose() const {
+	
+		if (m_format == COEFFICIENT)
+			throw std::logic_error("DCRTPolyImpl element transposition is currently implemented only in the Evaluation representation.");
+		else {
+			usint m = m_params->GetCyclotomicOrder();
+			return AutomorphismTransform(m - 1);
+		}
+
 	}
 
 	/**
@@ -425,6 +513,14 @@ public:
 	* @return is the return value of the times operation.
 	*/
 	DCRTPolyType Times(const IntType &element) const;
+
+	/**
+	* @brief Scalar multiplication by an integer represented in CRT Basis.
+	*
+	* @param &element is the element to multiply entry-wise.
+	* @return is the return value of the times operation.
+	*/
+	DCRTPolyType Times(const std::vector<NativeInteger> &element) const;
 
 	/**
 	* @brief Scalar multiplication followed by division and rounding operation - operation on all entries.
@@ -501,8 +597,8 @@ public:
 	* @param modulus is the modulus to use.
 	* @return is the return value of the modulus.
 	*/
-	DCRTPolyType SignedMod(const IntType &modulus) const {
-		throw std::logic_error("SignedMod of an IntType not implemented on DCRTPoly");
+	DCRTPolyType Mod(const IntType &modulus) const {
+		throw std::logic_error("Mod of an IntType not implemented on DCRTPoly");
 	}
 
 	// OTHER FUNCTIONS AND UTILITIES
@@ -527,9 +623,18 @@ public:
 	}
 
 	/**
-	* @brief Prints values of each tower
+	* @brief Sets element at index
+	*
+	* @param index where the element should be set
 	*/
-	void PrintValues() const;
+	void SetElementAtIndex(usint index,const PolyType &element){
+		m_vectors[index] = element;
+	}
+
+	/**
+	* @brief Sets all values of element to zero.
+	*/
+	void SetValuesToZero();
 
 	/**
 	* @brief Adds "1" to every entry in every tower.
@@ -575,11 +680,68 @@ public:
 
 	/**
 	* @brief Interpolates the DCRTPoly to an Poly based on the Chinese Remainder Transform Interpolation.
-	* and then returns an DCRTPoly with that single element
+	* and then returns a Poly with that single element
 	*
-	* @return the interpolated ring element embeded into DCRTPoly.
+	* @return the interpolated ring element as a Poly object.
 	*/
 	Poly CRTInterpolate() const;
+
+//	NativePoly CRTInterpolate() {
+//		PALISADE_THROW(config_error, "DCRT interpolate to NativePoly is not supported");
+//	}
+
+	NativePoly DecryptionCRTInterpolate(PlaintextModulus ptm) const;
+
+	/**
+	* @brief Computes Round(p/q*x) mod p as [\sum_i x_i*alpha_i + Round(\sum_i x_i*beta_i)] mod p for fast rounding in RNS;
+	* used in the decryption of BFVrns
+	*
+	* @param &p 64-bit integer (often corresponds to the plaintext modulus)
+	* @param &alpha a vector of precomputed integer factors mod p - for each q_i
+	* @param &beta a vector of precomputed floating-point factors between 0 and 1 - for each q_i
+	* @return the result of computation as a polynomial with native 64-bit coefficients
+	*/
+	PolyType ScaleAndRound(const typename PolyType::Integer &p, const std::vector<typename PolyType::Integer> &alpha,
+			const std::vector<double> &beta) const;
+
+	/**
+	* @brief Switches polynomial from one CRT basis Q = q1*q2*...*qn to another CRT basis S = s1*s2*...*sn
+	*
+	* @param &params parameters for the CRT basis S
+	* @param &qInvModqi a vector of precomputed integer factors (q/qi)^{-1} mod qi for all qi
+	* @param &qDivqiModsi a matrix of precomputed integer factors (q/qi)^{-1} mod si for all si, qi combinations
+	* @param &qModsi a vector of precomputed integer factors q mod si for all si
+	* @return the polynomial in the CRT basis S
+	*/
+	DCRTPolyType SwitchCRTBasis(const shared_ptr<ParmType> params, const std::vector<typename PolyType::Integer> &qInvModqi,
+			const std::vector<std::vector<typename PolyType::Integer>> &qDivqiModsi, const std::vector<typename PolyType::Integer> &qModsi) const;
+
+	/**
+	* @brief Expands polynomial in CRT basis Q = q1*q2*...*qn to a larger CRT basis Q*S, where S = s1*s2*...*sn;
+	* uses SwtichCRTBasis as a subroutine; the result is in evaluation representation
+	*
+	* @param &paramsQS parameters for the expanded CRT basis Q*S
+	* @param &params parameters for the CRT basis S
+	* @param &qInvModqi a vector of precomputed integer factors (q/qi)^{-1} mod qi for all qi
+	* @param &qDivqiModsi a matrix of precomputed integer factors (q/qi)^{-1} mod si for all si, qi combinations
+	* @param &qModsi a vector of precomputed integer factors q mod si for all si
+	*/
+	void ExpandCRTBasis(const shared_ptr<ParmType> paramsQS, const shared_ptr<ParmType> params, const std::vector<typename PolyType::Integer> &qInvModqi,
+			const std::vector<std::vector<typename PolyType::Integer>> &qDivqiModsi, const std::vector<typename PolyType::Integer> &qModsi);
+
+	/**
+	* @brief Computes Round(p/Q*x), where x is in the CRT basis Q*S,
+	* as [\sum_{i=1}^n alpha_i*x_i + Round(\sum_{i=1}^n beta_i*x_i)]_si,
+	* with the result in the Q CRT basis; used in homomorphic multiplication of BFVrns
+	*
+	* @param &params parameters for the CRT basis Q
+	* @param &alpha a matrix of precomputed integer factors = {Floor[p*S*[(Q*S/vi)^{-1}]_{vi}/vi]}_si; for all combinations of vi, si; where vi is a prime modulus in Q*S
+	* @param &beta a vector of precomputed floating-point factors between 0 and 1 = [p*S*(Q*S/vi)^{-1}]_{vi}/vi; - for each vi
+	* @return the result of computation as a polynomial in the CRT basis Q
+	*/
+	DCRTPolyType ScaleAndRound(const shared_ptr<ParmType> params,
+			const std::vector<std::vector<typename PolyType::Integer>> &alpha,
+			const std::vector<double> &beta) const;
 
 	/**
 	* @brief Convert from Coefficient to CRT or vice versa; calls FFT and inverse FFT.
@@ -595,7 +757,7 @@ public:
 	* @param &rootOfUnityArb is the corresponding root of unity for the modulus
 	* ASSUMPTION: This method assumes that the caller provides the correct rootOfUnity for the modulus
 	*/
-	void SwitchModulus(const IntType &modulus, const IntType &rootOfUnity, const IntType &modulusArb = IntType::ZERO, const IntType &rootOfUnityArb = IntType::ZERO) {
+	void SwitchModulus(const IntType &modulus, const IntType &rootOfUnity, const IntType &modulusArb = IntType(0), const IntType &rootOfUnityArb = IntType(0)) {
 		throw std::logic_error("SwitchModulus not implemented on DCRTPoly");
 	}
 
@@ -615,6 +777,13 @@ public:
 	* @return is the Boolean representation of the existence of multiplicative inverse.
 	*/
 	bool InverseExists() const;
+
+	/**
+	* @brief Returns the infinity norm, basically the largest value in the ring element.
+	*
+	* @return is the largest value in the ring element.
+	*/
+	double Norm() const;
 
 	//JSON FACILITY
 	/**
@@ -734,7 +903,6 @@ private:
 	// Either Format::EVALUATION (0) or Format::COEFFICIENT (1)
 	Format m_format;
 };
-
 } // namespace lbcrypto ends
 
 namespace lbcrypto

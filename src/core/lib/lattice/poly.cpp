@@ -22,524 +22,657 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
-*/
+ */
 
 #include "poly.h"
 #include <fstream>
 #include <cmath>
 
+#define DEMANGLER //used for the demangling type namefunction.
+
+#ifdef DEMANGLER
+
+#include <string>
+#include <cstdlib>
+#include <cxxabi.h>
+
+
+template<typename T>
+std::string type_name()
+{
+	int status;
+	std::string tname = typeid(T).name();
+	char *demangled_name = abi::__cxa_demangle(tname.c_str(), NULL, NULL, &status);
+	if(status == 0) {
+		tname = demangled_name;
+		std::free(demangled_name);
+	}
+	return tname;
+}
+
+
+#endif
 
 namespace lbcrypto
 {
 
-	// static members
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	std::vector<PolyImpl<ModType, IntType,VecType,ParmType>> PolyImpl<ModType,IntType,VecType,ParmType>::m_dggSamples;
-
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	shared_ptr<ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::m_dggSamples_params;
-
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> PolyImpl<ModType,IntType,VecType,ParmType>::m_tugSamples;
-
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	shared_ptr<ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::m_tugSamples_params;
-
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl() : m_values(nullptr), m_format(EVALUATION)
 {
-	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(const shared_ptr<ParmType> params, Format format, bool initializeElementToZero) : m_values(nullptr), m_format(format)
 {
-		m_params = params;
+	m_params = params;
 
-		if (initializeElementToZero) {
-			this->SetValuesToZero();
-		}
+	if (initializeElementToZero) {
+		this->SetValuesToZero();
 	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(bool initializeElementToMax, const shared_ptr<ParmType> params, Format format) : m_values(nullptr), m_format(format)
 {
-		m_params = params;
+	m_params = params;
 
-		if(initializeElementToMax) {
-			this->SetValuesToMax();
+	if(initializeElementToMax) {
+		this->SetValuesToMax();
 
-		}
 	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(const DggType &dgg, const shared_ptr<ParmType> params, Format format)
 {
 
-		m_params = params;
+	m_params = params;
 
-	if (format == COEFFICIENT) {
-			usint vectorSize = params->GetRingDimension();
-			m_values = make_unique<VecType>(dgg.GenerateVector(vectorSize, params->GetModulus()));
-			(*m_values).SetModulus(params->GetModulus());
-			m_format = COEFFICIENT;
-	} else {
+	usint vectorSize = params->GetRingDimension();
+	m_values = make_unique<VecType>(dgg.GenerateVector(vectorSize, params->GetModulus()));
+	(*m_values).SetModulus(params->GetModulus());
+	m_format = COEFFICIENT;
 
-		usint vectorSize = params->GetRingDimension();
-		m_values = make_unique<VecType>(dgg.GenerateVector(vectorSize, params->GetModulus()));
-			(*m_values).SetModulus(params->GetModulus());
-		m_format = COEFFICIENT;
-
+	if (format == EVALUATION)
 		this->SwitchFormat();
 
-		//PreComputeDggSamples(dgg, m_params);
+}
 
-		//const PolyImpl<ModType,IntType,VecType,ParmType> randomElement = GetPrecomputedVector();
-		//m_values = make_unique<VecType>(*randomElement.m_values);
-		//(*m_values).SetModulus(params->GetModulus());
-		//m_format = EVALUATION;
-		}
-	}
-
-
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl( DiscreteUniformGeneratorImpl<IntType,VecType> &dug, const shared_ptr<ParmType> params, Format format)
 {
 
-		m_params = params;
+	m_params = params;
 
-		usint vectorSize = params->GetRingDimension();
-		dug.SetModulus(params->GetModulus());
-		m_values = make_unique<VecType>(dug.GenerateVector(vectorSize));
-		(*m_values).SetModulus(params->GetModulus());
+	usint vectorSize = params->GetRingDimension();
+	dug.SetModulus(params->GetModulus());
+	m_values = make_unique<VecType>(dug.GenerateVector(vectorSize));
+	(*m_values).SetModulus(params->GetModulus());
 
-		m_format = COEFFICIENT;
+	m_format = COEFFICIENT;
 
-		if (format == EVALUATION)
-			this->SwitchFormat();
+	if (format == EVALUATION)
+		this->SwitchFormat();
 
-	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(const BinaryUniformGeneratorImpl<IntType,VecType> &bug, const shared_ptr<ParmType> params, Format format)
 {
-    bool dbg_flag = false;
-		m_params = params;
+	bool dbg_flag = false;
+	m_params = params;
 
-		usint vectorSize = params->GetRingDimension();
-		m_values = make_unique<VecType>(bug.GenerateVector(vectorSize, params->GetModulus()));
-		//(*m_values).SetModulus(ilParams.GetModulus());
-		DEBUG("why does this have no modulus");
-		m_format = COEFFICIENT;
+	usint vectorSize = params->GetRingDimension();
+	m_values = make_unique<VecType>(bug.GenerateVector(vectorSize, params->GetModulus()));
+	//(*m_values).SetModulus(ilParams.GetModulus());
+	DEBUG("why does this have no modulus");
+	m_format = COEFFICIENT;
 
-		if (format == EVALUATION)
-			this->SwitchFormat();
-	}
+	if (format == EVALUATION)
+		this->SwitchFormat();
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(const TernaryUniformGeneratorImpl<IntType,VecType> &tug, const shared_ptr<ParmType> params, Format format)
 {
 
-		m_params = params;
+	m_params = params;
 
-	if (format == COEFFICIENT) {
-			usint vectorSize = params->GetRingDimension();
-			m_values = make_unique<VecType>(tug.GenerateVector(vectorSize, params->GetModulus()));
-			(*m_values).SetModulus(params->GetModulus());
-			m_format = COEFFICIENT;
-	} else {
-		usint vectorSize = params->GetRingDimension();
-		m_values = make_unique<VecType>(tug.GenerateVector(vectorSize, params->GetModulus()));
-		(*m_values).SetModulus(params->GetModulus());
-		m_format = COEFFICIENT;
+	usint vectorSize = params->GetRingDimension();
+	m_values = make_unique<VecType>(tug.GenerateVector(vectorSize, params->GetModulus()));
+	(*m_values).SetModulus(params->GetModulus());
+	m_format = COEFFICIENT;
 
+	if (format == EVALUATION)
 		this->SwitchFormat();
 
-		//PreComputeTugSamples(tug, m_params);
+}
 
-		//const PolyImpl randomElement = GetPrecomputedTugVector();
-		//m_values = make_unique<VecType>(*randomElement.m_values);
-		//(*m_values).SetModulus(params->GetModulus());
-		//m_format = EVALUATION;
-		}
-	}
-
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(const PolyImpl &element, shared_ptr<ParmType>) : m_format(element.m_format), m_params(element.m_params)
-	{
-   		bool dbg_flag = false;
-    	if (!IsEmpty()){
-      		DEBUG("in ctor & m_values was "<<*m_values);
-    	} else {
-      		DEBUG("in ctor & m_values are empty ");      
-		}
-    	if (element.m_values == nullptr) {
-		     DEBUG("in ctor & m_values copy nullptr ");      
-			 m_values = nullptr;
-    	} else {
-	        
-  		m_values = make_unique<VecType>(*element.m_values); //this is a copy
-      		DEBUG("in ctor & m_values now "<<*m_values);
-		}
-	}
-
-	//this is the move
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(PolyImpl &&element, shared_ptr<ParmType>) : m_format(element.m_format), m_params(element.m_params)
-	   //m_values(element.m_values) //note this becomes move below
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(const PolyImpl &element, shared_ptr<ParmType>) : m_format(element.m_format), m_params(element.m_params)
 {
-   bool dbg_flag = false;
-    if (!IsEmpty()){
-      DEBUG("in ctor && m_values was "<<*m_values);
-    }else{
-      DEBUG("in ctor && m_values was empty");
-    }
-    if (!element.IsEmpty()) {
-      m_values = std::move(element.m_values);
-      DEBUG("in ctor && m_values was "<<*m_values);
-
-    } else{
-      DEBUG("in ctor && m_values remains empty");
-	m_values = nullptr;
-    }      
-    //element.m_values = nullptr; //remove the reference (actually unnecessary with smart pointers now.
+	bool dbg_flag = false;
+	if (!IsEmpty()){
+		DEBUG("in ctor & m_values was "<<*m_values);
+	} else {
+		DEBUG("in ctor & m_values are empty ");
 	}
+	if (element.m_values == nullptr) {
+		DEBUG("in ctor & m_values copy nullptr ");
+		m_values = nullptr;
+	} else {
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+		m_values = make_unique<VecType>(*element.m_values); //this is a copy
+		DEBUG("in ctor & m_values now "<<*m_values);
+	}
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(
+		const PolyNative &rhs, Format format)
+		{
+
+	m_format = rhs.GetFormat();
+
+	m_params = shared_ptr<ParmType>(new ParmType(rhs.GetParams()->GetCyclotomicOrder(),
+			rhs.GetParams()->GetModulus().ConvertToInt(),rhs.GetParams()->GetRootOfUnity().ConvertToInt()));
+
+	VecType temp(m_params->GetCyclotomicOrder() / 2);
+	temp.SetModulus(m_params->GetModulus());
+
+	for (size_t i = 0; i < rhs.GetLength(); i++)
+		temp[i] = (rhs.GetValues())[i].ConvertToInt();
+
+	this->SetValues(std::move(temp), rhs.GetFormat());
+
+	if (format != rhs.GetFormat())
+		SwitchFormat();
+
+		}
+
+//this is the move
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+PolyImpl<ModType,IntType,VecType,ParmType>::PolyImpl(PolyImpl &&element, shared_ptr<ParmType>) : m_format(element.m_format), m_params(element.m_params)
+//m_values(element.m_values) //note this becomes move below
+{
+	bool dbg_flag = false;
+	if (!IsEmpty()){
+		DEBUG("in ctor && m_values was "<<*m_values);
+	}else{
+		DEBUG("in ctor && m_values was empty");
+	}
+	if (!element.IsEmpty()) {
+		m_values = std::move(element.m_values);
+		DEBUG("in ctor && m_values was "<<*m_values);
+
+	} else{
+		DEBUG("in ctor && m_values remains empty");
+		m_values = nullptr;
+	}
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator=(const PolyImpl &rhs)
 {
-
-
-		if (this != &rhs) {
-   		   if (m_values == nullptr && rhs.m_values != nullptr) {
-			m_values = make_unique<VecType>(*rhs.m_values); 
-	      } else if (rhs.m_values != nullptr) {
+	if (this != &rhs) {
+		if (m_values == nullptr && rhs.m_values != nullptr) {
+			m_values = make_unique<VecType>(*rhs.m_values);
+		} else if (rhs.m_values != nullptr) {
 			*this->m_values = *rhs.m_values; //this is a BBV copy
-			}
-			this->m_params = rhs.m_params;
-			this->m_format = rhs.m_format;
 		}
-
-		return *this;
+		this->m_params = rhs.m_params;
+		this->m_format = rhs.m_format;
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator=(std::initializer_list<sint> rhs)
-{
-		static IntType ZERO(0);
-		usint len = rhs.size();
-		if (!IsEmpty()) {
-			usint vectorLength = this->m_values->GetLength();
+	return *this;
+}
 
-			for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
-				if (j < len) {
-					SetValAtIndex(j, IntType(*(rhs.begin() + j)));
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator=(std::initializer_list<uint64_t> rhs)
+{
+	static IntType ZERO(0);
+	usint len = rhs.size();
+	if (!IsEmpty()) {
+		usint vectorLength = this->m_values->GetLength();
+
+		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
+			if (j < len) {
+				this->at(j)= IntType(*(rhs.begin() + j));
 			} else {
-					SetValAtIndex(j, ZERO);
-				}
+				this->at(j)= ZERO;
 			}
+		}
 
 	} else {
 
-			VecType temp(m_params->GetCyclotomicOrder() / 2);
-			temp.SetModulus(m_params->GetModulus());
-			temp = rhs;
-			this->SetValues(std::move(temp), m_format);
-		}
-		return *this;
+		VecType temp(m_params->GetCyclotomicOrder() / 2);
+		temp.SetModulus(m_params->GetModulus());
+		temp = rhs;
+		this->SetValues(std::move(temp), m_format);
 	}
+	return *this;
+}
 
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+const PolyImpl<ModType, IntType, VecType, ParmType>& PolyImpl<ModType, IntType, VecType, ParmType>::operator=(std::vector<int64_t> rhs)
+{
+	static IntType ZERO(0);
+	usint len = rhs.size();
+	if (!IsEmpty()) {
+		usint vectorLength = this->m_values->GetLength();
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
+			if (j < len) {
+				IntType tempBI;
+				uint64_t tempInteger;
+				if (*(rhs.begin() + j) < 0)
+				{
+					tempInteger = -*(rhs.begin() + j);
+					tempBI = m_params->GetModulus() - IntType(tempInteger);
+				}
+				else
+				{
+					tempInteger = *(rhs.begin() + j);
+					tempBI = IntType(tempInteger);
+				}
+				at(j)= tempBI;
+			}
+			else {
+				at(j)= ZERO;
+			}
+		}
+
+	}
+	else {
+
+		usint vectorLength = m_params->GetCyclotomicOrder() / 2;
+		VecType temp(vectorLength);
+		temp.SetModulus(m_params->GetModulus());
+		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
+			if (j < len) {
+				IntType tempBI;
+				uint64_t tempInteger;
+				if (*(rhs.begin() + j) < 0)
+				{
+					tempInteger = -*(rhs.begin() + j);
+					tempBI = m_params->GetModulus() - IntType(tempInteger);
+				}
+				else
+				{
+					tempInteger = *(rhs.begin() + j);
+					tempBI = IntType(tempInteger);
+				}
+				temp.at(j)= tempBI;
+			}
+			else {
+				temp.at(j)= ZERO;
+			}
+		}
+		this->SetValues(std::move(temp), m_format);
+	}
+	m_format = COEFFICIENT;
+	return *this;
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+const PolyImpl<ModType, IntType, VecType, ParmType>& PolyImpl<ModType, IntType, VecType, ParmType>::operator=(std::vector<int32_t> rhs)
+{
+	static IntType ZERO(0);
+	usint len = rhs.size();
+	if (!IsEmpty()) {
+		usint vectorLength = this->m_values->GetLength();
+
+		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
+			if (j < len) {
+				IntType tempBI;
+				uint32_t tempInteger;
+				if (*(rhs.begin() + j) < 0)
+				{
+					tempInteger = -*(rhs.begin() + j);
+					tempBI = m_params->GetModulus() - IntType(tempInteger);
+				}
+				else
+				{
+					tempInteger = *(rhs.begin() + j);
+					tempBI = IntType(tempInteger);
+				}
+				at(j)= tempBI;
+			}
+			else {
+				at(j)= ZERO;
+			}
+		}
+
+	}
+	else {
+
+		usint vectorLength = m_params->GetCyclotomicOrder() / 2;
+		VecType temp(vectorLength);
+		temp.SetModulus(m_params->GetModulus());
+		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
+			if (j < len) {
+				IntType tempBI;
+				uint32_t tempInteger;
+				if (*(rhs.begin() + j) < 0)
+				{
+					tempInteger = -*(rhs.begin() + j);
+					tempBI = m_params->GetModulus() - IntType(tempInteger);
+				}
+				else
+				{
+					tempInteger = *(rhs.begin() + j);
+					tempBI = IntType(tempInteger);
+				}
+				temp.at(j)= tempBI;
+			}
+			else {
+				temp.at(j)= ZERO;
+			}
+		}
+		this->SetValues(std::move(temp), m_format);
+	}
+	m_format = COEFFICIENT;
+	return *this;
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator=(std::initializer_list<std::string> rhs)
 {
-		static IntType ZERO(0);
-		usint len = rhs.size();
-		if (!IsEmpty()) {
-			usint vectorLength = this->m_values->GetLength();
+	static IntType ZERO(0);
+	usint len = rhs.size();
+	if (!IsEmpty()) {
+		usint vectorLength = this->m_values->GetLength();
 
-			for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
-				if (j < len) {
-					SetValAtIndex(j, *(rhs.begin() + j));
+		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
+			if (j < len) {
+				m_values->at(j)= *(rhs.begin() + j);
 			} else {
-					SetValAtIndex(j, ZERO);
-				}
+				m_values->at(j)= ZERO;
 			}
+		}
 
 	} else {
 
-			VecType temp(m_params->GetRingDimension());
-			temp.SetModulus(m_params->GetModulus());
-			temp = rhs;
-			this->SetValues(std::move(temp), m_format);
-		}
-		return *this;
+		VecType temp(m_params->GetRingDimension());
+		temp.SetModulus(m_params->GetModulus());
+		temp = rhs;
+		this->SetValues(std::move(temp), m_format);
 	}
+	return *this;
+}
 
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator=(PolyImpl &&rhs)
 {
 
-		if (this != &rhs) {
-			m_values = std::move(rhs.m_values);
-			m_params = rhs.m_params;
-			m_format = rhs.m_format;
-		}
-
-		return *this;
+	if (this != &rhs) {
+		m_values = std::move(rhs.m_values);
+		m_params = rhs.m_params;
+		m_format = rhs.m_format;
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+	return *this;
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::CloneParametersOnly() const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> result(this->m_params, this->m_format);
-		return std::move(result);//TODO should we instead rely on RVO? 
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> result(this->m_params, this->m_format);
+	return result;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::CloneWithNoise(const DiscreteGaussianGeneratorImpl<IntType,VecType> &dgg, Format format) const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> result(dgg, m_params, format);
-		return std::move(result);//TODO should we instead rely on RVO? 
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> result(dgg, m_params, format);
+	return result;
+}
 
-	//If this is in EVALUATION then just set all the values = val
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+//If this is in EVALUATION then just set all the values = val
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator=(uint64_t val)
 {
-		m_format = EVALUATION;
-		if (m_values == nullptr){
-			m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
-		}
-		for (size_t i = 0; i < m_values->GetLength(); ++i) {
-			this->SetValAtIndex(i, IntType(val));
-		}
-		return *this;
+	m_format = EVALUATION;
+	if (m_values == nullptr){
+		m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
 	}
-
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	PolyImpl<ModType,IntType,VecType,ParmType>::~PolyImpl()
-	{
+	for (size_t i = 0; i < m_values->GetLength(); ++i) {
+		this->at(i)= IntType(val);
 	}
+	return *this;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+PolyImpl<ModType,IntType,VecType,ParmType>::~PolyImpl()	{}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const VecType &PolyImpl<ModType,IntType,VecType,ParmType>::GetValues() const
 {
-		if (m_values == 0)
-			throw std::logic_error("No values in PolyImpl");
-		return *m_values;
-	}
+	if (m_values == 0)
+		throw std::logic_error("No values in PolyImpl");
+	return *m_values;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 Format PolyImpl<ModType,IntType,VecType,ParmType>::GetFormat() const
 {
-		return m_format;
-	}
+	return m_format;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	const IntType PolyImpl<ModType,IntType,VecType,ParmType>::GetValAtIndex(usint i) const
-	{
-		if (m_values == 0)
-			throw std::logic_error("No values in PolyImpl");
-		return m_values->GetValAtIndex(i);
-	}
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+IntType& PolyImpl<ModType,IntType,VecType,ParmType>::at(usint i)
+{
+	if (m_values == 0)
+		throw std::logic_error("No values in PolyImpl");
+	return m_values->at(i);
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+const IntType& PolyImpl<ModType,IntType,VecType,ParmType>::at(usint i) const
+{
+	if (m_values == 0)
+		throw std::logic_error("No values in PolyImpl");
+	return m_values->at(i);
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+IntType& PolyImpl<ModType,IntType,VecType,ParmType>::operator[](usint i)
+{
+	return (*m_values)[i];
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+const IntType& PolyImpl<ModType,IntType,VecType,ParmType>::operator[](usint i) const
+{
+	return (*m_values)[i];
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 usint PolyImpl<ModType,IntType,VecType,ParmType>::GetLength() const
 {
-		if (m_values == 0)
-			throw std::logic_error("No values in PolyImpl");
-		return m_values->GetLength();
-	}
+	if (m_values == 0)
+		throw std::logic_error("No values in PolyImpl");
+	return m_values->GetLength();
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::SetValues(const VecType& values, Format format)
 {
-		if (m_params->GetRootOfUnity() == 0 || m_params->GetRingDimension() != values.GetLength() || m_params->GetModulus() != values.GetModulus()) {
-		  std::cout<<"PolyImpl::SetValues warning, mismatch in parameters"<<std::endl;
-		  if (m_params->GetRootOfUnity() == 0){
-			std::cout<<"m_params->GetRootOfUnity "<<m_params->GetRootOfUnity()<<std::endl;
-		}
-		  if (m_params->GetRingDimension() != values.GetLength()){
-		    std::cout<<"m_params->GetRingDimension() "<<m_params->GetRingDimension()<<std::endl;
-		    std::cout<<"!= values.GetLength()"<< values.GetLength() <<std::endl;
-		}
-		  if ( m_params->GetModulus() != values.GetModulus()) {
-		    std::cout<<"m_params->GetModulus() "<<m_params->GetModulus()<<std::endl;
-		    std::cout<<"values->GetModulus() "<<values.GetModulus()<<std::endl;
-		}
-		  //throw std::logic_error("Exisiting m_params do not match with the input parameter IntType& values.\n");
-		  // if (m_values != nullptr) { //dbc no need with smart pointers
-		  //   delete m_values;
-		  // }
-		}
-		m_values = make_unique<VecType>(values);
-		m_format = format;
+	if (m_params->GetRootOfUnity() == 0){
+		PALISADE_THROW(type_error, "Polynomial has a 0 root of unity");
 	}
+	if (m_params->GetRingDimension() != values.GetLength() || m_params->GetModulus() != values.GetModulus()) {
+		PALISADE_THROW(type_error, "Parameter mismatch on SetValues for Polynomial");
+	}
+	m_values = make_unique<VecType>(values);
+	m_format = format;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::SetValuesToZero()
 {
-	        m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
-	}
+	m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::SetValuesToMax()
 {
-		IntType max = m_params->GetModulus() - 1;
-		usint size = m_params->GetRingDimension();
-		m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
-		for (usint i = 0; i < size; i++) {
-			m_values->SetValAtIndex(i, IntType(max));
-		}
-
+	IntType max = m_params->GetModulus() - 1;
+	usint size = m_params->GetRingDimension();
+	m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
+	for (usint i = 0; i < size; i++) {
+		m_values->at(i)= IntType(max);
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Plus(const IntType &element) const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().ModAddAtIndex(0, element), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().ModAddAtIndex(0, element), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Minus(const IntType &element) const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().ModSub(element), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().ModSub(element), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Times(const IntType &element) const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().ModMul(element), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().ModMul(element), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::MultiplyAndRound(const IntType &p, const IntType &q) const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().MultiplyAndRound(p, q), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().MultiplyAndRound(p, q), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::DivideAndRound(const IntType &q) const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().DivideAndRound(q), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().DivideAndRound(q), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Negate() const
 {
-//		if (m_format != Format::EVALUATION)
-//			throw std::logic_error("Negate for PolyImpl is supported only in EVALUATION format.\n");
+	//		if (m_format != Format::EVALUATION)
+	//			throw std::logic_error("Negate for PolyImpl is supported only in EVALUATION format.\n");
 
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp( *this );
-		*tmp.m_values = m_values->ModMul(this->m_params->GetModulus() - 1);
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp( *this );
+	*tmp.m_values = m_values->ModMul(this->m_params->GetModulus() - 1);
+	return std::move( tmp );
+}
 
-	// VECTOR OPERATIONS
+// VECTOR OPERATIONS
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Plus(const PolyImpl &element) const
 {
-		PolyImpl tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().ModAdd(*element.m_values), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().ModAdd(*element.m_values), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Minus(const PolyImpl &element) const
 {
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().ModSub(*element.m_values), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().ModSub(*element.m_values), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Times(const PolyImpl &element) const
 {
-		if (m_format != Format::EVALUATION || element.m_format != Format::EVALUATION)
-			throw std::logic_error("operator* for PolyImpl is supported only in EVALUATION format.\n");
+	if (m_format != Format::EVALUATION || element.m_format != Format::EVALUATION)
+		throw std::logic_error("operator* for PolyImpl is supported only in EVALUATION format.\n");
 
-		if (!(*this->m_params == *element.m_params))
-			throw std::logic_error("operator* called on PolyImpl's with different params.");
+	if (!(*this->m_params == *element.m_params))
+		throw std::logic_error("operator* called on PolyImpl's with different params.");
 
-		PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().ModMul(*element.m_values), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl<ModType,IntType,VecType,ParmType> tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().ModMul(*element.m_values), this->m_format );
+	return std::move( tmp );
+}
 
-	// FIXME: should the parms tests here be done in regular + as well as +=? or in neither place?
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+// TODO: check if the parms tests here should be done in regular op as well as op=? or in neither place?
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator+=(const PolyImpl &element)
 {
-		if (!(*this->m_params == *element.m_params))
-			throw std::logic_error("operator+= called on PolyImpl's with different params.");
+	if (!(*this->m_params == *element.m_params))
+		throw std::logic_error("operator+= called on PolyImpl's with different params.");
 
-		if (m_values == nullptr) {
-		        m_values = make_unique<VecType>(*element.m_values);
-			return *this;
-		}
-		SetValues( m_values->ModAdd(*element.m_values), this->m_format );
+	if (m_values == nullptr) {
+		// act as tho this is 0
+		m_values = make_unique<VecType>(*element.m_values);
 		return *this;
 	}
+	SetValues( m_values->ModAdd(*element.m_values), this->m_format );
+	return *this;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator-=(const PolyImpl &element)
 {
-		if (!(*this->m_params == *element.m_params))
-			throw std::logic_error("operator-= called on PolyImpl's with different params.");
-		if (m_values == nullptr) {
-
-		        m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
-			//TODO:: is this a bug? it is not the same as +=
-		}
-		SetValues( m_values->ModSub(*element.m_values), this->m_format );
-		return *this;
+	if (!(*this->m_params == *element.m_params))
+		throw std::logic_error("operator-= called on PolyImpl's with different params.");
+	if (m_values == nullptr) {
+		// act as tho this is 0
+		m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
 	}
+	SetValues( m_values->ModSub(*element.m_values), this->m_format );
+	return *this;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator*=(const PolyImpl &element)
 {
+	if (m_format != Format::EVALUATION || element.m_format != Format::EVALUATION)
+		throw std::logic_error("operator*= for PolyImpl is supported only in EVALUATION format.\n");
 
-		if (m_format != Format::EVALUATION || element.m_format != Format::EVALUATION)
-			throw std::logic_error("operator*= for PolyImpl is supported only in EVALUATION format.\n");
+	if (!(*this->m_params == *element.m_params))
+		throw std::logic_error("operator*= called on PolyImpl's with different params.");
 
-		if (!(*this->m_params == *element.m_params))
-			throw std::logic_error("operator*= called on PolyImpl's with different params.");
-
-		if (m_values == nullptr){
-                        m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
-		}
-		SetValues( m_values->ModMul(*element.m_values), this->m_format );
+	if (m_values == nullptr){
+		// act as tho it's 0
+		m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
 		return *this;
 	}
+	SetValues( m_values->ModMul(*element.m_values), this->m_format );
+	return *this;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::AddILElementOne()
 {
-		IntType tempValue;
-		for (usint i = 0; i < m_params->GetRingDimension(); i++) {
-			tempValue = GetValues().GetValAtIndex(i) + 1;
-			tempValue = tempValue.Mod(m_params->GetModulus());
-			m_values->SetValAtIndex(i, tempValue);
-		}
+	IntType tempValue;
+	for (usint i = 0; i < m_params->GetRingDimension(); i++) {
+		tempValue = GetValues().at(i) + 1;
+		tempValue = tempValue.Mod(m_params->GetModulus());
+		m_values->at(i)= tempValue;
 	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::AutomorphismTransform(const usint &k) const
 {
-		
-			PolyImpl result(*this);
+	PolyImpl result(*this);
 
 	usint m = this->m_params->GetCyclotomicOrder();
 	usint n = this->m_params->GetRingDimension();
@@ -560,15 +693,15 @@ PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,Parm
 		// based on the totient index (between 0 and m - 1)
 		VecType expanded(m, modulus);
 		for (usint i = 0; i < n; i++) {
-			expanded.SetValAtIndex(totientList.at(i), m_values->GetValAtIndex(i));
-			}
+			expanded.at(totientList.at(i))= m_values->at(i);
+		}
 
 		for (usint i = 0; i < n; i++) {
 
 			//determines which power of primitive root unity we should switch to
 			usint idx = totientList.at(i)*k % m;
 
-			result.m_values->SetValAtIndex(i, expanded.GetValAtIndex(idx));
+			result.m_values->at(i)= expanded.at(idx);
 
 		}
 	} else {
@@ -579,7 +712,7 @@ PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,Parm
 
 			//determines which power of primitive root unity we should switch to
 			usint idx = (j*k) % m;
-			result.m_values->SetValAtIndex((j + 1) / 2 - 1, GetValues().GetValAtIndex((idx + 1) / 2 - 1));
+			result.m_values->at((j + 1) / 2 - 1)= GetValues().at((idx + 1) / 2 - 1);
 
 		}
 
@@ -587,438 +720,385 @@ PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,Parm
 
 	return result;
 
-	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Transpose() const
 {
-		if (m_format == COEFFICIENT)
-			throw std::logic_error("PolyImpl element transposition is currently implemented only in the Evaluation representation.");
+	if (m_format == COEFFICIENT)
+		throw std::logic_error("PolyImpl element transposition is currently implemented only in the Evaluation representation.");
 	else {
-			usint m = m_params->GetCyclotomicOrder();
-			return AutomorphismTransform(2 * m - 1);
-		}
+		usint m = m_params->GetCyclotomicOrder();
+		return AutomorphismTransform(m - 1);
 	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::MultiplicativeInverse() const
 {
-		PolyImpl tmp = CloneParametersOnly();
-		if (InverseExists()) {
-			tmp.SetValues( GetValues().ModInverse(), this->m_format );
-			return std::move( tmp );
+	PolyImpl tmp = CloneParametersOnly();
+	if (InverseExists()) {
+		tmp.SetValues( GetValues().ModInverse(), this->m_format );
+		return std::move( tmp );
 	} else {
-			throw std::logic_error("PolyImpl has no inverse\n");
-		}
+		throw std::logic_error("PolyImpl has no inverse\n");
 	}
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::ModByTwo() const
 {
-		PolyImpl tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().ModByTwo(), this->m_format );
-		return std::move( tmp );
-	}
-  //TODO: why is this called Signed Mod, should BBV.Mod be called signed mod too?
+	PolyImpl tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().ModByTwo(), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::SignedMod(const IntType & modulus) const
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::Mod(const IntType & modulus) const
 {
-		PolyImpl tmp = CloneParametersOnly();
-		tmp.SetValues( GetValues().Mod(modulus), this->m_format );
-		return std::move( tmp );
-	}
+	PolyImpl tmp = CloneParametersOnly();
+	tmp.SetValues( GetValues().Mod(modulus), this->m_format );
+	return std::move( tmp );
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::SwitchModulus(const IntType &modulus, const IntType &rootOfUnity, const IntType &modulusArb,
-        const IntType &rootOfUnityArb)
-{
-		if (m_values) {
-			m_values->SwitchModulus(modulus);
+		const IntType &rootOfUnityArb)
+		{
+	if (m_values) {
+		m_values->SwitchModulus(modulus);
 		m_params = shared_ptr<ParmType>(new ParmType(m_params->GetCyclotomicOrder(), modulus, rootOfUnity, modulusArb, rootOfUnityArb));
-		}
 	}
+		}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::SwitchFormat()
 {
 
-	        bool dbg_flag = false;
-		if (m_values == nullptr) {
-		  std::string errMsg = "Poly switch format to empty values";
-		  throw std::runtime_error(errMsg);
-		}
-
-		if (m_params->OrderIsPowerOfTwo() == false ) {
-			ArbitrarySwitchFormat();
-			return;
-		}
-    
-		if (m_format == COEFFICIENT) {
-			m_format = EVALUATION;
-			//todo:: does this have an extra copy? 
-			DEBUG("transform to evaluation m_values was"<< *m_values);						  
-
-			m_values = make_unique<VecType>(ChineseRemainderTransformFTT<IntType,VecType>::GetInstance()
-							.ForwardTransform(*m_values, m_params->GetRootOfUnity(), 
-									  m_params->GetCyclotomicOrder()));
-			DEBUG("m_values now "<< *m_values);						  
-	} else {
-			m_format = COEFFICIENT;
-			DEBUG("transform to coefficient m_values was"<< *m_values);						  
-
-			m_values = make_unique<VecType>(ChineseRemainderTransformFTT<IntType,VecType>::GetInstance()
-							.InverseTransform(*m_values, m_params->GetRootOfUnity(), 
-									  m_params->GetCyclotomicOrder()));
-			DEBUG("m_values now "<< *m_values);						  
-
-		}
+	bool dbg_flag = false;
+	if (m_values == nullptr) {
+		std::string errMsg = "Poly switch format to empty values";
+		throw std::runtime_error(errMsg);
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+	if (m_params->OrderIsPowerOfTwo() == false ) {
+		ArbitrarySwitchFormat();
+		return;
+	}
+
+	VecType newValues(m_params->GetCyclotomicOrder()/ 2);
+
+	if (m_format == COEFFICIENT) {
+		m_format = EVALUATION;
+
+		DEBUG("transform to evaluation m_values was"<< *m_values);
+
+		ChineseRemainderTransformFTT<IntType,VecType>::ForwardTransform(*m_values, m_params->GetRootOfUnity(), m_params->GetCyclotomicOrder(), &newValues);
+		DEBUG("m_values now "<< newValues);
+	} else {
+		m_format = COEFFICIENT;
+		DEBUG("transform to coefficient m_values was"<< *m_values);
+
+		ChineseRemainderTransformFTT<IntType,VecType>::InverseTransform(*m_values, m_params->GetRootOfUnity(), m_params->GetCyclotomicOrder(), &newValues);
+		DEBUG("m_values now "<< newValues);
+	}
+
+	*m_values = newValues;
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::ArbitrarySwitchFormat()
 {
 
-	        bool dbg_flag = false;
-		if (m_values == nullptr) {
-		  std::string errMsg = "Poly switch format to empty values";
-		  throw std::runtime_error(errMsg);
-		}
-
-		if (m_format == COEFFICIENT) {
-			m_format = EVALUATION;
-			//todo:: does this have an extra copy?
-			DEBUG("transform to evaluation m_values was"<< *m_values);
-
-			m_values = make_unique<VecType>(ChineseRemainderTransformArb<IntType,VecType>::GetInstance()
-							.ForwardTransform(*m_values, m_params->GetRootOfUnity(),m_params->GetBigModulus(),
-								m_params->GetBigRootOfUnity(), m_params->GetCyclotomicOrder()));
-			DEBUG("m_values now "<< *m_values);
-	} else {
-			m_format = COEFFICIENT;
-			DEBUG("transform to coefficient m_values was"<< *m_values);
-
-			m_values = make_unique<VecType>(ChineseRemainderTransformArb<IntType,VecType>::GetInstance()
-							.InverseTransform(*m_values, m_params->GetRootOfUnity(), m_params->GetBigModulus(),
-								m_params->GetBigRootOfUnity(), m_params->GetCyclotomicOrder()));
-			DEBUG("m_values now "<< *m_values);
-
-		}
+	bool dbg_flag = false;
+	if (m_values == nullptr) {
+		std::string errMsg = "Poly switch format to empty values";
+		throw std::runtime_error(errMsg);
 	}
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-void PolyImpl<ModType,IntType,VecType,ParmType>::PrintValues() const
+
+	if (m_format == COEFFICIENT) {
+		m_format = EVALUATION;
+		//todo:: does this have an extra copy?
+		DEBUG("transform to evaluation m_values was"<< *m_values);
+
+		m_values = make_unique<VecType>(ChineseRemainderTransformArb<IntType,VecType>::
+				ForwardTransform(*m_values, m_params->GetRootOfUnity(),m_params->GetBigModulus(),
+						m_params->GetBigRootOfUnity(), m_params->GetCyclotomicOrder()));
+		DEBUG("m_values now "<< *m_values);
+	} else {
+		m_format = COEFFICIENT;
+		DEBUG("transform to coefficient m_values was"<< *m_values);
+
+		m_values = make_unique<VecType>(ChineseRemainderTransformArb<IntType,VecType>::
+				InverseTransform(*m_values, m_params->GetRootOfUnity(), m_params->GetBigModulus(),
+						m_params->GetBigRootOfUnity(), m_params->GetCyclotomicOrder()));
+		DEBUG("m_values now "<< *m_values);
+	}
+}
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+std::ostream& operator<<(std::ostream &os, const PolyImpl<ModType,IntType,VecType,ParmType> & p)
 {
-		if (m_values != nullptr) {
-			std::cout << *m_values;
-			std::cout << " mod:" << m_values->GetModulus() << std::endl;
-		}
-		if (m_params.get() != nullptr) {
-			std::cout << " rootOfUnity: " << this->GetRootOfUnity() << std::endl;
-	} else {
-			std::cout << " something's odd: null m_params?!" << std::endl;
-		}
-		std::cout << std::endl;
+	if (p.m_values != nullptr) {
+		os << *(p.m_values);
+		os << " mod:" << (p.m_values)->GetModulus() << std::endl;
 	}
+	if (p.m_params.get() != nullptr) {
+		os << " rootOfUnity: " << p.GetRootOfUnity() << std::endl;
+	} else {
+		os << " something's odd: null m_params?!" << std::endl;
+	}
+	os << std::endl;
+	return os;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::MakeSparse(const uint32_t &wFactor)
 {
-		IntType modTemp;
-		IntType tempValue;
-		if (m_values != 0) {
-			for (usint i = 0; i < m_params->GetRingDimension();i++) {
-				if (i%wFactor != 0) {
-					m_values->SetValAtIndex(i, IntType(0));
-				}
+	IntType modTemp;
+	IntType tempValue;
+	if (m_values != 0) {
+		for (usint i = 0; i < m_params->GetRingDimension();i++) {
+			if (i%wFactor != 0) {
+				m_values->at(i)= IntType(0);
 			}
 		}
 	}
+}
 
-	// This function modifies PolyImpl to keep all the even indices. It reduces the ring dimension by half.
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+// This function modifies PolyImpl to keep all the even indices. It reduces the ring dimension by half.
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::Decompose()
 {
 
-		if( m_params->OrderIsPowerOfTwo() == false ) {
-			throw std::logic_error("Cannot decompose if cyclotomic order is not a power of 2");
-		}
-
-		Format format(m_format);
-
-		if (format != Format::COEFFICIENT) {
-			std::string errMsg = "PolyImpl not in COEFFICIENT format to perform Decompose.";
-			throw std::runtime_error(errMsg);
-		}
-
-		usint decomposedCyclotomicOrder = m_params->GetCyclotomicOrder() / 2;
-		//Using the halving lemma propety of roots of unity to calculate the root of unity at half the cyclotomic order
-
-		m_params.reset(new ParmType(decomposedCyclotomicOrder, m_params->GetModulus(), m_params->GetRootOfUnity()));
-
-		//Interleaving operation.
-		VecType decomposeValues(GetLength() / 2, GetModulus());
-		for (usint i = 0; i < GetLength(); i = i + 2) {
-			decomposeValues.SetValAtIndex(i / 2, GetValues().GetValAtIndex(i));
-		}
-
-		SetValues(decomposeValues, m_format);
+	if( m_params->OrderIsPowerOfTwo() == false ) {
+		throw std::logic_error("Cannot decompose if cyclotomic order is not a power of 2");
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+	Format format(m_format);
+
+	if (format != Format::COEFFICIENT) {
+		std::string errMsg = "PolyImpl not in COEFFICIENT format to perform Decompose.";
+		throw std::runtime_error(errMsg);
+	}
+
+	usint decomposedCyclotomicOrder = m_params->GetCyclotomicOrder() / 2;
+	//Using the halving lemma propety of roots of unity to calculate the root of unity at half the cyclotomic order
+
+	m_params.reset(new ParmType(decomposedCyclotomicOrder, m_params->GetModulus(), m_params->GetRootOfUnity()));
+
+	//Interleaving operation.
+	VecType decomposeValues(GetLength() / 2, GetModulus());
+	for (usint i = 0; i < GetLength(); i = i + 2) {
+		decomposeValues.at(i / 2)= GetValues().at(i);
+	}
+
+	SetValues(decomposeValues, m_format);
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 bool PolyImpl<ModType,IntType,VecType,ParmType>::IsEmpty() const
 {
-		if (m_values == nullptr)
-			return true;
+	if (m_values == nullptr)
+		return true;
 
-		return false;
-	}
+	return false;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 bool PolyImpl<ModType,IntType,VecType,ParmType>::InverseExists() const
 {
-		for (usint i = 0; i < GetValues().GetLength(); i++) {
-			if (m_values->GetValAtIndex(i) == 0)
-				return false;
-		}
-		return true;
+	for (usint i = 0; i < GetValues().GetLength(); i++) {
+		if (m_values->at(i) == 0)
+			return false;
 	}
+	return true;
+}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 double PolyImpl<ModType,IntType,VecType,ParmType>::Norm() const
 {
-		double retVal = 0.0;
-		double locVal = 0.0;
-		double q = m_params->GetModulus().ConvertToDouble();
+	IntType locVal;
+	IntType retVal;
+	const IntType &q = m_params->GetModulus();
+	const IntType &half = m_params->GetModulus() >> 1;
 
-		for (usint i = 0; i < GetValues().GetLength(); i++) {
-		if (m_values->GetValAtIndex(i) > (m_params->GetModulus() >> 1)) {
-				locVal = q - (m_values->GetValAtIndex(i)).ConvertToDouble();
-		} else
-				locVal = (m_values->GetValAtIndex(i)).ConvertToDouble();
+	for (usint i = 0; i < GetValues().GetLength(); i++) {
+		if (m_values->at(i) > half) 
+			locVal = q - (*m_values)[i];
+		else
+			locVal = m_values->at(i);
 
-			if (locVal > retVal)
-				retVal = locVal;
-		}
-		return retVal;
+		if (locVal > retVal)
+			retVal = locVal;
 	}
 
-	// Write vector x(current value of the PolyImpl object) as \sum\limits{ i = 0 }^{\lfloor{ \log q / base } \rfloor} {(base^i u_i)} and
-	// return the vector of{ u_0, u_1,...,u_{ \lfloor{ \log q / base } \rfloor } } \in R_base^{ \lceil{ \log q / base } \rceil };
-	// used as a subroutine in the relinearization procedure
-	// baseBits is the number of bits in the base, i.e., base = 2^baseBits
+	return retVal.ConvertToDouble();
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+}
+
+
+// Write vector x(current value of the PolyImpl object) as \sum\limits{ i = 0 }^{\lfloor{ \log q / base } \rfloor} {(base^i u_i)} and
+// return the vector of{ u_0, u_1,...,u_{ \lfloor{ \log q / base } \rfloor } } \in R_base^{ \lceil{ \log q / base } \rceil };
+// used as a subroutine in the relinearization procedure
+// baseBits is the number of bits in the base, i.e., base = 2^baseBits
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> PolyImpl<ModType,IntType,VecType,ParmType>::BaseDecompose(usint baseBits, bool evalModeAnswer) const
 {
-		
-		usint nBits = m_params->GetModulus().GetLengthForBase(2);
+	bool dbg_flag = false;
 
-		usint nWindows = nBits / baseBits;
-		if (nBits % baseBits > 0)
-			nWindows++;
+	DEBUG("PolyImpl::BaseDecompose" );
+	usint nBits = m_params->GetModulus().GetLengthForBase(2);
 
-		PolyImpl<ModType,IntType,VecType,ParmType> xDigit(m_params);
+	usint nWindows = nBits / baseBits;
+	if (nBits % baseBits > 0)
+		nWindows++;
 
-		std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> result;
-		result.reserve(nWindows);
+	PolyImpl<ModType,IntType,VecType,ParmType> xDigit(m_params);
 
-		// convert the polynomial to coefficient representation
-		PolyImpl<ModType,IntType,VecType,ParmType> x(*this);
-		x.SetFormat(COEFFICIENT);
+	std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> result;
+	result.reserve(nWindows);
+
+	// convert the polynomial to coefficient representation
+	PolyImpl<ModType,IntType,VecType,ParmType> x(*this);
+	x.SetFormat(COEFFICIENT);
+
+	DEBUG("<x>" );
+	//for( auto i : x ){
+	DEBUG(x );
+	//}
+	DEBUG("</x>" );
+
+	//TP: x is same for BACKEND 2 and 6
 
 
 	for (usint i = 0; i < nWindows; ++i) {
-			xDigit.SetValues( x.GetValues().GetDigitAtIndexForBase(i*baseBits + 1, 1 << baseBits), x.GetFormat() );
-			if( evalModeAnswer )
-				xDigit.SwitchFormat();
-			result.push_back(xDigit);
-		}
+		DEBUG("VecType is '" << type_name<VecType>() << "'" );
 
-		return std::move(result);
+		xDigit.SetValues( x.GetValues().GetDigitAtIndexForBase(i+1, 1 << baseBits), x.GetFormat() );
+		DEBUG("x.GetValue().GetDigitAtIndexForBase(i=" << i << ")" << std::endl << x.GetValues().GetDigitAtIndexForBase(i*baseBits + 1, 1 << baseBits) );
+		DEBUG("x.GetFormat()" << x.GetFormat() );
+		//TP: xDigit is all zeros for BACKEND=6, but not for BACKEND-2  *********************************************************
+		DEBUG("<xDigit." << i << ">" << std::endl << xDigit << "</xDigit." << i << ">" );
+		if( evalModeAnswer )
+			xDigit.SwitchFormat();
+		result.push_back(xDigit);
+		DEBUG("<xDigit.SwitchFormat." << i << ">" << std::endl << xDigit << "</xDigit.SwitchFormat." << i << ">" );
 	}
 
-	// Generate a vector of PolyImpl's as {x, base*x, base^2*x, ..., base^{\lfloor {\log q/base} \rfloor}*x, where x is the current PolyImpl object;
-	// used as a subroutine in the relinearization procedure to get powers of a certain "base" for the secret key element
-	// baseBits is the number of bits in the base, i.e., base = 2^baseBits
+	DEBUG("<result>" );
+	for( auto i : result){
+		DEBUG(i );
+	}
+	DEBUG("</result>" );
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
+	return std::move(result);
+}
+
+// Generate a vector of PolyImpl's as {x, base*x, base^2*x, ..., base^{\lfloor {\log q/base} \rfloor}*x, where x is the current PolyImpl object;
+// used as a subroutine in the relinearization procedure to get powers of a certain "base" for the secret key element
+// baseBits is the number of bits in the base, i.e., base = 2^baseBits
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> PolyImpl<ModType,IntType,VecType,ParmType>::PowersOfBase(usint baseBits) const
 {
 
-		static IntType TWO(2);
-		std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> result;
+	static IntType TWO(2);
+	std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> result;
 
-		usint nBits = m_params->GetModulus().GetLengthForBase(2);
+	usint nBits = m_params->GetModulus().GetLengthForBase(2);
 
-		usint nWindows = nBits / baseBits;
-		if (nBits % baseBits > 0)
-			nWindows++;
+	usint nWindows = nBits / baseBits;
+	if (nBits % baseBits > 0)
+		nWindows++;
 
-		result.reserve(nWindows);
+	result.reserve(nWindows);
 
 	for (usint i = 0; i < nWindows; ++i) {
-			IntType pI(TWO.ModExp(IntType(i*baseBits), m_params->GetModulus()));
-			result.push_back(pI*(*this));
-		}
-
-		return std::move(result);
-
+		IntType pI(TWO.ModExp(IntType(i*baseBits), m_params->GetModulus()));
+		result.push_back(pI*(*this));
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-void PolyImpl<ModType,IntType,VecType,ParmType>::PreComputeDggSamples(const DiscreteGaussianGeneratorImpl<IntType,VecType> &dgg, const shared_ptr<ParmType> params)
-		{
-	if (m_dggSamples.size() == 0 || m_dggSamples_params != params) {
-			DestroyPreComputedSamples();
-			m_dggSamples_params = params;
-		for (usint i = 0; i < m_sampleSize; ++i) {
-				PolyImpl current(m_dggSamples_params);
-				usint vectorSize = m_dggSamples_params->GetRingDimension();
-				current.m_values = make_unique<VecType>(dgg.GenerateVector(vectorSize, m_dggSamples_params->GetModulus()));
-				current.m_values->SetModulus(m_dggSamples_params->GetModulus());
-				current.m_format = COEFFICIENT;
+	return std::move(result);
 
-				current.SwitchFormat();
+}
 
-				m_dggSamples.push_back(current);
-			}
-		}
+
+// JSON FACILITY - Serialize Operation
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+bool PolyImpl<ModType,IntType,VecType,ParmType>::Serialize(Serialized* serObj) const {
+	bool dbg_flag = false;
+	if( !serObj->IsObject() ){
+		DEBUG("PolyImpl::Serialize is obj failed");
+		return false;
+	}
+	Serialized obj(rapidjson::kObjectType, &serObj->GetAllocator());
+	if (!this->GetValues().Serialize(&obj)){
+		DEBUG("PolyImpl::Serialize Get values failed");
+		return false;
 	}
 
-	//Select a precomputed vector randomly
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-const PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::GetPrecomputedVector()
-{
+	if (!m_params->Serialize(&obj)){
+		DEBUG("PolyImpl::Serialize m_[arams failed");
+		return false;
+	}
+	obj.AddMember("Format", std::to_string(this->GetFormat()), obj.GetAllocator());
 
-		//std::default_random_engine generator;
-		//std::uniform_real_distribution<int> distribution(0,SAMPLE_SIZE-1);
-		//int randomIndex = distribution(generator);
+	serObj->AddMember("PolyImpl", obj.Move(), serObj->GetAllocator());
 
-		int randomIndex = rand() % SAMPLE_SIZE;
-		return m_dggSamples[randomIndex];
+	return true;
+}
+
+// JSON FACILITY - Deserialize Operation
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+bool PolyImpl<ModType,IntType,VecType,ParmType>::Deserialize(const Serialized& serObj) {
+	bool dbg_flag= false;
+	Serialized::ConstMemberIterator iMap = serObj.FindMember("PolyImpl");
+	if (iMap == serObj.MemberEnd()) {
+		DEBUG("PolyImpl::Deserialize could not find PolyImpl");
+		return false;
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-void PolyImpl<ModType,IntType,VecType,ParmType>::PreComputeTugSamples(const TernaryUniformGeneratorImpl<IntType,VecType> &tug, const shared_ptr<ParmType> params)
-		{
-	if (m_tugSamples.size() == 0 || m_tugSamples_params != params) {
-			DestroyPreComputedTugSamples();
-			m_tugSamples_params = params;
-		for (usint i = 0; i < m_sampleSize; ++i) {
-				PolyImpl current(m_tugSamples_params);
-				usint vectorSize = m_tugSamples_params->GetRingDimension();
-				current.m_values = make_unique<VecType>(tug.GenerateVector(vectorSize, m_tugSamples_params->GetModulus()));
-				current.m_values->SetModulus(m_tugSamples_params->GetModulus());
-				current.m_format = COEFFICIENT;
-
-				current.SwitchFormat();
-
-				m_tugSamples.push_back(current);
-			}
-		}
+	SerialItem::ConstMemberIterator pIt = iMap->value.FindMember("ILParams");
+	if (pIt == iMap->value.MemberEnd()) {
+		DEBUG("PolyImpl::Deserialize could not find ILParams");
+		return false;
 	}
 
-	//Select a precomputed vector randomly
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-const PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,ParmType>::GetPrecomputedTugVector()
-{
+	Serialized parm(rapidjson::kObjectType);
+	parm.AddMember(SerialItem(pIt->name, parm.GetAllocator()), SerialItem(pIt->value, parm.GetAllocator()), parm.GetAllocator());
 
-		int randomIndex = rand() % SAMPLE_SIZE;
-		return m_tugSamples[randomIndex];
+	shared_ptr<ParmType> json_ilParams(new ParmType());
+	if (!json_ilParams->Deserialize(parm)){
+		DEBUG("PolyImpl::Deserialize could not deserialize Params");
+		return false;
+	}
+	m_params = json_ilParams;
+
+	usint vectorLength = this->m_params->GetRingDimension();
+
+	VecType vectorBBV = VecType(vectorLength, m_params->GetModulus());
+
+	SerialItem::ConstMemberIterator vIt = iMap->value.FindMember("BigVectorImpl");
+	if (vIt == iMap->value.MemberEnd()) {
+		DEBUG("PolyImpl::Deserialize could not find BigVectorImpl");
+		return false;
 	}
 
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-void PolyImpl<ModType,IntType,VecType,ParmType>::DestroyPreComputedSamples()
-{
-		m_dggSamples.clear();
+	Serialized s(rapidjson::kObjectType);
+	s.AddMember(SerialItem(vIt->name, s.GetAllocator()), SerialItem(vIt->value, s.GetAllocator()), s.GetAllocator());
+	if (!vectorBBV.Deserialize(s)) {
+		DEBUG("PolyImpl::Deserialize could not deserialize s");
+		return false;
 	}
 
-	/**
-	 * Clear the pre-computed ternary uniform samples.
-	 */
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-void PolyImpl<ModType,IntType,VecType,ParmType>::DestroyPreComputedTugSamples()
-{
-		m_tugSamples.clear();
+	if ((vIt = iMap->value.FindMember("Format")) == iMap->value.MemberEnd()) {
+		DEBUG("PolyImpl::Deserialize could not find format");
+		return false;
 	}
+	this->SetValues(vectorBBV, Format(atoi(vIt->value.GetString())));
 
-
-
-	// JSON FACILITY - Serialize Operation
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	bool PolyImpl<ModType,IntType,VecType,ParmType>::Serialize(Serialized* serObj) const {
-                bool dbg_flag = false;
-		if( !serObj->IsObject() ){
-		        DEBUG("PolyImpl::Serialize is obj failed");
-			return false;
-		}
-		Serialized obj(rapidjson::kObjectType, &serObj->GetAllocator());
-		if (!this->GetValues().Serialize(&obj)){
-		        DEBUG("PolyImpl::Serialize Get values failed");
-			return false;
-		}
-
-		if (!m_params->Serialize(&obj)){
-		        DEBUG("PolyImpl::Serialize m_[arams failed");
-			return false;
-		}
-		obj.AddMember("Format", std::to_string(this->GetFormat()), obj.GetAllocator());
-
-		serObj->AddMember("PolyImpl", obj.Move(), serObj->GetAllocator());
-
-		return true;
-	}
-
-	// JSON FACILITY - Deserialize Operation
-	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-	bool PolyImpl<ModType,IntType,VecType,ParmType>::Deserialize(const Serialized& serObj) {
-                bool dbg_flag= false;
-		Serialized::ConstMemberIterator iMap = serObj.FindMember("PolyImpl");
-		if (iMap == serObj.MemberEnd()) {
-		  DEBUG("PolyImpl::Deserialize could not find PolyImpl");
-		  return false;
-		}
-
-		SerialItem::ConstMemberIterator pIt = iMap->value.FindMember("ILParams");
-		if (pIt == iMap->value.MemberEnd()) {
-		  DEBUG("PolyImpl::Deserialize could not find ILParams");
-		  return false;
-		}
-
-		Serialized parm(rapidjson::kObjectType);
-		parm.AddMember(SerialItem(pIt->name, parm.GetAllocator()), SerialItem(pIt->value, parm.GetAllocator()), parm.GetAllocator());
-
-		shared_ptr<ParmType> json_ilParams(new ParmType());
-		if (!json_ilParams->Deserialize(parm)){
-		  DEBUG("PolyImpl::Deserialize could not deserialize Params");
-			return false;
-		}
-		m_params = json_ilParams;
-
-		usint vectorLength = this->m_params->GetRingDimension();
-
-		VecType vectorBBV = VecType(vectorLength, m_params->GetModulus());
-
-		SerialItem::ConstMemberIterator vIt = iMap->value.FindMember("BigVectorImpl");
-		if (vIt == iMap->value.MemberEnd()) {
-		  DEBUG("PolyImpl::Deserialize could not find BigVectorImpl");
-			return false;
-		}
-
-		Serialized s(rapidjson::kObjectType);
-		s.AddMember(SerialItem(vIt->name, s.GetAllocator()), SerialItem(vIt->value, s.GetAllocator()), s.GetAllocator());
-		if (!vectorBBV.Deserialize(s)) {
-		  DEBUG("PolyImpl::Deserialize could not deserialize s");
-			return false;
-		}
-
-		if ((vIt = iMap->value.FindMember("Format")) == iMap->value.MemberEnd()) {
-		  DEBUG("PolyImpl::Deserialize could not find format");
-		  return false;
-		}
-		this->SetValues(vectorBBV, Format(atoi(vIt->value.GetString())));
-
-		return true;
-	}
+	return true;
+}
 
 } // namespace lbcrypto ends

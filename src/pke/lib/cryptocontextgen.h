@@ -31,14 +31,19 @@
 #include "palisade.h"
 #include "cryptocontext.h"
 #include "utils/parmfactory.h"
+#include "lattice/elemparamfactory.h"
 
 using namespace lbcrypto;
 
-static const usint PrimeBits = 50;
+static const usint DefaultQbits = 50;
+static const usint DefaultT = 3;
 
-inline shared_ptr<CryptoContext<Poly>> GenCryptoContextElementNull(usint ORDER, usint ptm) {
-	shared_ptr<Poly::Params> p( new Poly::Params(ORDER, Poly::Integer(ptm), Poly::Integer::ONE) );
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextNull(p, ptm);
+template<typename Element>
+inline CryptoContext<Element>
+GenCryptoContextNull(usint ORDER, PlaintextModulus ptm, usint bits=DefaultQbits, usint towers=DefaultT) {
+	shared_ptr<typename Element::Params> p = ElemParamFactory::GenElemParams<typename Element::Params,typename Element::Integer>(ORDER, bits, towers);
+
+	CryptoContext<Element> cc = CryptoContextFactory<Element>::genCryptoContextNull(ORDER, ptm);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);
@@ -46,10 +51,12 @@ inline shared_ptr<CryptoContext<Poly>> GenCryptoContextElementNull(usint ORDER, 
 	return cc;
 }
 
-inline shared_ptr<CryptoContext<DCRTPoly>> GenCryptoContextElementArrayNull(usint ORDER, usint ntowers, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<DCRTPoly::Params> p = GenerateDCRTParams(ORDER, ptm, ntowers, bits);
+template<typename Element>
+inline CryptoContext<Element>
+GenCryptoContextLTV(usint ORDER, PlaintextModulus ptm, usint bits=DefaultQbits, usint towers=DefaultT) {
+	shared_ptr<typename Element::Params> p = ElemParamFactory::GenElemParams<typename Element::Params,typename Element::Integer>(ORDER, bits, towers);
 
-	shared_ptr<CryptoContext<DCRTPoly>> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextNull(p, ptm);
+	CryptoContext<Element> cc = CryptoContextFactory<Element>::genCryptoContextLTV(p, ptm, 1, 4);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);
@@ -57,10 +64,13 @@ inline shared_ptr<CryptoContext<DCRTPoly>> GenCryptoContextElementArrayNull(usin
 	return cc;
 }
 
-inline shared_ptr<CryptoContext<Poly>> GenCryptoContextElementLTV(usint ORDER, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<Poly::Params> p = GenerateTestParams<Poly::Params,Poly::Integer>(ORDER, bits);
+template<typename Element>
+inline CryptoContext<Element>
+GenCryptoContextStSt(usint ORDER, PlaintextModulus ptm, usint bits=DefaultQbits, usint towers=DefaultT) {
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(p, ptm, 1, 4);
+	shared_ptr<typename Element::Params> p = ElemParamFactory::GenElemParams<typename Element::Params,typename Element::Integer>(ORDER, bits, towers);
+
+	CryptoContext<Element> cc = CryptoContextFactory<Element>::genCryptoContextStehleSteinfeld(p, ptm, 1, 4, 41411.5);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);
@@ -68,10 +78,13 @@ inline shared_ptr<CryptoContext<Poly>> GenCryptoContextElementLTV(usint ORDER, u
 	return cc;
 }
 
-inline shared_ptr<CryptoContext<DCRTPoly>> GenCryptoContextElementArrayLTV(usint ORDER, usint ntowers, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<DCRTPoly::Params> p = GenerateDCRTParams(ORDER, ptm, ntowers, bits);
+template<typename Element>
+inline CryptoContext<Element>
+GenCryptoContextBGV(usint ORDER, PlaintextModulus ptm, usint bits=DefaultQbits, usint towers=DefaultT, MODE mode=RLWE) {
 
-	shared_ptr<CryptoContext<DCRTPoly>> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextLTV(p, ptm, 1, 4, ntowers);
+	shared_ptr<typename Element::Params> p = ElemParamFactory::GenElemParams<typename Element::Params,typename Element::Integer>(ORDER, bits, towers);
+
+	CryptoContext<Element> cc = CryptoContextFactory<Element>::genCryptoContextBGV(p, ptm, 1, 4, mode);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);
@@ -79,62 +92,100 @@ inline shared_ptr<CryptoContext<DCRTPoly>> GenCryptoContextElementArrayLTV(usint
 	return cc;
 }
 
-inline shared_ptr<CryptoContext<Poly>> GenCryptoContextElementStSt(usint ORDER, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<Poly::Params> p = GenerateTestParams<Poly::Params,Poly::Integer>(ORDER, bits);
+template<typename Element>
+inline CryptoContext<Element>
+GenCryptoContextBFV(usint ORDER, PlaintextModulus ptm, usint bits=DefaultQbits, usint towers=DefaultT, MODE mode=RLWE);
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextStehleSteinfeld(p, ptm, 1, 4, 41411.5);
-	cc->Enable(ENCRYPTION);
-	cc->Enable(PRE);
-	cc->Enable(SHE);
+template<>
+inline CryptoContext<Poly>
+GenCryptoContextBFV(usint ORDER, PlaintextModulus ptm, usint bits, usint towers, MODE mode) {
 
-	return cc;
-}
+	shared_ptr<typename Poly::Params> p = ElemParamFactory::GenElemParams<typename Poly::Params,typename Poly::Integer>(ORDER, bits, towers);
 
-inline shared_ptr<CryptoContext<DCRTPoly>> GenCryptoContextElementArrayStSt(usint ORDER, usint ntowers, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<DCRTPoly::Params> p = GenerateDCRTParams(ORDER, ptm, ntowers, bits);
-
-	shared_ptr<CryptoContext<DCRTPoly>> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextStehleSteinfeld(p, ptm, 1, 4, 41411.5, ntowers);
-	cc->Enable(ENCRYPTION);
-	cc->Enable(PRE);
-	cc->Enable(SHE);
-
-	return cc;
-}
-
-inline shared_ptr<CryptoContext<Poly>> GenCryptoContextElementBV(usint ORDER, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<Poly::Params> p = GenerateTestParams<Poly::Params,Poly::Integer>(ORDER, bits);
-
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextBV(p, ptm, 1, 4);
-	cc->Enable(ENCRYPTION);
-	cc->Enable(PRE);
-	cc->Enable(SHE);
-
-	return cc;
-}
-
-inline shared_ptr<CryptoContext<DCRTPoly>> GenCryptoContextElementArrayBV(usint ORDER, usint ntowers, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<DCRTPoly::Params> p = GenerateDCRTParams(ORDER, ptm, ntowers, bits);
-
-	shared_ptr<CryptoContext<DCRTPoly>> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBV(p, ptm, 1, 3, RLWE, ntowers);
-	cc->Enable(ENCRYPTION);
-	cc->Enable(PRE);
-	cc->Enable(SHE);
-
-	return cc;
-}
-
-
-inline shared_ptr<CryptoContext<Poly>> GenCryptoContextElementFV(usint ORDER, usint ptm, usint bits=PrimeBits) {
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextFV(ptm, 1.006, 1, 4, 0, 2, 0);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(ptm, 1.006, 1, 4, 0, 2, 0, mode);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);
 	return cc;
 }
 
-inline shared_ptr<CryptoContext<DCRTPoly>> GenCryptoContextElementArrayFV(usint ORDER, usint ntowers, usint ptm, usint bits=PrimeBits) {
+template<>
+inline CryptoContext<NativePoly>
+GenCryptoContextBFV(usint ORDER, PlaintextModulus ptm, usint bits, usint towers, MODE mode) {
 
-	shared_ptr<CryptoContext<DCRTPoly>> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextFV(ptm, 1.006, 1, 4, 0, 2, 0);
+	CryptoContext<NativePoly> cc = CryptoContextFactory<NativePoly>::genCryptoContextBFV(ptm, 1.006, 1, 4, 0, 0, 0, mode);
+	cc->Enable(ENCRYPTION);
+	cc->Enable(PRE);
+	cc->Enable(SHE);
+	return cc;
+}
+
+template<>
+inline CryptoContext<DCRTPoly>
+GenCryptoContextBFV(usint ORDER, PlaintextModulus ptm, usint bits, usint towers, MODE mode) {
+
+	PALISADE_THROW(not_available_error, "DCRT is not supported for BFV");
+}
+
+template<typename Element>
+inline CryptoContext<Element>
+GenCryptoContextBFVrns(PlaintextModulus ptm, MODE mode=RLWE);
+
+template<>
+inline CryptoContext<Poly>
+GenCryptoContextBFVrns(PlaintextModulus ptm, MODE mode) {
+
+	PALISADE_THROW(not_available_error, "Poly is not supported for BFVrns");
+}
+
+template<>
+inline CryptoContext<NativePoly>
+GenCryptoContextBFVrns(PlaintextModulus ptm, MODE mode) {
+
+	PALISADE_THROW(not_available_error, "NativePoly is not supported for BFVrns");
+}
+
+template<>
+inline CryptoContext<DCRTPoly>
+GenCryptoContextBFVrns(PlaintextModulus ptm, MODE mode) {
+	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrns(ptm, 1.006, 4, 0, 2, 0, mode);
+	cc->Enable(ENCRYPTION);
+	cc->Enable(PRE);
+	cc->Enable(SHE);
+	cc->Enable(MULTIPARTY);
+	return cc;
+}
+
+template<typename Element>
+inline CryptoContext<Element>
+GenTestCryptoContext(const string& name, usint ORDER, PlaintextModulus ptm, usint bits=DefaultQbits, usint towers=DefaultT) {
+	shared_ptr<typename Element::Params> p = ElemParamFactory::GenElemParams<typename Element::Params,typename Element::Integer>(ORDER, bits, towers);
+	CryptoContext<Element> cc;
+
+	if( name == "Null" ) {
+		cc = CryptoContextFactory<Element>::genCryptoContextNull(ORDER, ptm);
+	}
+	else if( name == "LTV" )
+		cc = CryptoContextFactory<Element>::genCryptoContextLTV(p, ptm, 1, 4);
+	else if( name == "StSt" )
+		cc = CryptoContextFactory<Element>::genCryptoContextStehleSteinfeld(p, ptm, 1, 4, 41411.5);
+	else if( name == "BGV_rlwe" )
+		cc = CryptoContextFactory<Element>::genCryptoContextBGV(p, ptm, 1, 4, RLWE);
+	else if( name == "BGV_opt" )
+		cc = CryptoContextFactory<Element>::genCryptoContextBGV(p, ptm, 1, 4, OPTIMIZED);
+	else if( name == "BFV_rlwe" )
+		cc = GenCryptoContextBFV<Element>(ORDER, ptm, bits, towers, RLWE);
+	else if( name == "BFV_opt" )
+		cc = GenCryptoContextBFV<Element>(ORDER, ptm, bits, towers, OPTIMIZED);
+	else if( name == "BFVrns_rlwe" )
+		cc = GenCryptoContextBFVrns<Element>(ptm, RLWE);
+	else if( name == "BFVrns_opt" )
+		cc = GenCryptoContextBFVrns<Element>(ptm, OPTIMIZED);
+	else {
+		cout << "nothing for " << name << endl;
+		PALISADE_THROW(not_available_error, "No generator for " + name);
+	}
+
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);

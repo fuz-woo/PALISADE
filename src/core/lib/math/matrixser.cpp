@@ -24,90 +24,108 @@
  *
  */
 
+#ifndef _SRC_LIB_CORE_MATH_MATRIXSER_CPP
+#define _SRC_LIB_CORE_MATH_MATRIXSER_CPP
+
 #include "../utils/serializablehelper.h"
 #include "../lattice/field2n.h"
 #include "matrix.cpp"
 #include "matrixstrassen.h"
 using std::invalid_argument;
 
-// this is the implementation of matrixes of things that are in core and that need template specializations
-
-// please note that for things like Ones, etc, there's gotta be a better way than these macros...
+// this is the serializations of matricies
 
 namespace lbcrypto {
 
-template class Matrix<Poly>;
-template class Matrix<BigInteger>;
-template class Matrix<BigVector>;
-template class Matrix<double>;
-template class Matrix<int>;
-
 template<>
 bool Matrix<int32_t>::Serialize(Serialized* serObj) const {
-	return false;
+  std::cout<<"Matrix<int32_t>::Serialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
 bool Matrix<int32_t>::Deserialize(const Serialized& serObj) {
-	return false;
+  std::cout<<"Matrix<int32_t>::Deserialize() not written"<<std::endl;
+  return false;
 }
+
+template<>
+bool Matrix<int64_t>::Serialize(Serialized* serObj) const {
+  std::cout<<"Matrix<int64_t>::Serialize() not written"<<std::endl;
+  return false;
+}
+
+template<>
+bool Matrix<int64_t>::Deserialize(const Serialized& serObj) {
+  std::cout<<"Matrix<int64_t>::Deserialize() not written"<<std::endl;
+  return false;
+}
+
 template<>
 bool Matrix<uint64_t>::Serialize(Serialized* serObj) const {
-	return false;
+  std::cout<<"Matrix<uint64_t>::Serialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
 bool Matrix<uint64_t>::Deserialize(const Serialized& serObj) {
-	return false;
+  std::cout<<"Matrix<uint64_t>::Deserialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
 bool Matrix<double>::Serialize(Serialized* serObj) const {
-	return false;
+  std::cout<<"Matrix<double>::Serialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
 bool Matrix<double>::Deserialize(const Serialized& serObj) {
-	return false;
+  std::cout<<"Matrix<double>::Deserialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
 bool Matrix<BigInteger>::Serialize(Serialized* serObj) const {
+  std::cout<<"Matrix<BigInteger>::Serialize() not written"<<std::endl;
 	return false;
 }
 
 template<>
 bool Matrix<BigInteger>::Deserialize(const Serialized& serObj) {
-	return false;
-}
-
-#if MATHBACKEND != 7
-
-template<>
-bool Matrix<native_int::BigInteger>::Serialize(Serialized* serObj) const {
-	return false;
+  std::cout<<"Matrix<BigInteger>::Deserialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
-bool Matrix<native_int::BigInteger>::Deserialize(const Serialized& serObj) {
-	return false;
+bool Matrix<NativeInteger>::Serialize(Serialized* serObj) const {
+  std::cout<<"Matrix<native_int::BigInteger>::Serialize() not written"<<std::endl;
+  return false;
 }
 
-#endif
+template<>
+bool Matrix<NativeInteger>::Deserialize(const Serialized& serObj) {
+  std::cout<<"Matrix<native_int::BigInteger>::Deserialize() not written"<<std::endl;
+  return false;
+}
 
 template<>
 bool Matrix<BigVector>::Serialize(Serialized* serObj) const {
+    std::cout<<"Matrix<BigVector>::Serialize() not written"<<std::endl;
 	return false;
 }
 
 template<>
 bool Matrix<BigVector>::Deserialize(const Serialized& serObj) {
-	return false;
+    std::cout<<"Matrix<BigVector>::Deserialize() not written"<<std::endl;
+    return false;
 }
 
 template<>
 bool Matrix<Poly>::Serialize(Serialized* serObj) const {
-	serObj->SetObject();
+
+  //TODO: this was probably never tested since Matrix<Poly>.Deserialize() is not written
+        serObj->SetObject();
 	//SerializeVectorOfVector("Matrix", elementName<Element>(), this->data, serObj);
 
 	//std::cout << typeid(Element).name() << std::endl;
@@ -123,42 +141,88 @@ bool Matrix<Poly>::Serialize(Serialized* serObj) const {
 
 template<>
 bool Matrix<Poly>::Deserialize(const Serialized& serObj) {
+    std::cout<<"Matrix<Poly>::Deserialize() not written"<<std::endl;
+    return false;
+}
+
+template<>
+bool Matrix<NativePoly>::Serialize(Serialized* serObj) const {
+	serObj->SetObject();
+
+	for( size_t r=0; r<rows; r++ ) {
+		for( size_t c=0; c<cols; c++ ) {
+			data[r][c]->Serialize(serObj);
+		}
+	}
+
+	return true;
+}
+
+template<>
+bool Matrix<NativePoly>::Deserialize(const Serialized& serObj) {
 	return false;
+}
+
+template<>
+bool Matrix<DCRTPoly>::Serialize(Serialized* serObj) const {
+  std::cout <<" Matrix<DCRTPoly>::Serialize, unsupported, use SerializeMatrix"<<std::endl;
+  if( !serObj->IsObject() ) {
+    std::cout <<" Matrix<DCRTPoly>::Serialize, serObj is not an object"<<std::endl;
+    return false;
+  }
+  
+  for( size_t r=0; r<rows; r++ ) {
+    for( size_t c=0; c<cols; c++ ) {
+      data[r][c]->Serialize(serObj); //call the serialization for this matrix
+    }
+  }
+
+  return true;
+}
+
+template<>
+bool Matrix<DCRTPoly>::Deserialize(const Serialized& serObj) {
+    std::cout <<" Matrix<DCRTPoly>::DeSerialize, not written"<<std::endl;
+
+  return false;
 }
 
 template<>
 bool MatrixStrassen<Poly>::Serialize(Serialized* serObj) const {
-	return false;
+  std::cout<<"MatrixStrassen<Poly>::Serialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
 bool MatrixStrassen<Poly>::Deserialize(const Serialized& serObj) {
+  std::cout<<"MatrixStrassen<Poly>::Deserialize() not written"<<std::endl;
+  return false;
+}
+
+template<>
+bool Matrix<Plaintext>::Serialize(Serialized* serObj) const {
 	return false;
 }
 
 template<>
-bool Matrix<IntPlaintextEncoding>::Serialize(Serialized* serObj) const {
+bool Matrix<Plaintext>::Deserialize(const Serialized& serObj) {
 	return false;
 }
 
 template<>
-bool Matrix<IntPlaintextEncoding>::Deserialize(const Serialized& serObj) {
+bool Matrix<PackedEncoding>::Serialize(Serialized* serObj) const {
 	return false;
 }
 
 template<>
-bool Matrix<PackedIntPlaintextEncoding>::Serialize(Serialized* serObj) const {
-	return false;
-}
-
-template<>
-bool Matrix<PackedIntPlaintextEncoding>::Deserialize(const Serialized& serObj) {
+bool Matrix<PackedEncoding>::Deserialize(const Serialized& serObj) {
 	return false;
 }
 
 template<>
 bool Matrix<Field2n>::Serialize(Serialized* serObj) const {
-	return false;
+  std::cout<<"Matrix<Field2n>::Serialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
@@ -166,427 +230,6 @@ bool Matrix<Field2n>::Deserialize(const Serialized& serObj) {
 	return false;
 }
 
-#define ONES_FOR_TYPE(T) \
-template<> \
-Matrix<T>& Matrix<T>::Ones() { \
-    for (size_t row = 0; row < rows; ++row) { \
-        for (size_t col = 0; col < cols; ++col) { \
-            *data[row][col] = 1; \
-        } \
-    } \
-    return *this; \
 }
 
-ONES_FOR_TYPE(int32_t)
-ONES_FOR_TYPE(double)
-ONES_FOR_TYPE(Poly)
-ONES_FOR_TYPE(BigInteger)
-ONES_FOR_TYPE(BigVector)
-ONES_FOR_TYPE(IntPlaintextEncoding)
-ONES_FOR_TYPE(Field2n)
-
-#define IDENTITY_FOR_TYPE(T) \
-template<> \
-Matrix<T>& Matrix<T>::Identity() { \
-    for (size_t row = 0; row < rows; ++row) { \
-        for (size_t col = 0; col < cols; ++col) { \
-            if (row == col) { \
-                *data[row][col] = 1; \
-            } else { \
-                *data[row][col] = 0; \
-            } \
-        } \
-    } \
-    return *this; \
-}
-
-IDENTITY_FOR_TYPE(int32_t)
-IDENTITY_FOR_TYPE(double)
-IDENTITY_FOR_TYPE(Poly)
-IDENTITY_FOR_TYPE(BigInteger)
-IDENTITY_FOR_TYPE(BigVector)
-IDENTITY_FOR_TYPE(IntPlaintextEncoding)
-IDENTITY_FOR_TYPE(Field2n)
-
-#define GADGET_FOR_TYPE(T) \
-template<> \
-Matrix<T> Matrix<T>::GadgetVector() const { \
-    Matrix<T> g(allocZero, rows, cols); \
-    auto two = allocZero(); \
-    *two = 2; \
-    g(0, 0) = 1; \
-    for (size_t col = 1; col < cols; ++col) { \
-        g(0, col) = g(0, col-1) * *two; \
-    } \
-    return g; \
-}
-
-
-GADGET_FOR_TYPE(int32_t)
-GADGET_FOR_TYPE(double)
-GADGET_FOR_TYPE(Poly)
-GADGET_FOR_TYPE(BigInteger)
-GADGET_FOR_TYPE(BigVector)
-//GADGET_FOR_TYPE(IntPlaintextEncoding)
-GADGET_FOR_TYPE(Field2n)
-
-template<>
-double Matrix<Poly>::Norm() const {
-    double retVal = 0.0;
-	double locVal = 0.0;
-
-	//std::cout << " Norm: " << rows << "-" << cols << "-"  << locVal << "-"  << retVal << std::endl;
-
-	for (size_t row = 0; row < rows; ++row) {
-		for (size_t col = 0; col < cols; ++col) {
-			locVal = data[row][col]->Norm();
-			//std::cout << " Norm: " << row << "-" << col << "-"  << locVal << "-"  << retVal << std::endl;
-			if (locVal > retVal) {
-				retVal = locVal;
-			}
-		}
-	}
-
-    return retVal;
-}
-
-#define NORM_FOR_TYPE(T) \
-template<> \
-double Matrix<T>::Norm() const { \
-    throw std::logic_error("Norm not defined for this type"); \
-}
-
-
-NORM_FOR_TYPE(int32_t)
-NORM_FOR_TYPE(double)
-NORM_FOR_TYPE(BigInteger)
-NORM_FOR_TYPE(BigVector)
-NORM_FOR_TYPE(Field2n)
-
-template<>
-void Matrix<Poly>::SetFormat(Format format) {
-    for (size_t row = 0; row < rows; ++row) {
-        for (size_t col = 0; col < cols; ++col) {
-            data[row][col]->SetFormat(format);
-        }
-    }
-}
-
-Matrix<BigInteger> Rotate(Matrix<Poly> const& inMat) {
-    Matrix<Poly> mat(inMat);
-    mat.SetFormat(COEFFICIENT);
-    size_t n = mat(0,0).GetLength();
-    BigInteger const& modulus = mat(0,0).GetModulus();
-    size_t rows = mat.GetRows() * n;
-    size_t cols = mat.GetCols() * n;
-    Matrix<BigInteger> result(BigInteger::Allocator, rows, cols);
-    for (size_t row = 0; row < mat.GetRows(); ++row) {
-        for (size_t col = 0; col < mat.GetCols(); ++col) {
-            for (size_t rotRow = 0; rotRow < n; ++rotRow) {
-                for (size_t rotCol = 0; rotCol < n; ++rotCol) {
-                    result(row*n + rotRow, col*n + rotCol) =
-                        mat(row, col).GetValues().GetValAtIndex(
-                            (rotRow - rotCol + n) % n
-                            );
-                    //  negate (mod q) upper-right triangle to account for
-                    //  (mod x^n + 1)
-                    if (rotRow < rotCol) {
-                        result(row*n + rotRow, col*n + rotCol) = modulus.ModSub(result(row*n + rotRow, col*n + rotCol), modulus);
-                    }
-                }
-            }
-        }
-    }
-    return result;
-}
-
-/**
-    *  Each element becomes a square matrix with columns of that element's
-    *  rotations in coefficient form.
-    */
-Matrix<BigVector> RotateVecResult(Matrix<Poly> const& inMat) {
-    Matrix<Poly> mat(inMat);
-    mat.SetFormat(COEFFICIENT);
-    size_t n = mat(0,0).GetLength();
-    BigInteger const& modulus = mat(0,0).GetModulus();
-    BigVector zero(1, modulus);
-    size_t rows = mat.GetRows() * n;
-    size_t cols = mat.GetCols() * n;
-    auto singleElemBinVecAlloc = [=](){ return make_unique<BigVector>(1, modulus); };
-    Matrix<BigVector> result(singleElemBinVecAlloc, rows, cols);
-    for (size_t row = 0; row < mat.GetRows(); ++row) {
-        for (size_t col = 0; col < mat.GetCols(); ++col) {
-            for (size_t rotRow = 0; rotRow < n; ++rotRow) {
-                for (size_t rotCol = 0; rotCol < n; ++rotCol) {
-                    BigVector& elem = result(row*n + rotRow, col*n + rotCol);
-                    elem.SetValAtIndex(0,
-                        mat(row, col).GetValues().GetValAtIndex(
-                            (rotRow - rotCol + n) % n
-                            ));
-                    //  negate (mod q) upper-right triangle to account for
-                    //  (mod x^n + 1)
-                    if (rotRow < rotCol) {
-                        result(row*n + rotRow, col*n + rotCol) = zero.ModSub(elem);
-                    }
-                }
-            }
-        }
-    }
-    return result;
-}
-
-template<>
-void Matrix<Poly>::PrintValues() const {
-    for (size_t col = 0; col < cols; ++col) {
-        for (size_t row = 0; row < rows; ++row) {
-            data[row][col]->PrintValues();
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-template<>
-void Matrix<BigInteger>::PrintValues() const {
-    for (size_t col = 0; col < cols; ++col) {
-        for (size_t row = 0; row < rows; ++row) {
-            data[row][col]->PrintValues();
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-template<>
-void Matrix<BigVector>::PrintValues() const {
-    for (size_t col = 0; col < cols; ++col) {
-        for (size_t row = 0; row < rows; ++row) {
-            data[row][col]->PrintValues();
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-template<>
-void Matrix<int>::PrintValues() const {
-    for (size_t col = 0; col < cols; ++col) {
-        for (size_t row = 0; row < rows; ++row) {
-            std::cout << *data[row][col];
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-template<>
-void Matrix<Poly>::SwitchFormat() {
-
-	if (rows == 1)
-	{
-		for (size_t row = 0; row < rows; ++row) {
-#pragma omp parallel for
-			for (size_t col = 0; col < cols; ++col) {
-				data[row][col]->SwitchFormat();
-			}
-		}
-	}
-	else
-	{
-		for (size_t col = 0; col < cols; ++col) {
-#pragma omp parallel for
-			for (size_t row = 0; row < rows; ++row) {
-				data[row][col]->SwitchFormat();
-			}
-		}
-	}
-}
-
-// YSP removed the Matrix class because it is not defined for all possible data types
-// needs to be checked to make sure input matrix is used in the right places
-// the assumption is that covariance matrix does not have large coefficients because it is formed by
-// discrete gaussians e and s; this implies int32_t can be used
-// This algorithm can be further improved - see the Darmstadt paper section 4.4
-Matrix<double> Cholesky(const Matrix<int32_t> &input) {
-	//  http://eprint.iacr.org/2013/297.pdf
-	if (input.GetRows() != input.GetCols()) {
-		throw invalid_argument("not square");
-	}
-	size_t rows = input.GetRows();
-	Matrix<double> result([]() { return make_unique<double>(); }, rows, rows);
-
-	for (size_t i = 0; i < rows; ++i) {
-		for (size_t j = 0; j < rows; ++j) {
-			result(i, j) = input(i, j);
-		}
-	}
-
-	for (size_t k = 0; k < rows; ++k) {
-		result(k, k) = sqrt(result(k, k));
-		//result(k, k) = sqrt(input(k, k));
-		for (size_t i = k + 1; i < rows; ++i) {
-			//result(i, k) = input(i, k) / result(k, k);
-			result(i, k) = result(i, k) / result(k, k);
-			//  zero upper-right triangle
-			result(k, i) = 0;
-		}
-		for (size_t j = k + 1; j < rows; ++j) {
-			for (size_t i = j; i < rows; ++i) {
-				if (result(i, k) != 0 && result(j, k) != 0) {
-					result(i, j) = result(i, j) - result(i, k) * result(j, k);
-					//result(i, j) = input(i, j) - result(i, k) * result(j, k);
-
-				}
-			}
-		}
-	}
-	return result;
-}
-
-void Cholesky(const Matrix<int32_t> &input, Matrix<double> &result) {
-	//  http://eprint.iacr.org/2013/297.pdf
-	if (input.GetRows() != input.GetCols()) {
-		throw invalid_argument("not square");
-	}
-	size_t rows = input.GetRows();
-//	Matrix<LargeFloat> result([]() { return make_unique<LargeFloat>(); }, rows, rows);
-
-	for (size_t i = 0; i < rows; ++i) {
-		for (size_t j = 0; j < rows; ++j) {
-			result(i, j) = input(i, j);
-		}
-	}
-
-	for (size_t k = 0; k < rows; ++k) {
-
-		result(k, k) = sqrt(input(k, k));
-
-		for (size_t i = k + 1; i < rows; ++i) {
-			//result(i, k) = input(i, k) / result(k, k);
-			result(i, k) = result(i, k) / result(k, k);
-			//  zero upper-right triangle
-			result(k, i) = 0;
-		}
-		for (size_t j = k + 1; j < rows; ++j) {
-			for (size_t i = j; i < rows; ++i) {
-				if (result(i, k) != 0 && result(j, k) != 0) {
-					result(i, j) = result(i, j) - result(i, k) * result(j, k);
-					//result(i, j) = input(i, j) - result(i, k) * result(j, k);
-
-				}
-			}
-		}
-	}
-}
-
-
-//  Convert from Z_q to [-q/2, q/2]
-Matrix<int32_t> ConvertToInt32(const Matrix<BigInteger> &input, const BigInteger& modulus) {
-    size_t rows = input.GetRows();
-    size_t cols = input.GetCols();
-    BigInteger negativeThreshold(modulus / BigInteger::TWO);
-    Matrix<int32_t> result([](){ return make_unique<int32_t>(); }, rows, cols);
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            if (input(i,j) > negativeThreshold) {
-                result(i,j) = -1 *(modulus - input(i,j)).ConvertToInt();
-            } else {
-                result(i,j) = input(i,j).ConvertToInt();
-            }
-        }
-    }
-    return result;
-}
-
-Matrix<int32_t> ConvertToInt32(const Matrix<BigVector> &input, const BigInteger& modulus) {
-    size_t rows = input.GetRows();
-    size_t cols = input.GetCols();
-    BigInteger negativeThreshold(modulus / BigInteger::TWO);
-    Matrix<int32_t> result([](){ return make_unique<int32_t>(); }, rows, cols);
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            const BigInteger& elem = input(i,j).GetValAtIndex(0);
-            if (elem > negativeThreshold) {
-                result(i,j) = -1*(modulus - elem).ConvertToInt();
-            } else {
-                result(i,j) = elem.ConvertToInt();
-            }
-        }
-    }
-    return result;
-}
-
-//  split a vector of int32_t into a vector of ring elements with ring dimension n
-Matrix<Poly> SplitInt32IntoPolyElements(Matrix<int32_t> const& other, size_t n, const shared_ptr<ILParams> params) {
-
-	auto zero_alloc = Poly::MakeAllocator(params, COEFFICIENT);
-
-	size_t rows = other.GetRows()/n;
-
-    Matrix<Poly> result(zero_alloc, rows, 1);
-
-    for (size_t row = 0; row < rows; ++row) {
-		BigVector tempBBV(n,params->GetModulus());
-
-        for (size_t i = 0; i < n; ++i) {
-			BigInteger tempBBI;
-			uint32_t tempInteger;
-			if (other(row*n + i,0) < 0)
-			{
-				tempInteger = -other(row*n + i,0);
-				tempBBI = params->GetModulus() - BigInteger(tempInteger);
-			}
-			else
-			{
-				tempInteger = other(row*n + i,0);
-				tempBBI = BigInteger(tempInteger);
-			}
-            tempBBV.SetValAtIndex(i,tempBBI);
-        }
-
-		result(row,0).SetValues(tempBBV,COEFFICIENT);
-    }
-
-    return result;
-}
-
-//  split a vector of BBI into a vector of ring elements with ring dimension n
-Matrix<Poly> SplitInt32AltIntoPolyElements(Matrix<int32_t> const& other, size_t n, const shared_ptr<ILParams> params) {
-
-	auto zero_alloc = Poly::MakeAllocator(params, COEFFICIENT);
-
-	size_t rows = other.GetRows();
-
-    Matrix<Poly> result(zero_alloc, rows, 1);
-
-    for (size_t row = 0; row < rows; ++row) {
-
-		BigVector tempBBV(n,params->GetModulus());
-
-        for (size_t i = 0; i < n; ++i) {
-
-			BigInteger tempBBI;
-			uint32_t tempInteger;
-			if (other(row,i) < 0)
-			{
-				tempInteger = -other(row,i);
-				tempBBI = params->GetModulus() - BigInteger(tempInteger);
-			}
-			else
-			{
-				tempInteger = other(row,i);
-				tempBBI = BigInteger(tempInteger);
-			}
-
-			tempBBV.SetValAtIndex(i,tempBBI);
-        }
-
-		result(row,0).SetValues(tempBBV,COEFFICIENT);
-    }
-
-    return result;
-}
-
-
-}
-
+#endif

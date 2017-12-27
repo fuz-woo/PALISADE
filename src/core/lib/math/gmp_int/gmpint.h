@@ -40,6 +40,8 @@
 #include <stdexcept>
 #include <functional>
 #include <memory>
+#include <exception>
+#include "../../utils/exception.h"
 #include "../../utils/inttypes.h"
 #include "../../utils/memory.h"
 
@@ -54,11 +56,9 @@
  */
 namespace NTL{
 
-  //todo: the following will be deprecated
+  //todo: note that this backend does NOT use BARRET_LEVELS or BARRET
+  // all BARRETT functions use standard MOD arithmetic calls. 
   const usint BARRETT_LEVELS = 8;	
-
-  class myZZ_p; //forward declaration
-
 
   //log2 constants
   /**
@@ -86,25 +86,31 @@ namespace NTL{
   public:
 
     myZZ();
-    myZZ(int a);
-    myZZ(long a);
-    myZZ(unsigned long a);
-    myZZ(const unsigned int &a);
-    myZZ(long long unsigned int a);
-    myZZ(unsigned int &a);
-    myZZ(INIT_SIZE_TYPE, long k);
-    myZZ(std::string s);
-    myZZ(const char * s);
-    myZZ(NTL::ZZ &a);
+    myZZ(uint64_t a);
+    myZZ(const std::string &s);
     myZZ(const NTL::ZZ &a);
-    myZZ(const NTL::myZZ_p &a);
 
     //movecopy allocators (very important for efficiency)
     myZZ(NTL::ZZ &&a);
-    myZZ(NTL::myZZ_p &&a);
 
-    //  myZZ& operator=(const myZZ &rhs);
-    //myZZ( ZZ && zzin) : ZZ(zzin), m_MSB(5){};
+    //todo: figure out how to do && for wrapper
+    //myZZ(NTL::myZZ_p &&a);
+
+    myZZ(const NativeInteger& n) : myZZ(n.ConvertToInt()) {}
+
+    const myZZ& operator=(const myZZ &rhs);
+
+    //TODO: this mimics backend 2 should this be uint_64_t val?
+
+    inline const myZZ& operator=(usint val){
+      *this = myZZ(val);
+      return *this;
+    }
+
+    inline const myZZ& operator=(std::string valstr){
+      *this = myZZ(valstr);
+      return *this;
+    }
 
     static const myZZ ZERO;
     static const myZZ ONE;
@@ -114,25 +120,22 @@ namespace NTL{
     static const myZZ FIVE;
 
     /**
-     * A zero allocator that is called by the Matrix class. It is used to initialize a Matrix of ubint objects.
+     * A zero allocator that is called by the Matrix class. It is used to initialize a Matrix of myZZ objects.
      */
     static unique_ptr<myZZ> Allocator();
 
-    //adapter kit
+    //adapter kit that wraps ZZ with BACKEND 2 functionality
+
     usint GetMSB() const ;
     static const myZZ& zero();
 
     //palisade conversion methods 
-    //    usint ConvertToUsint() const;
     uint64_t ConvertToInt() const;
-    //uint32_t ConvertToUint32() const;
     uint64_t ConvertToUint64() const;
-    //float ConvertToFloat() const;
     double ConvertToDouble() const;
-    //long double ConvertToLongDouble() const;
 
     //comparison method inline for speed
-    inline sint Compare(const myZZ& a) const { return compare(*this,a); };
+    int Compare(const myZZ& a) const { return compare(*this,a); };
 
     //associated comparison operators
     inline long operator==(const myZZ& b) const {return this->Compare(b)==0;};
@@ -140,12 +143,17 @@ namespace NTL{
     inline long operator!=(const myZZ& b) const {return this->Compare(b)!= 0;};
     inline long operator!=(const usint& b) const {return this->Compare(b)!= 0;};
   
+    //set this int to 1
+    inline void SetIdentity(){*this=myZZ::ONE;};
+
     //palisade arithmetic methods all inline for speed
+    //note OLD code uses Plus, new code uses Add etc. 
     inline myZZ Add(const myZZ& b) const {return *this+b;};
     inline myZZ Plus(const myZZ& b) const {return *this+b;}; //to be deprecated
 
-    inline myZZ Sub(const myZZ& b) const  {return((*this<b)? ZZ(0):( *this-b));};  
-    inline myZZ Minus(const myZZ& b) const  {return((*this<b)? ZZ(0):( *this-b));}; //to be deprecated
+    //note that in Sub we return 0, if a<b
+    inline myZZ Sub(const myZZ& b) const {return((*this<b)? ZZ(0):( *this-b));};  
+    inline myZZ Minus(const myZZ& b) const {return((*this<b)? ZZ(0):( *this-b));}; //to be deprecated
 
     inline myZZ operator+(const myZZ &b) const {
       myZZ tmp;
@@ -153,13 +161,15 @@ namespace NTL{
       return tmp ;
     };
 
-    inline myZZ operator+(const ZZ &b) const {
-      myZZ tmp;
-      add(tmp, *this, b);
-      return tmp ;
-    };
+    //inline myZZ operator+(const ZZ &b) const {
+    //  myZZ tmp;
+    //  add(tmp, *this, b);
+    //  return tmp ;
+    //};
 
-    inline myZZ operator+(const usint& b) const {
+    // there are not equivalent versions of uint64_t in BE 2
+    // but we need them because otherwise NTL tries to use a default operation
+    inline myZZ operator+(const uint64_t& b) const {
       myZZ tmp;
       myZZ bzz(b);
       add(tmp, *this, bzz);
@@ -171,6 +181,10 @@ namespace NTL{
       return *this;
     };
 
+    inline myZZ& operator +=(const uint64_t a) {
+      *this = *this+a;
+      return *this;
+    };
 
     inline myZZ operator-(const myZZ &b) const {
       if (*this < b) { // should return 0
@@ -181,10 +195,10 @@ namespace NTL{
       return tmp ;
     };
 
-    inline myZZ operator-(const usint &b) const {
+    inline myZZ operator-(const uint64_t &b) const {
       myZZ bzz(b);
       if (*this < bzz) { // should return 0
-	return myZZ(0);
+    	return myZZ(0);
       }
       myZZ tmp;
       sub(tmp, *this, bzz);
@@ -193,7 +207,7 @@ namespace NTL{
 
     inline myZZ& operator -=(const myZZ &a) {
       if (*this<a) { // note b>a should return 0
-	*this = ZZ(0);
+	*this = myZZ(0);
 	return *this;
       }
       *this = *this-a;
@@ -201,11 +215,25 @@ namespace NTL{
     };// note this<a should return 0
 
 
-    myZZ operator*(const myZZ_p &b) const; 
+    inline myZZ& operator -=(const uint64_t a) {
+      myZZ azz(a);      
+      if (*this<azz) { // note b>a should return 0
+	*this = myZZ(0);
+	return *this;
+      }
+      *this = *this-azz;
+      return *this;
+    };// note this<a should return 0
+
+
+    // Unary minus on a lattice
+    myZZ operator-() const {
+      return myZZ(0).Minus(*this);
+    }
 
     myZZ& operator*=(const myZZ &a);
-    myZZ& operator*=(const myZZ_p &a);
 
+    myZZ& operator*=(const uint64_t &a);
 
     inline myZZ operator*(const myZZ& b) const {
       myZZ tmp;
@@ -213,14 +241,16 @@ namespace NTL{
       return tmp ;
     }
 
-    inline myZZ operator*(const usint& b) const {
+    inline myZZ operator*(const uint64_t b) const {
       myZZ tmp;
       myZZ bzz(b);
       mul(tmp, *this, bzz);
       return tmp ;
     }
+
     inline myZZ Mul(const myZZ& b) const {return *this*b;};
-    inline myZZ Times(const myZZ& b) const {return *this*b;}; //to be deprecated
+    //inline myZZ Times(const myZZ& b) const {return *this*b;}; //to be deprecated
+    void Times(const myZZ& b, myZZ *ans) const {*ans=(*this*b); return;}; 
     inline myZZ Div(const myZZ& b) const {return *this/b;};
     inline myZZ DividedBy(const myZZ& b) const {return *this/b;};
     inline myZZ Exp(const usint p) const {return power(*this,p);};
@@ -229,16 +259,62 @@ namespace NTL{
 
     inline myZZ Mod(const myZZ& modulus) const {return *this%modulus;};
 
-    //    inline myZZ& operator%=(const myZZ &modulus) {*this = *this%modulus; return *this;};  
+    inline myZZ operator%(const myZZ &modulus) { 
+#if 1 //dbc version not as efficient due to copies. 
+      ZZ tmp = *this;
+      ZZ tmod = modulus;
+      myZZ ret = tmp%modulus; 
+      return(ret);
+#else //Tom P version has compile error
+      //return( myZZ((ZZ)(*this)) % (ZZ)modulus) );
+      return( myZZ(NTL::ZZ::operator%(*this,modulus)));
+#endif
+    }
+
+    inline myZZ operator%(int modulus) { //apparently this was required by compiler
+      ZZ tmp = *this;
+      ZZ tmod(modulus);
+      myZZ ret = tmp%modulus; 
+      return(ret);
+
+    }
+    inline myZZ& operator%=(const myZZ &modulus) {*this = *this%modulus; return *this;};  
+    inline myZZ& operator%=(const int &modulus) {*this = *this%modulus; return *this;};  
 
     inline myZZ ModBarrett(const myZZ& modulus, const myZZ& mu) const {return *this%modulus;};
     void ModBarrettInPlace(const myZZ& modulus, const myZZ& mu) { *this%=modulus;};
 
     inline    myZZ ModBarrett(const myZZ& modulus, const myZZ mu_arr[BARRETT_LEVELS+1]) const  {return *this%modulus;};
-    inline myZZ ModInverse(const myZZ& modulus) const {return InvMod(*this%modulus, modulus);};
+    inline myZZ ModInverse(const myZZ& modulus) const {
+      bool dbg_flag = false;
+      DEBUGEXP(modulus);
+
+      //Error if modulus is ZERO
+      if(modulus==ZERO){
+	PALISADE_THROW(lbcrypto::math_error, "zero has no inverse");
+      }
+      myZZ tmp(myZZ::ZERO);
+      try {
+	tmp = InvMod(*this%modulus, modulus);
+      } catch (InvModErrorObject &e) { //note this code requires NTL Excptions coto be turned on. TODO: provide alternative when that is off.
+
+	std::stringstream errmsg;
+	errmsg <<"ModInverse exception "
+		  <<" this: "<< *this<<	" modulus: "<< modulus
+		  << "GCD("<<e.get_a()<< ","<< e.get_n()<<"!=1"<<std::endl;
+	PALISADE_THROW (lbcrypto::math_error, errmsg.str());
+      }
+      return tmp;
+    };
     inline myZZ ModAdd(const myZZ& b, const myZZ& modulus) const {return myZZ(AddMod(*this%modulus, b%modulus, modulus));};
     //Fast version does not check for modulus bounds.
     inline myZZ ModAddFast(const myZZ& b, const myZZ& modulus) const {return AddMod(*this, b, modulus);};
+
+
+    inline myZZ ModBarrettAdd(const myZZ& b, const myZZ& modulus,const myZZ& mu) const {
+      return this->ModAdd(b%modulus, modulus);
+    };
+
 
     //NOTE ModSub needs to return signed modulus (i.e. -1/2..q/2) in order
     //to be consistent with BE 2
@@ -291,12 +367,14 @@ namespace NTL{
 
     inline myZZ ModExp(const myZZ& b, const myZZ& modulus) const {
       bool dbg_flag = false;
-      myZZ res(*this); 
+      //      myZZ res(*this);
+      myZZ res;
       DEBUG("ModExp this :"<< *this);
       DEBUG("ModExp b:"<< b);
       DEBUG("ModExp modulus:"<< modulus);
 
-      PowerMod (res, res%modulus, b%modulus, modulus); 
+      // PowerMod (res, res%modulus, b%modulus, modulus);
+      PowerMod( res, *this, b, modulus);
       DEBUG("ModExp res:"<< res);
       return res;
     }; //(this^b)%modulus
@@ -308,17 +386,9 @@ namespace NTL{
     //left and right shift operators
     inline myZZ operator>>(long n) const {return RightShift(*this, n);};
     inline myZZ operator<<(long n) const {return LeftShift(*this, n);};
+    inline const myZZ& operator>>=(long n) {return *this=RightShift(*this, n);};
+    inline const myZZ& operator<<=(long n) {return *this=LeftShift(*this, n);};
 
-#if 0
-    // comparison operators to myZZ_p
-    inline long operator<(const myZZ_p& b) const; 
-    inline long operator>(const myZZ_p& b) const;  
-    inline long operator<=(const myZZ_p& b) const; 
-    inline long operator>=( const myZZ_p& b) const; 
-    inline long operator==(const myZZ_p& b) const; 
-    inline long operator!=(const myZZ_p& b) const; 
-#endif
-   
     //big integer stream output
     friend std::ostream& operator<<(std::ostream& os, const myZZ&ptr_obj);
 
@@ -331,7 +401,7 @@ namespace NTL{
      * @param str is the string representation of the ubint to be copied.
      */
     void SetValue(const std::string& str);
-    void SetValue(const char *s);
+    //void SetValue(const char *s);
 
     /**
      * Basic set method for setting the value of a myZZ
@@ -375,9 +445,29 @@ namespace NTL{
     static const usint m_log2LimbBitLength;
 
     //Serialization functions
-    const std::string Serialize(const myZZ& mod = myZZ::ZERO) const;
-    const char * Deserialize(const char * str, const myZZ& mod = myZZ::ZERO);
 
+    // note that for efficiency, we use [De]Serialize[To|From]String when serializing
+    // BigVectors, and [De]Serialize otherwise (to work the same as all
+    // other serialized objects.
+
+    const std::string SerializeToString(const myZZ& mod = myZZ::ZERO) const;
+    const char * DeserializeFromString(const char * str, const myZZ& mod = myZZ::ZERO);
+
+    /**
+     * Serialize the object into a Serialized
+     * @param serObj is used to store the serialized result. It MUST be a rapidjson Object (SetObject());
+     * @return true if successfully serialized
+     */
+    bool Serialize(lbcrypto::Serialized* serObj) const;
+    
+    /**
+     * Populate the object from the deserialization of the Serialized
+     * @param serObj contains the serialized object
+     * @return true on success
+     */
+    bool Deserialize(const lbcrypto::Serialized& serObj);
+    
+    
     static const std::string IntegerTypeName() { return "NTL"; }
 
 
@@ -397,22 +487,20 @@ namespace NTL{
      */
     uschar Get6BitsAtIndex(usint index) const;
 
+    /**
+    * Gets a copy of the  internal limb storage
+    * Used primarily for debugging
+    */
+    vector <ZZ_limb_t> GetInternalRepresentation(void) const {
+      vector<ZZ_limb_t> ret;
+      const ZZ_limb_t *zlp = ZZ_limbs_get(*this);
+
+      for (size_t i = 0; i < (size_t)this->size(); i ++){
+	ret.push_back(zlp[i]);
+      }
+      return ret;
+    }
     
-    /**
-    * Prints the value of the internal limb storage
-    * in decimal format. Used primarily for debugging
-    */
-    void PrintLimbsInDec() const;
-
-    /**
-    * Prints the value of the internal limb storage
-    * in hexadecimal format. Used primarily for debugging
-    */
-    void PrintLimbsInHex() const;
-
-    //TODO: get rid of this insantiy
-    void PrintValues() const { std::cout << *this; };
-
   private:
     //adapter kits
     void SetMSB();
@@ -427,11 +515,11 @@ namespace NTL{
     //todo: rename to MSB2NLimbs()
     static usint ceilIntByUInt(const ZZ_limb_t Number); 
 
-    size_t m_MSB;
+    mutable size_t m_MSB;
     usint GetMSBLimb_t( ZZ_limb_t x) const;
   }; //class ends
 
-
+   NTL_DECLARE_RELOCATABLE((myZZ*))
 }//namespace ends
 
 #endif //LBCRYPTO_MATH_GMPINT_GMPINT_H

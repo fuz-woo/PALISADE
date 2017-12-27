@@ -1,6 +1,7 @@
 # Ignore everything in this directory
 *~
 *.o
+*.gcov
 bin/
 build/
 test/build
@@ -10,11 +11,13 @@ apidoc_warning_logfile.txt
 third-party/distros/gmp-6.1.1
 third-party/distros/gmp-6.1.2
 third-party/distros/ntl-10.3.0
+third-party/distros/ntl-10.5.0
 third-party/include
 third-party/lib
 third-party/share
+timing/
 gmon.out
-.gitattributes
+## .gitattributes
 # Except this file
 !.gitignore
 output.txt

@@ -39,14 +39,14 @@ namespace lbcrypto
 * @param serObj stores this object's serialized attribute name value pairs.
 * @return map updated with the attribute name value pairs required to serialize this object.
 */
-template <typename IntType> bool EncodingParamsImpl<IntType>::Serialize(Serialized* serObj) const
+bool EncodingParamsImpl::Serialize(Serialized* serObj) const
 {
 
 	if (!serObj->IsObject())
 		return false;
 
 	SerialItem ser(rapidjson::kObjectType);
-	ser.AddMember("PlaintextModulus", this->m_plaintextModulus.ToString(), serObj->GetAllocator());
+	ser.AddMember("PlaintextModulus", std::to_string(this->m_plaintextModulus), serObj->GetAllocator());
 	ser.AddMember("PlaintextRootOfUnity", this->m_plaintextRootOfUnity.ToString(), serObj->GetAllocator());
 	ser.AddMember("PlaintextBigModulus", this->m_plaintextBigModulus.ToString(), serObj->GetAllocator());
 	ser.AddMember("PlaintextBigRootOfUnity", this->m_plaintextBigRootOfUnity.ToString(), serObj->GetAllocator());
@@ -64,7 +64,7 @@ template <typename IntType> bool EncodingParamsImpl<IntType>::Serialize(Serializ
 *
 * @param serObj stores this object's serialized attribute name value pairs.
 */
-template <typename IntType> bool EncodingParamsImpl<IntType>::Deserialize(const Serialized& serObj)
+bool EncodingParamsImpl::Deserialize(const Serialized& serObj)
 {
 
 	Serialized::ConstMemberIterator mIter = serObj.FindMember("EncodingParams");
@@ -76,19 +76,19 @@ template <typename IntType> bool EncodingParamsImpl<IntType>::Deserialize(const 
 
 	if ((oIt = mIter->value.FindMember("PlaintextModulus")) == mIter->value.MemberEnd())
 		return false;
-	IntType plaintextModulus(atoi(oIt->value.GetString()));
+	PlaintextModulus plaintextModulus = atoi(oIt->value.GetString());
 
 	if ((oIt = mIter->value.FindMember("PlaintextRootOfUnity")) == mIter->value.MemberEnd())
 		return false;
-	IntType plaintextRootOfUnity(atoi(oIt->value.GetString()));
+	NativeInteger plaintextRootOfUnity(atoi(oIt->value.GetString()));
 
 	if ((oIt = mIter->value.FindMember("PlaintextBigModulus")) == mIter->value.MemberEnd())
 		return false;
-	IntType plaintextBigModulus(oIt->value.GetString());
+	NativeInteger plaintextBigModulus(oIt->value.GetString());
 
 	if ((oIt = mIter->value.FindMember("PlaintextBigRootOfUnity")) == mIter->value.MemberEnd())
 		return false;
-	IntType plaintextBigRootOfUnity(oIt->value.GetString());
+	NativeInteger plaintextBigRootOfUnity(oIt->value.GetString());
 
 	if ((oIt = mIter->value.FindMember("PlaintextGenerator")) == mIter->value.MemberEnd())
 		return false;

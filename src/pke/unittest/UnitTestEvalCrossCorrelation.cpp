@@ -32,52 +32,61 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "../lib/cryptocontext.h"
 
-#include "encoding/byteplaintextencoding.h"
-#include "encoding/intplaintextencoding.h"
-#include "encoding/packedintplaintextencoding.h"
+#include "encoding/encodings.h"
 
 #include "utils/debug.h"
 
 using namespace std;
 using namespace lbcrypto;
 
-class UnitTestEvalCrossCorrelation : public ::testing::Test {
+class UTEvalCC : public ::testing::Test {
 protected:
-	virtual void SetUp() {}
+	void SetUp() {}
 
-	virtual void TearDown() {}
+	void TearDown() {
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+		CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+	}
 
 public:
 };
 
-usint BVCrossCorrelation();
-usint FVCrossCorrelation();
+usint BGVCrossCorrelation();
+usint BFVCrossCorrelation();
+usint BFVrnsCrossCorrelation();
 
 
-TEST(UTEvalCC, Test_BV_EvalCC) {
+TEST_F(UTEvalCC, Test_BGV_EvalCC) {
 
-	usint result = BVCrossCorrelation();
-	usint expectedResult = 11;
-
-	EXPECT_EQ(result, expectedResult);
-
-	
-}
-
-
-TEST(UTEvalCC, Test_FV_EvalCC) {
-	
-	usint result = FVCrossCorrelation();
+	usint result = BGVCrossCorrelation();
 	usint expectedResult = 11;
 
 	EXPECT_EQ(result, expectedResult);
 
 }
 
-usint BVCrossCorrelation() {
+
+TEST_F(UTEvalCC, Test_BFV_EvalCC) {
+	
+	usint result = BFVCrossCorrelation();
+	usint expectedResult = 11;
+
+	EXPECT_EQ(result, expectedResult);
+}
+
+TEST_F(UTEvalCC, Test_BFVrns_EvalCC) {
+
+	usint result = BFVrnsCrossCorrelation();
+	usint expectedResult = 11;
+
+	EXPECT_EQ(result, expectedResult);
+
+}
+
+usint BGVCrossCorrelation() {
 
 	usint m = 22;
-	usint p = 89;
+	PlaintextModulus p = 89;
 	BigInteger modulusP(p);
 
 	BigInteger modulusQ("955263939794561");
@@ -87,9 +96,9 @@ usint BVCrossCorrelation() {
 	BigInteger bigroot("77936753846653065954043047918387");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	float stdDev = 4;
 
@@ -97,9 +106,9 @@ usint BVCrossCorrelation() {
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP, PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP), batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextBV(params, encodingParams, 8, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -111,17 +120,17 @@ usint BVCrossCorrelation() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<PackedIntPlaintextEncoding>(); };
+	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
 
-	Matrix<PackedIntPlaintextEncoding> x = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> x = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	x(0, 0) = { 0, 1, 1, 1, 0, 1, 1, 1 };
-	x(1, 0) = { 1, 0, 1, 1, 0, 1, 1, 0 };
+	x(0, 0) = cc->MakePackedPlaintext({ 0, 1, 1, 1, 0, 1, 1, 1 });
+	x(1, 0) = cc->MakePackedPlaintext({ 1, 0, 1, 1, 0, 1, 1, 0 });
 
-	Matrix<PackedIntPlaintextEncoding> y = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> y = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	y(0, 0) = { 0, 1, 1, 1, 0, 1, 1, 1 };
-	y(1, 0) = { 1, 0, 1, 1, 0, 1, 1, 0 };
+	y(0, 0) = cc->MakePackedPlaintext({ 0, 1, 1, 1, 0, 1, 1, 1 });
+	y(1, 0) = cc->MakePackedPlaintext({ 1, 0, 1, 1, 0, 1, 1, 0 });
 
 	////////////////////////////////////////////////////////////
 	//Encryption
@@ -142,22 +151,18 @@ usint BVCrossCorrelation() {
 	//Decryption
 	////////////////////////////////////////////////////////////
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextCC;
+	Plaintext intArrayNew;
 
-	ciphertextCC.push_back(result);
+	cc->Decrypt(kp.secretKey, result, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, ciphertextCC, &intArrayNew, false);
-
-	return intArrayNew[0];
+	return intArrayNew->GetPackedValue()[0];
 }
 
 
-usint FVCrossCorrelation() {
+usint BFVCrossCorrelation() {
 
 	usint m = 22;
-	usint p = 89; // we choose s.t. 2m|p-1 to leverage CRTArb
+	PlaintextModulus p = 89; // we choose s.t. 2m|p-1 to leverage CRTArb
 	BigInteger modulusQ("72385066601");
 	BigInteger modulusP(p);
 	BigInteger rootOfUnity("69414828251");
@@ -180,15 +185,15 @@ usint FVCrossCorrelation() {
 
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPolyBig, bigEvalMultModulus);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	usint batchSize = 8;
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP, PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP), batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
 	BigInteger delta(modulusQ.DividedBy(modulusP));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextFV(params, encodingParams, 1, stdDev, delta.ToString(), OPTIMIZED,
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(params, encodingParams, 1, stdDev, delta.ToString(), OPTIMIZED,
 		bigEvalMultModulus.ToString(), bigEvalMultRootOfUnity.ToString(), 1, 9, 1.006, bigEvalMultModulusAlt.ToString(), bigEvalMultRootOfUnityAlt.ToString());
 
 	cc->Enable(ENCRYPTION);
@@ -201,17 +206,17 @@ usint FVCrossCorrelation() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<PackedIntPlaintextEncoding>(); };
+	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
 
-	Matrix<PackedIntPlaintextEncoding> x = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> x = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	x(0, 0) = { 0, 1, 1, 1, 0, 1, 1, 1 };
-	x(1, 0) = { 1, 0, 1, 1, 0, 1, 1, 0 };
+	x(0, 0) = cc->MakePackedPlaintext({ 0, 1, 1, 1, 0, 1, 1, 1 });
+	x(1, 0) = cc->MakePackedPlaintext({ 1, 0, 1, 1, 0, 1, 1, 0 });
 
-	Matrix<PackedIntPlaintextEncoding> y = Matrix<PackedIntPlaintextEncoding>(zeroAlloc, 2, 1);
+	Matrix<Plaintext> y = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
-	y(0, 0) = { 0, 1, 1, 1, 0, 1, 1, 1 };
-	y(1, 0) = { 1, 0, 1, 1, 0, 1, 1, 0 };
+	y(0, 0) = cc->MakePackedPlaintext({ 0, 1, 1, 1, 0, 1, 1, 1 });
+	y(1, 0) = cc->MakePackedPlaintext({ 1, 0, 1, 1, 0, 1, 1, 0 });
 
 	////////////////////////////////////////////////////////////
 	//Encryption
@@ -232,16 +237,73 @@ usint FVCrossCorrelation() {
 	//Decryption
 	////////////////////////////////////////////////////////////
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextCC;
+	Plaintext intArrayNew;
 
-	ciphertextCC.push_back(result);
+	cc->Decrypt(kp.secretKey, result, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, ciphertextCC, &intArrayNew, false);
-
-	return intArrayNew[0];
+	return intArrayNew->GetPackedValue()[0];
 
 }
 
+usint BFVrnsCrossCorrelation() {
+
+	usint ptm = 65537;
+	double sigma = 3.2;
+	double rootHermiteFactor = 1.06;
+	usint batchSize = 8;
+
+	EncodingParams encodingParams(new EncodingParamsImpl(ptm,batchSize));
+
+	//Set Crypto Parameters
+	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrns(
+			encodingParams, rootHermiteFactor, sigma, 0, 2, 0, OPTIMIZED,3);
+
+	cc->Enable(ENCRYPTION);
+	cc->Enable(SHE);
+
+	// Initialize the public key containers.
+	LPKeyPair<DCRTPoly> kp = cc->KeyGen();
+
+	// Compute evaluation keys
+	cc->EvalSumKeyGen(kp.secretKey);
+	cc->EvalMultKeyGen(kp.secretKey);
+
+	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
+
+	Matrix<Plaintext> x = Matrix<Plaintext>(zeroAlloc, 2, 1);
+
+	x(0, 0) = cc->MakePackedPlaintext({ 0, 1, 1, 1, 0, 1, 1, 1 });
+	x(1, 0) = cc->MakePackedPlaintext({ 1, 0, 1, 1, 0, 1, 1, 0 });
+
+	Matrix<Plaintext> y = Matrix<Plaintext>(zeroAlloc, 2, 1);
+
+	y(0, 0) = cc->MakePackedPlaintext({ 0, 1, 1, 1, 0, 1, 1, 1 });
+	y(1, 0) = cc->MakePackedPlaintext({ 1, 0, 1, 1, 0, 1, 1, 0 });
+
+	////////////////////////////////////////////////////////////
+	//Encryption
+	////////////////////////////////////////////////////////////
+
+	shared_ptr<Matrix<RationalCiphertext<DCRTPoly>>> xEncrypted = cc->EncryptMatrix(kp.publicKey, x);
+
+	shared_ptr<Matrix<RationalCiphertext<DCRTPoly>>> yEncrypted = cc->EncryptMatrix(kp.publicKey, y);
+
+
+	////////////////////////////////////////////////////////////
+	//Linear Regression
+	////////////////////////////////////////////////////////////
+
+	auto result = cc->EvalCrossCorrelation(xEncrypted, yEncrypted, batchSize);
+
+	////////////////////////////////////////////////////////////
+	//Decryption
+	////////////////////////////////////////////////////////////
+
+	Plaintext intArrayNew;
+
+	cc->Decrypt(kp.secretKey, result, &intArrayNew);
+
+	return intArrayNew->GetPackedValue()[0];
+
+}
 

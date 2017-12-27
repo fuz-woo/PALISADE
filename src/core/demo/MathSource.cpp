@@ -91,7 +91,7 @@ int main(int argc, char* argv[]){
 BigVector BBVfromStrvec( std::vector<std::string> &s) {
   BigVector a(s.size());
   for (usint i = 0; i< s.size(); i++){
-    a.SetValAtIndex(i,s[i]);
+    a.at(i)=s[i];
   }
   return a;
 }
@@ -99,13 +99,13 @@ BigVector BBVfromStrvec( std::vector<std::string> &s) {
 //function to compare two BigVectors and print differing indicies
 void vec_diff(BigVector &a, BigVector &b) {
     for (usint i= 0; i < a.GetLength(); ++i){  
-      if (a.GetValAtIndex(i) != b.GetValAtIndex(i)) {
+      if (a.at(i) != b.at(i)) {
         cout << "i: "<< i << endl;
 	cout << "first vector " <<endl;
-        cout << a.GetValAtIndex(i);
+        cout << a.at(i);
         cout << endl;
 	cout << "second vector " <<endl;
-        cout << b.GetValAtIndex(i);
+        cout << b.at(i);
         cout << endl;
 
       }

@@ -53,7 +53,6 @@ MatrixStrassen<Element>& MatrixStrassen<Element>::operator=(const MatrixStrassen
 
 template<class Element>
 MatrixStrassen<Element>& MatrixStrassen<Element>::Ones() {
-  //std::cout<<"in Ones"<<std::endl;
     for (size_t row = 0; row < rows; ++row) {
         for (size_t col = 0; col < cols; ++col) {
             *data[row][col] = 1;
@@ -74,7 +73,6 @@ MatrixStrassen<Element>& MatrixStrassen<Element>::Fill(const Element &val) {
 
 template<class Element>
 MatrixStrassen<Element>& MatrixStrassen<Element>::Identity() {
-  //std::cout<<"in Identity"<<std::endl;
     for (size_t row = 0; row < rows; ++row) {
         for (size_t col = 0; col < cols; ++col) {
             if (row == col) {
@@ -88,13 +86,15 @@ MatrixStrassen<Element>& MatrixStrassen<Element>::Identity() {
 }
 
 template<class Element>
-MatrixStrassen<Element> MatrixStrassen<Element>::GadgetVector() const {
+MatrixStrassen<Element> MatrixStrassen<Element>::GadgetVector(int32_t base) const {
     MatrixStrassen<Element> g(allocZero, rows, cols);
-    auto two = allocZero();
-    *two = 2;
+    //auto two = allocZero();
+    auto base_matrix = allocZero();
+    *base_matrix = base;
     g(0, 0) = 1;
     for (size_t col = 1; col < cols; ++col) {
-        g(0, col) = g(0, col-1) * *two;
+      //  g(0, col) = g(0, col-1) * *two;
+    	g(0, col) = g(0, col-1) * *base_matrix;
     }
     return g;
 }
@@ -104,12 +104,9 @@ double MatrixStrassen<Element>::Norm() const {
     double retVal = 0.0;
 	double locVal = 0.0;
 
-	//std::cout << " Norm: " << rows << "-" << cols << "-"  << locVal << "-"  << retVal << std::endl;
-
 	for (size_t row = 0; row < rows; ++row) {
 		for (size_t col = 0; col < cols; ++col) {
 			locVal = data[row][col]->Norm();
-			//std::cout << " Norm: " << row << "-" << col << "-"  << locVal << "-"  << retVal << std::endl;
 			if (locVal > retVal) {
 				retVal = locVal;
 			}
@@ -134,20 +131,12 @@ MatrixStrassen<Element>& MatrixStrassen<Element>::operator+=(MatrixStrassen<Elem
     if (rows != other.rows || cols != other.cols) {
         throw invalid_argument("Addition operands have incompatible dimensions");
     }
-#if 0
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            data[i][j] += *other.data[i][j];
-        }
-    }
-#else
     #pragma omp parallel for
-for (size_t j = 0; j < cols; ++j) {
-	for (size_t i = 0; i < rows; ++i) {
-            data[i][j] += *other.data[i][j];
-        }
+    for (size_t j = 0; j < cols; ++j) {
+      for (size_t i = 0; i < rows; ++i) {
+	data[i][j] += *other.data[i][j];
+      }
     }
-#endif
     return *this;
 }
 
@@ -156,20 +145,13 @@ inline MatrixStrassen<Element>& MatrixStrassen<Element>::operator-=(MatrixStrass
     if (rows != other.rows || cols != other.cols) {
         throw invalid_argument("Subtraction operands have incompatible dimensions");
     }
-#if 0
-    for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-            *data[i][j] -= *other.data[i][j];
-        }
-    }
-#else
     #pragma omp parallel for
     for (size_t j = 0; j < cols; ++j) {
         for (size_t i = 0; i < rows; ++i) {
             *data[i][j] -= *other.data[i][j];
         }
     }
-#endif
+
     return *this;
 }
 
@@ -332,16 +314,6 @@ inline MatrixStrassen<Element>& MatrixStrassen<Element>::HStack(MatrixStrassen<E
     return *this;
 }
 
-template<class Element>
-void MatrixStrassen<Element>::PrintValues() const {
-    for (size_t col = 0; col < cols; ++col) {
-        for (size_t row = 0; row < rows; ++row) {
-            data[row][col]->PrintValues();
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-    }
-}
 
 template<class Element>
 void MatrixStrassen<Element>::SwitchFormat() {
@@ -436,7 +408,7 @@ inline MatrixStrassen<BigInteger> Rotate(MatrixStrassen<Poly> const& inMat) {
             for (size_t rotRow = 0; rotRow < n; ++rotRow) {
                 for (size_t rotCol = 0; rotCol < n; ++rotCol) {
                     result(row*n + rotRow, col*n + rotCol) =
-                        mat(row, col).GetValues().GetValAtIndex(
+                        mat(row, col).GetValues().at(
                             (rotRow - rotCol + n) % n
                             );
                     //  negate (mod q) upper-right triangle to account for
@@ -470,10 +442,10 @@ MatrixStrassen<BigVector> RotateVecResult(MatrixStrassen<Poly> const& inMat) {
             for (size_t rotRow = 0; rotRow < n; ++rotRow) {
                 for (size_t rotCol = 0; rotCol < n; ++rotCol) {
                     BigVector& elem = result(row*n + rotRow, col*n + rotCol);
-                    elem.SetValAtIndex(0,
-                        mat(row, col).GetValues().GetValAtIndex(
+                    elem.at(0)=
+                        mat(row, col).GetValues().at(
                             (rotRow - rotCol + n) % n
-                            ));
+                            );
                     //  negate (mod q) upper-right triangle to account for
                     //  (mod x^n + 1)
                     if (rotRow < rotCol) {
@@ -546,7 +518,7 @@ MatrixStrassen<double> Cholesky(const MatrixStrassen<int32_t> &input) {
 MatrixStrassen<int32_t> ConvertToInt32(const MatrixStrassen<BigInteger> &input, const BigInteger& modulus) {
     size_t rows = input.GetRows();
     size_t cols = input.GetCols();
-    BigInteger negativeThreshold(modulus / BigInteger::TWO);
+    BigInteger negativeThreshold(modulus / 2);
     MatrixStrassen<int32_t> result([](){ return make_unique<int32_t>(); }, rows, cols);
     for (size_t i = 0; i < rows; ++i) {
         for (size_t j = 0; j < cols; ++j) {
@@ -563,11 +535,11 @@ MatrixStrassen<int32_t> ConvertToInt32(const MatrixStrassen<BigInteger> &input, 
 MatrixStrassen<int32_t> ConvertToInt32(const MatrixStrassen<BigVector> &input, const BigInteger& modulus) {
     size_t rows = input.GetRows();
     size_t cols = input.GetCols();
-    BigInteger negativeThreshold(modulus / BigInteger::TWO);
+    BigInteger negativeThreshold(modulus / 2);
     MatrixStrassen<int32_t> result([](){ return make_unique<int32_t>(); }, rows, cols);
     for (size_t i = 0; i < rows; ++i) {
         for (size_t j = 0; j < cols; ++j) {
-            const BigInteger& elem = input(i,j).GetValAtIndex(0);
+            const BigInteger& elem = input(i,j).at(0);
             if (elem > negativeThreshold) {
                 result(i,j) = -1*(modulus - elem).ConvertToInt();
             } else {
@@ -603,7 +575,7 @@ MatrixStrassen<Poly> SplitInt32IntoPolyElements(MatrixStrassen<int32_t> const& o
 				tempInteger = other(row*n + i,0);
 				tempBBI = BigInteger(tempInteger);
 			}
-            tempBBV.SetValAtIndex(i,tempBBI);
+			tempBBV.at(i)=tempBBI;
         }
 
 		result(row,0).SetValues(tempBBV,COEFFICIENT);
@@ -640,7 +612,7 @@ MatrixStrassen<Poly> SplitInt32AltIntoPolyElements(MatrixStrassen<int32_t> const
 				tempBBI = BigInteger(tempInteger);
 			}
 
-			tempBBV.SetValAtIndex(i,tempBBI);
+			tempBBV.at(i)=tempBBI;
         }
 
 		result(row,0).SetValues(tempBBV,COEFFICIENT);
@@ -1330,18 +1302,6 @@ MatrixStrassen<Element> MatrixStrassen<Element>::MultByUnityVector() const {
 template<class Element>
 MatrixStrassen<Element> MatrixStrassen<Element>::MultByRandomVector(std::vector<int> ranvec) const {
 	MatrixStrassen<Element> result(allocZero, rows, 1);
-//	std::vector<int> ranvec;
-//	ranvec.reserve(cols);
-//	int counter = 0;
-//
-//	for (int i = 0; i < cols; i++){
-//		int zeroOrOne = rand() % 2;
-//		//int zeroOrOne = i % 2;
-//		counter += zeroOrOne;
-//		ranvec.push_back(zeroOrOne);
-//		//std::cout<<"ranvec["<<i<<"] = "<<ranvec[i]<<std::endl;
-//	}
-//	std::cout<<"Number of 1's in vector with "<<cols<<" elements = "<<counter<<std::endl;
 #pragma omp parallel for
 	for (int32_t row = 0; row < result.rows; ++row) {
 

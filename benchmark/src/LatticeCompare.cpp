@@ -46,7 +46,7 @@
 
 #include <vector>
 
-#include "BBVhelper.h"
+#include "vechelper.h"
 #include "ElementParmsHelper.h"
 
 #include "lattice/ilparams.cpp"
@@ -60,17 +60,9 @@
 using namespace std;
 using namespace lbcrypto;
 
-typedef native_int::BigInteger nativeInt;
-typedef native_int::BigVector nativeVec;
-typedef native_int::ILParams nativeParams;
-
-//typedef cpu_int::BigInteger<uint32_t,64>  smallInt32_64;
-////template class cpu_int::BigInteger<uint32_t,64>;
-//template class cpu_int::BigVectorImpl<smallInt32_64>;
-//
-//typedef cpu_int::BigInteger<uint32_t,128>  smallInt32_128;
-////template class cpu_int::BigInteger<uint32_t,128>;
-//template class cpu_int::BigVectorImpl<smallInt32_128>;
+typedef NativeInteger nativeInt;
+typedef NativeVector nativeVec;
+typedef ILNativeParams nativeParams;
 
 map<int,map<int,string>> primes;
 map<int,map<int,string>> roots;

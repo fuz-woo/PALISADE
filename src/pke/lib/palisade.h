@@ -35,13 +35,22 @@ using std::string;
 #include <memory>
 using std::shared_ptr;
 
+#include <utility>
+using std::move;
+
 namespace lbcrypto {
 
-template <class Element>
-class CryptoContext;
+template<typename Element>
+class CryptoContextImpl;
 
-template <class Element>
-class CryptoObject;
+template<typename Element>
+using CryptoContext = shared_ptr<CryptoContextImpl<Element>>;
+
+template<typename Element>
+class CiphertextImpl;
+
+template<typename Element>
+using Ciphertext = shared_ptr<CiphertextImpl<Element>>;
 
 }
 
@@ -50,6 +59,7 @@ class CryptoObject;
 #include "math/matrix.h"
 
 #include "utils/inttypes.h"
+#include "utils/exception.h"
 
 #include "lattice/elemparams.h"
 #include "lattice/ilparams.h"
@@ -58,15 +68,16 @@ class CryptoObject;
 #include "lattice/poly.h"
 #include "../../core/lib/lattice/dcrtpoly.h"
 
-#include "encoding/encodingparams.h"
+#include "encoding/encodings.h"
 
 #include "pubkeylp.h"
 
 #include "rlwe.h"
 #include "ltv.h"
 #include "stst.h"
-#include "bv.h"
-#include "fv.h"
+#include "bgv.h"
+#include "bfv.h"
+#include "bfvrns.h"
 #include "nullscheme.h"
 
 #include "utils/serializable.h"

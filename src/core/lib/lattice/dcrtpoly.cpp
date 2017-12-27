@@ -66,19 +66,21 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(const DCRTPolyImpl 
 }
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
-void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::FillPolyFromBigVector(const Poly &element, const shared_ptr<ParmType> params)
+const DCRTPolyImpl<ModType,IntType,VecType,ParmType>&
+DCRTPolyImpl<ModType,IntType,VecType,ParmType>::operator=(const Poly &element)
 {
 
-	if( element.GetModulus() > params->GetModulus() ) {
+	if( element.GetModulus() > m_params->GetModulus() ) {
 		throw std::logic_error("Modulus of element passed to constructor is bigger that DCRT big modulus");
 	}
 
-	size_t vecCount = params->GetParams().size();
+	size_t vecCount = m_params->GetParams().size();
+	m_vectors.clear();
 	m_vectors.reserve(vecCount);
 
 	// fill up with vectors with the proper moduli
 	for(usint i = 0; i < vecCount; i++ ) {
-		PolyType newvec(params->GetParams()[i], m_format, true);
+		PolyType newvec(m_params->GetParams()[i], m_format, true);
 		m_vectors.push_back( std::move(newvec) );
 	}
 
@@ -86,20 +88,18 @@ void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::FillPolyFromBigVector(const
 	std::vector<ModType> bigmods;
 	bigmods.reserve(vecCount);
 	for( usint i = 0; i < vecCount; i++ )
-		bigmods.push_back( ModType(params->GetParams()[i]->GetModulus().ConvertToInt()) );
+		bigmods.push_back( ModType(m_params->GetParams()[i]->GetModulus().ConvertToInt()) );
 
 	// copy each coefficient mod the new modulus
 	for(usint p = 0; p < element.GetLength(); p++ ) {
 		for( usint v = 0; v < vecCount; v++ ) {
 
-#if MATHBACKEND ==6
-			IntType tmp = element.GetValAtIndex(p) % bigmods[v];
-			m_vectors[v].SetValAtIndex(p, tmp.ConvertToInt());
-#else
-			m_vectors[v].SetValAtIndex(p, PolyType::Integer((element.GetValAtIndex(p) % bigmods[v]).ConvertToInt()));
-#endif
+			IntType tmp = element.at(p) % bigmods[v];
+			m_vectors[v].at(p)= tmp.ConvertToInt();
 		}
 	}
+
+	return *this;
 }
 
 /* Construct from a single Poly. The format is derived from the passed in Poly.*/
@@ -110,7 +110,7 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(const Poly &element
 	try {
 		format = element.GetFormat();
 	} catch (const std::exception& e) {
-		throw std::logic_error("There is an issue with the format of Polys passed to the constructor of DCRTPolyImpl");
+		throw std::logic_error("There is an issue with the format of the Poly passed to the constructor of DCRTPolyImpl");
 	}
 
 	if( element.GetCyclotomicOrder() != params->GetCyclotomicOrder() )
@@ -119,8 +119,7 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(const Poly &element
 	m_format = format;
 	m_params = params;
 
-	FillPolyFromBigVector(element, params);
-
+	*this = element;
 }
 
 /* Construct using a tower of vectors.
@@ -130,7 +129,7 @@ template<typename ModType, typename IntType, typename VecType, typename ParmType
 DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(const std::vector<PolyType> &towers)
 {
 	usint cyclotomicOrder = towers.at(0).GetCyclotomicOrder();
-	std::vector<std::shared_ptr<native_int::ILParams>> parms;
+	std::vector<std::shared_ptr<ILNativeParams>> parms;
 	for (usint i = 0; i < towers.size(); i++) {
 		if ( towers[i].GetCyclotomicOrder() != cyclotomicOrder ) {
 			throw std::logic_error("Polys provided to constructor must have the same ring dimension");
@@ -156,11 +155,11 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(const DggType& dgg,
 	m_vectors.reserve(vecSize);
 
 	//dgg generating random values
-	std::shared_ptr<sint> dggValues = dgg.GenerateIntVector(dcrtParams->GetRingDimension());
+	std::shared_ptr<int32_t> dggValues = dgg.GenerateIntVector(dcrtParams->GetRingDimension());
 
 	for(usint i = 0; i < vecSize; i++) {
 
-		native_int::BigVector ilDggValues(dcrtParams->GetRingDimension(), dcrtParams->GetParams()[i]->GetModulus());
+		NativeVector ilDggValues(dcrtParams->GetRingDimension(), dcrtParams->GetParams()[i]->GetModulus());
 
 		for(usint j = 0; j < dcrtParams->GetRingDimension(); j++) {
 			uint64_t	entry;
@@ -174,7 +173,7 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(const DggType& dgg,
 			else {
 				entry = k;
 			}
-			ilDggValues.SetValAtIndex(j,entry);
+			ilDggValues.at(j)=entry;
 		}
 
 		PolyType ilvector(dcrtParams->GetParams()[i]);
@@ -199,7 +198,7 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(DugType& dug, const
 	for (usint i = 0; i < numberOfTowers; i++) {
 
 		dug.SetModulus(dcrtParams->GetParams()[i]->GetModulus());
-		native_int::BigVector vals(dug.GenerateVector(dcrtParams->GetRingDimension()));
+		NativeVector vals(dug.GenerateVector(dcrtParams->GetRingDimension()));
 		PolyType ilvector(dcrtParams->GetParams()[i]);
 
 		ilvector.SetValues(vals, Format::COEFFICIENT); // the random values are set in coefficient format
@@ -208,6 +207,48 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(DugType& dug, const
 		}
 		m_vectors.push_back(ilvector);
 	}
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DCRTPolyImpl(const TugType& tug, const shared_ptr<ParmType> dcrtParams, Format format)
+{
+
+	m_format = format;
+	m_params = dcrtParams;
+
+	size_t numberOfTowers = dcrtParams->GetParams().size();
+	m_vectors.reserve(numberOfTowers);
+
+	//tug generating random values
+	std::shared_ptr<int32_t> tugValues = tug.GenerateIntVector(dcrtParams->GetRingDimension());
+
+	for (usint i = 0; i < numberOfTowers; i++) {
+
+		NativeVector ilTugValues(dcrtParams->GetRingDimension(), dcrtParams->GetParams()[i]->GetModulus());
+
+		for(usint j = 0; j < dcrtParams->GetRingDimension(); j++) {
+			uint64_t	entry;
+			// if the random generated value is less than zero, then multiply it by (-1) and subtract the modulus of the current tower to set the coefficient
+			int64_t k = (tugValues.get())[j];
+			if(k < 0) {
+				k *= (-1);
+				entry = (uint64_t)dcrtParams->GetParams()[i]->GetModulus().ConvertToInt() - (uint64_t)k;
+			}
+			//if greater than or equal to zero, set it the value generated
+			else {
+				entry = k;
+			}
+			ilTugValues.at(j)=entry;
+		}
+
+		PolyType ilvector(dcrtParams->GetParams()[i]);
+		ilvector.SetValues(ilTugValues, Format::COEFFICIENT); // the random values are set in coefficient format
+		if(m_format == Format::EVALUATION) {  // if the input format is evaluation, then once random values are set in coefficient format, switch the format to achieve what the caller asked for.
+			ilvector.SwitchFormat();
+		}
+		m_vectors.push_back(ilvector);
+	}
+
 }
 
 /*Move constructor*/
@@ -233,8 +274,7 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecT
 
 	DCRTPolyImpl res = CloneParametersOnly();
 
-	Poly randomElement = Poly::GetPrecomputedVector();
-	VecType randVec = VecType(randomElement.GetValues());
+	VecType randVec = dgg.GenerateVector(m_params->GetCyclotomicOrder() / 2, m_params->GetModulus());
 
 	// create an Element to pull from
 	// create a dummy parm to use in the Poly world
@@ -242,7 +282,7 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecT
 	Poly element( parm );
 	element.SetValues( randVec, m_format );
 
-	res.FillPolyFromBigVector(element, m_params);
+	res = element;
 
 	return std::move(res);
 }
@@ -284,10 +324,20 @@ Format DCRTPolyImpl<ModType,IntType,VecType,ParmType>::GetFormat() const
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 std::vector<DCRTPolyImpl<ModType,IntType,VecType,ParmType>> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::BaseDecompose(usint baseBits, bool evalModeAnswer) const
 {
+	bool dbg_flag = false;
+	DEBUG("...::BaseDecompose" );
+	DEBUG("baseBits=" << baseBits );
 
 	Poly v( CRTInterpolate() );
 
+	DEBUG("<v>" << std::endl << v << "</v>" );
+
 	std::vector<Poly> bdV = v.BaseDecompose(baseBits, false);
+
+	DEBUG("<bdV>" );
+	for( auto i : bdV )
+		DEBUG(i );
+	DEBUG("</bdV>" );
 
 	std::vector<DCRTPolyImpl<ModType,IntType,VecType,ParmType>> result;
 
@@ -299,12 +349,50 @@ std::vector<DCRTPolyImpl<ModType,IntType,VecType,ParmType>> DCRTPolyImpl<ModType
 		result.push_back( std::move(dv) );
 	}
 
+	DEBUG("<BaseDecompose.result>" );
+	for( auto i : result )
+		DEBUG(i );
+	DEBUG("</BaseDecompose.result>" );
+
+	return std::move(result);
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+std::vector<DCRTPolyImpl<ModType,IntType,VecType,ParmType>> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::CRTDecompose(
+		const std::vector<NativeInteger> &qDivqiInverse) const
+{
+
+	std::vector<DCRTPolyType> result;
+
+	DCRTPolyType input = this->Clone();
+
+	if (input.GetFormat() == EVALUATION)
+		input.SwitchFormat();
+
+	for( usint i=0; i<m_vectors.size(); i++ ) {
+
+		DCRTPolyType currentDCRTPoly = input.Clone();
+		PolyType currentPoly = input.m_vectors[i]*qDivqiInverse[i];
+
+		for ( usint k=0; k<m_vectors.size(); k++ ){
+			PolyType temp(currentPoly);
+			if (i!=k)
+				temp.SwitchModulus(input.m_vectors[k].GetModulus(),input.m_vectors[k].GetRootOfUnity());
+			currentDCRTPoly.m_vectors[k] = temp;
+		}
+
+		currentDCRTPoly.SwitchFormat();
+
+		result.push_back( std::move(currentDCRTPoly) );
+	}
+
 	return std::move(result);
 }
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 std::vector<DCRTPolyImpl<ModType,IntType,VecType,ParmType>> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::PowersOfBase(usint baseBits) const
 {
+	bool dbg_flag = false;
 
 	std::vector<DCRTPolyImpl<ModType,IntType,VecType,ParmType>> result;
 
@@ -318,16 +406,27 @@ std::vector<DCRTPolyImpl<ModType,IntType,VecType,ParmType>> DCRTPolyImpl<ModType
 
 	// prepare for the calculations by gathering a big integer version of each of the little moduli
 	std::vector<IntType> mods(m_params->GetParams().size());
-	for( usint i = 0; i < m_params->GetParams().size(); i++ )
+	for( usint i = 0; i < m_params->GetParams().size(); i++ ) {
 		mods[i] = IntType(m_params->GetParams()[i]->GetModulus().ConvertToInt());
+		DEBUG("DCRTPolyImpl::PowersOfBase.mods[" << i << "] = " << mods[i] );
+	}
+
 
 	for( usint i = 0; i < nWindows; i++ ) {
 		DCRTPolyType x( m_params, m_format );
 
+		// Shouldn't this be IntType twoPow ( IntType::ONE << (i*baseBits)  ??
 		IntType twoPow( IntType(2).Exp( i*baseBits ) );
+		DEBUG("DCRTPolyImpl::PowersOfBase.twoPow (" << i << ") = " << twoPow );
 		for( usint t = 0; t < m_params->GetParams().size(); t++ ) {
+			DEBUG("@(" << i << ", " << t << ")" );
+			DEBUG("twoPow= " << twoPow << ", mods[" << t << "]" << mods[t] );
 			IntType pI (twoPow % mods[t]);
+			DEBUG("twoPow= " << twoPow << ", mods[" << t << "]" << mods[t] << ";   pI.ConvertToInt=" << pI.ConvertToInt() << ";   pI=" << pI );
+			DEBUG("m_vectors= " << m_vectors[t] );
+
 			x.m_vectors[t] = m_vectors[t] * pI.ConvertToInt();
+			DEBUG("DCRTPolyImpl::PowersOfBase.x.m_vectors[" << t << ", " << i << "]" << x.m_vectors[t] );
 		}
 		result.push_back( x );
 	}
@@ -358,17 +457,6 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecT
 	}
 	return std::move(tmp);
 }
-
-//	template<typename ModType, typename IntType, typename VecType, typename ParmType>
-//	DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::SignedMod(const IntType & modulus) const
-//	{
-//		DCRTPolyImpl tmp(*this);
-//
-//		for (usint i = 0; i < m_vectors.size(); i++) {
-//			tmp.m_vectors[i] = m_vectors[i].SignedMod(modulus);
-//		}
-//		return std::move(tmp);
-//	}
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::Plus(const DCRTPolyImpl &element) const
@@ -487,7 +575,7 @@ const DCRTPolyImpl<ModType,IntType,VecType,ParmType> & DCRTPolyImpl<ModType,IntT
 }
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
-DCRTPolyImpl<ModType,IntType,VecType,ParmType>& DCRTPolyImpl<ModType,IntType,VecType,ParmType>::operator=(std::initializer_list<sint> rhs)
+DCRTPolyImpl<ModType,IntType,VecType,ParmType>& DCRTPolyImpl<ModType,IntType,VecType,ParmType>::operator=(std::initializer_list<uint64_t> rhs)
 {
 	usint len = rhs.size();
 	static PolyType::Integer ZERO(0);
@@ -496,15 +584,15 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>& DCRTPolyImpl<ModType,IntType,Vec
 		for(usint i = 0; i < m_vectors.size(); ++i) { // this loops over each tower
 			for(usint j = 0; j < vectorLength; ++j) { // loops within a tower
 				if(j<len) {
-					this->m_vectors[i].SetValAtIndex(j, *(rhs.begin()+j));
+				  this->m_vectors[i].at(j)= *(rhs.begin()+j);
 				} else {
-					this->m_vectors[i].SetValAtIndex(j, ZERO);
+				  this->m_vectors[i].at(j)= ZERO;
 				}
 			}
 		}
 	} else {
-		for(usint i=0; i<m_vectors.size(); i++) {
-			native_int::BigVector temp(m_params->GetRingDimension());
+		for(size_t i=0; i<m_vectors.size(); i++) {
+			NativeVector temp(m_params->GetRingDimension());
 			temp.SetModulus(m_vectors.at(i).GetModulus());
 			temp = rhs;
 			m_vectors.at(i).SetValues(std::move(temp),m_format);
@@ -513,6 +601,74 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType>& DCRTPolyImpl<ModType,IntType,Vec
 	}
 	return *this;
 }
+
+// Used only inside a Matrix object; so an allocator already initializes the values
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+DCRTPolyImpl<ModType, IntType, VecType, ParmType>& DCRTPolyImpl<ModType, IntType, VecType, ParmType>::operator=(uint64_t val)
+{
+	if (!IsEmpty()) {
+		for (usint i = 0; i < m_vectors.size(); i++) {
+			m_vectors[i] = val;
+		}
+	}
+	else {
+		for (usint i = 0; i<m_vectors.size(); i++) {
+			NativeVector temp(m_params->GetRingDimension());
+			temp.SetModulus(m_vectors.at(i).GetModulus());
+			temp = val;
+			m_vectors.at(i).SetValues(std::move(temp), m_format);
+		}
+	}
+
+	return *this;
+}
+
+// Used only inside a Matrix object; so an allocator already initializes the values
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+DCRTPolyImpl<ModType, IntType, VecType, ParmType>& DCRTPolyImpl<ModType, IntType, VecType, ParmType>::operator=(std::vector<int64_t> val)
+{
+	if (!IsEmpty()) {
+		for (usint i = 0; i < m_vectors.size(); i++) {
+			m_vectors[i] = val;
+		}
+	}
+	else {
+		for (usint i = 0; i<m_vectors.size(); i++) {
+			NativeVector temp(m_params->GetRingDimension());
+			temp.SetModulus(m_vectors.at(i).GetModulus());
+			m_vectors.at(i).SetValues(std::move(temp), m_format);
+			m_vectors[i] = val;
+		}
+	}
+
+	m_format = COEFFICIENT;
+
+	return *this;
+}
+
+// Used only inside a Matrix object; so an allocator already initializes the values
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+DCRTPolyImpl<ModType, IntType, VecType, ParmType>& DCRTPolyImpl<ModType, IntType, VecType, ParmType>::operator=(std::vector<int32_t> val)
+{
+	if (!IsEmpty()) {
+		for (usint i = 0; i < m_vectors.size(); i++) {
+			m_vectors[i] = val;
+		}
+	}
+	else {
+		for (usint i = 0; i<m_vectors.size(); i++) {
+			NativeVector temp(m_params->GetRingDimension());
+			temp.SetModulus(m_vectors.at(i).GetModulus());
+			m_vectors.at(i).SetValues(std::move(temp), m_format);
+			m_vectors[i] = val;
+		}
+	}
+
+	m_format = COEFFICIENT;
+
+	return *this;
+}
+
 
 /*SCALAR OPERATIONS*/
 
@@ -566,6 +722,18 @@ DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecT
 }
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
+DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::Times(
+		const std::vector<NativeInteger> &element) const
+{
+	DCRTPolyImpl<ModType,IntType,VecType,ParmType> tmp(*this);
+
+	for (usint i = 0; i < m_vectors.size(); i++) {
+		tmp.m_vectors[i] = tmp.m_vectors[i] * element[i]; // (element % IntType((*m_params)[i]->GetModulus().ConvertToInt())).ConvertToInt();
+	}
+	return std::move(tmp);
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
 DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::MultiplyAndRound(const IntType &p, const IntType &q) const
 {
 	std::string errMsg = "Operation not implemented yet";
@@ -591,19 +759,18 @@ const DCRTPolyImpl<ModType,IntType,VecType,ParmType>& DCRTPolyImpl<ModType,IntTy
 	return *this;
 }
 
-/*OTHER FUNCTIONS*/
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
-void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::PrintValues() const
-{
-	std::cout<<"---START PRINT DOUBLE CRT-- WITH SIZE" <<m_vectors.size() << std::endl;
-	for(usint i = 0; i < m_vectors.size(); i++) {
-		std::cout<<"VECTOR " << i << std::endl;
-		m_vectors[i].PrintValues();
-	}
-	std::cout<<"---END PRINT DOUBLE CRT--" << std::endl;
-}
+  void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::SetValuesToZero()
+  {
+  	for(usint i = 0; i < m_vectors.size(); i++) {
+  		m_vectors[i].SetValuesToZero();
+  	}
+  }
+/*OTHER FUNCTIONS*/
 
+
+  
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::AddILElementOne()
 {
@@ -638,7 +805,7 @@ void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::Decompose()
 	}
 
 	// the individual vectors parms have changed, so change the DCRT parms
-	std::vector<std::shared_ptr<native_int::ILParams>> vparms(m_vectors.size());
+	std::vector<std::shared_ptr<ILNativeParams>> vparms(m_vectors.size());
 	for( size_t i = 0; i < m_vectors.size(); i++)
 		vparms[i] = m_vectors[i].GetParams();
 	m_params.reset( new ParmType(vparms[0]->GetCyclotomicOrder(), vparms) );
@@ -755,7 +922,7 @@ Poly DCRTPolyImpl<ModType,IntType,VecType,ParmType>::CRTInterpolate() const
 	usint ringDimension = GetRingDimension();
 	usint nTowers = m_vectors.size();
 
-	DEBUG("in InterpolateIlArrayVector2n ring " << ringDimension << " towers " << nTowers);
+	DEBUG("in Interpolate ring " << ringDimension << " towers " << nTowers);
 
 	for( usint vi = 0; vi < nTowers; vi++ )
 		DEBUG("tower " << vi << " is " << m_vectors[vi]);
@@ -796,14 +963,18 @@ Poly DCRTPolyImpl<ModType,IntType,VecType,ParmType>::CRTInterpolate() const
 	for( usint vi = 0; vi < nTowers; vi++ )
 		DEBUG("tower " << vi << " is " << (*vecs)[vi]);
 
+	//Precompute the Barrett mu parameter
+	BigInteger mu = ComputeMu<BigInteger>(bigModulus);
+
 	// now, compute the values for the vector
+#pragma omp parallel for
 	for( usint ri = 0; ri < ringDimension; ri++ ) {
 		coefficients[ri] = 0;
 		for( usint vi = 0; vi < nTowers; vi++ ) {
 			coefficients[ri] += (BigInteger((*vecs)[vi].GetValues()[ri].ConvertToInt()) * multiplier[vi]);
 		}
 		DEBUG( (*vecs)[0].GetValues()[ri] << " * " << multiplier[0] << " == " << coefficients[ri] );
-		coefficients[ri] = coefficients[ri] % bigModulus;
+		coefficients[ri] = coefficients[ri].ModBarrett(bigModulus,mu);
 	}
 
 	DEBUG("passed loops");
@@ -824,6 +995,232 @@ Poly DCRTPolyImpl<ModType,IntType,VecType,ParmType>::CRTInterpolate() const
 	return std::move( polynomialReconstructed );
 }
 
+// todo can we be smarter with this method?
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+NativePoly DCRTPolyImpl<ModType,IntType,VecType,ParmType>::DecryptionCRTInterpolate(PlaintextModulus ptm) const {
+	return this->CRTInterpolate().DecryptionCRTInterpolate(ptm);
+}
+
+//Source: Halevi S., Polyakov Y., Shoup V. (in preparation, 2018) A Simpler, Faster RNS Variant of the BFV Homomorphic Encryption Scheme.
+//
+//Computes Round(p/q*x) mod p as [\sum_i x_i*alpha_i + Round(\sum_i x_i*beta_i)] mod p for fast rounding in RNS
+// vectors alpha and beta are precomputed as
+// alpha_i = Floor[(p*[(q/qi)^{-1}]_qi)/qi]_p
+// beta_i = ((p*[(q/qi)^{-1}]_qi)%qi)/qi in (0,1)
+// used in decryption of BFVrns
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+PolyImpl<NativeInteger,NativeInteger,NativeVector,ILNativeParams>
+DCRTPolyImpl<ModType,IntType,VecType,ParmType>::ScaleAndRound(const typename PolyType::Integer &p,
+		const std::vector<typename PolyType::Integer> &alpha, const std::vector<double> &beta) const {
+
+	usint ringDimension = GetRingDimension();
+	usint nTowers = m_vectors.size();
+
+	typename PolyType::Vector coefficients(ringDimension, p);
+
+	for( usint ri = 0; ri < ringDimension; ri++ ) {
+		double curFloatSum = 0.0f;
+		typename PolyType::Integer curIntSum = 0;
+		for( usint vi = 0; vi < nTowers; vi++ ) {
+			const typename PolyType::Integer &xi = m_vectors[vi].GetValues()[ri];
+
+			// We assume that that the value of p is smaller than 64 bits (like 58)
+			// Thus we do not make additional curIntSum.Mod(p) calls for each value of vi
+			curIntSum += xi.ModMul(alpha[vi],p);
+
+			curFloatSum += xi.ConvertToInt()*beta[vi];
+		}
+
+		coefficients[ri] = (curIntSum + typename PolyType::Integer(std::llround(curFloatSum))).Mod(p);
+	}
+
+	// Setting the root of unity to ONE as the calculation is expensive
+	// It is assumed that no polynomial multiplications in evaluation representation are performed after this
+	PolyType result( shared_ptr<typename PolyType::Params>( new typename PolyType::Params(GetCyclotomicOrder(), p, 1) ) );
+	result.SetValues(coefficients,COEFFICIENT);
+
+	return std::move(result);
+
+}
+
+/*
+ * Source: Halevi S., Polyakov Y., Shoup V. (in preparation, 2018) A Simpler, Faster RNS Variant of the BFV Homomorphic Encryption Scheme.
+ *
+ * The goal is to switch the basis of x from Q to S
+ *
+ * Let us write x as
+ * x = \sum_i [xi (q/qi)^{-1}]_qi \times q/qi - alpha*q,
+ * where alpha is a number between 0 and k-1 (assuming we iterate over i \in [0,k-1]).
+ *
+ * Now let us take mod s_i (to go to the S basis).
+ * mod s_i = \sum_i [xi (q/qi)^{-1}]_qi \times q/qi mod s_i - alpha*q mod s_i
+ *
+ * The main problem is that we need to find alpha.
+ * If we know alpha, we can compute x mod s_i (assuming that q mod s_i is precomputed).
+ *
+ * We compute x mod s_i in two steps:
+ * 	(1) find x' mod s_i = \sum_k [xi (q/qi)^{-1}]_qi \times q/qi mod s_i and find alpha when computing this sum;
+ * 	(2) subtract alpha*q mod s_i from x' mod s_i.
+ *
+ * We compute lyam_i =  [xi (q/qi)^{-1}]_qi/qi, which is a floating-point number between 0 and 1, during the summation in step 1.
+ * Then we compute alpha as Round(\sum_i lyam_i).
+ *
+ * Finally, we evaluate (x' - alpha q) mod s_i to get the CRT basis of x with respect to S.
+ *
+ */
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::SwitchCRTBasis(
+		const shared_ptr<ParmType> params, const std::vector<typename PolyType::Integer> &qInvModqi,
+		const std::vector<std::vector<typename PolyType::Integer>> &qDivqiModsi, const std::vector<typename PolyType::Integer> &qModsi) const{
+
+	DCRTPolyType ans(params,m_format,true);
+
+	usint ringDimension = GetRingDimension();
+	usint nTowers = m_vectors.size();
+	usint nTowersNew = ans.m_vectors.size();
+
+	for( usint rIndex = 0; rIndex < ringDimension; rIndex++ ) {
+
+		for (usint newvIndex = 0; newvIndex < nTowersNew; newvIndex ++ ) {
+
+			double lyam = 0.0;
+			typename PolyType::Integer curValue = 0;
+
+			const typename PolyType::Integer &si = ans.m_vectors[newvIndex].GetModulus();
+
+			//first round - compute "fast conversion"
+			for( usint vIndex = 0; vIndex < nTowers; vIndex++ ) {
+				const typename PolyType::Integer &xi = m_vectors[vIndex].GetValues()[rIndex];
+				const typename PolyType::Integer &qi = m_vectors[vIndex].GetModulus();
+
+				//computes [xi (q/qi)^{-1}]_qi
+				const typename PolyType::Integer &xInv = xi.ModMulFast(qInvModqi[vIndex],qi);
+
+				//computes [xi (q/qi)^{-1}]_qi / qi to keep track of the number of q-overflows
+				lyam += (double)xInv.ConvertToInt()/(double)qi.ConvertToInt();
+
+				curValue += xInv.ModMulFast(qDivqiModsi[newvIndex][vIndex],si);
+			}
+
+			// Since we let current value to exceed si to avoid extra modulo reductions, we have to apply mod si now
+			curValue = curValue.Mod(si);
+
+			// alpha corresponds to the number of overflows
+			typename PolyType::Integer alpha = std::llround(lyam);
+
+			//second round - remove q-overflows
+			ans.m_vectors[newvIndex].at(rIndex) = curValue.ModSubFast(alpha.ModMulFast(qModsi[newvIndex],si),si);
+
+		}
+
+	}
+
+	return std::move(ans);
+
+}
+
+// Source: Halevi S., Polyakov Y., Shoup V. (in preparation, 2018) A Simpler, Faster RNS Variant of the BFV Homomorphic Encryption Scheme.
+//
+// @brief Expands polynomial in CRT basis Q = q1*q2*...*qn to a larger CRT basis Q*S, where S = s1*s2*...*sn;
+// uses SwichCRTBasis as a subroutine; Outputs the resulting polynomial in EVALUATION representation
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::ExpandCRTBasis(const shared_ptr<ParmType> paramsExpanded,
+		const shared_ptr<ParmType> params, const std::vector<typename PolyType::Integer> &qInvModqi,
+		const std::vector<std::vector<typename PolyType::Integer>> &qDivqiModsi, const std::vector<typename PolyType::Integer> &qModsi) {
+
+	std::vector<PolyType> polyInNTT;
+
+	// if the input polynomial is in evaluation representation, store it for later use to reduce the number of NTTs
+	if (this->GetFormat() == EVALUATION) {
+		polyInNTT = m_vectors;
+		this->SwitchFormat();
+	}
+
+	DCRTPolyType polyWithSwitchedCRTBasis = SwitchCRTBasis(params,qInvModqi,qDivqiModsi,qModsi);
+
+	size_t size = m_vectors.size();
+	size_t newSize = polyWithSwitchedCRTBasis.m_vectors.size() + size;
+
+	m_vectors.resize(newSize);
+
+	// populate the towers corresponding to CRT basis S and convert them to evaluation representation
+	for (size_t i = 0; i < polyWithSwitchedCRTBasis.m_vectors.size(); i++ ) {
+		m_vectors[size + i] = polyWithSwitchedCRTBasis.GetElementAtIndex(i);
+		m_vectors[size + i].SwitchFormat();
+	}
+
+	if (polyInNTT.size() > 0) // if the input polynomial was in evaluation representation, use the towers for Q from it
+	{
+		for (size_t i = 0; i < size; i++ )
+			m_vectors[i] = polyInNTT[i];
+	}
+	else
+	{ // else call NTT for the towers for Q
+		for (size_t i = 0; i <size; i++ )
+			m_vectors[i].SwitchFormat();
+	}
+
+	m_format = EVALUATION;
+
+	m_params = paramsExpanded;
+
+}
+
+//Source: Halevi S., Polyakov Y., Shoup V. (in preparation, 2018) A Simpler, Faster RNS Variant of the BFV Homomorphic Encryption Scheme.
+//
+// Computes Round(p/Q*x), where x is in the CRT basis Q*S,
+// as [\sum_{i=1}^n alpha_i*x_i + Round(\sum_{i=1}^n beta_i*x_i)]_si,
+// with the result in the Q CRT basis; used in homomorphic multiplication of BFVrns;
+// alpha is a matrix of precomputed integer factors = {Floor[p*S*[(Q*S/vi)^{-1}]_{vi}/vi]}_si; for all combinations of vi, si; where vi is a prime modulus in Q*S
+// beta is a vector of precomputed floating-point factors between 0 and 1 = [p*S*(Q*S/vi)^{-1}]_{vi}/vi; - for each vi
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+DCRTPolyImpl<ModType,IntType,VecType,ParmType> DCRTPolyImpl<ModType,IntType,VecType,ParmType>::ScaleAndRound(const shared_ptr<ParmType> params,
+		const std::vector<std::vector<typename PolyType::Integer>> &alpha,
+		const std::vector<double> &beta) const {
+
+		DCRTPolyType ans(params,m_format,true);
+
+		usint ringDimension = GetRingDimension();
+		size_t size = m_vectors.size();
+		size_t newSize = ans.m_vectors.size();
+
+		for( usint rIndex = 0; rIndex < ringDimension; rIndex++ ) {
+
+			for (usint newvIndex = 0; newvIndex < newSize; newvIndex ++ ) {
+
+				double curFloat = 0.0;
+				typename PolyType::Integer curValue = 0;
+
+				const typename PolyType::Integer &si = params->GetParams()[newvIndex]->GetModulus();
+
+				for( usint vIndex = 0; vIndex < size; vIndex++ ) {
+					const typename PolyType::Integer &xi = m_vectors[vIndex].GetValues()[rIndex];
+
+					curValue += alpha[vIndex][newvIndex].ModMulFast(xi,si);
+
+					curFloat += beta[vIndex]*xi.ConvertToInt();
+
+				}
+
+				// Since we let current value to exceed si to avoid extra modulo reductions, we have apply mod si now
+				curValue = curValue.Mod(si);
+
+				typename PolyType::Integer rounded = std::llround(curFloat);
+
+				ans.m_vectors[newvIndex].at(rIndex) = curValue.ModAddFast(rounded.Mod(si),si);
+
+			}
+
+		}
+
+		return std::move(ans);
+
+}
+
 /*Switch format calls IlVector2n's switchformat*/
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::SwitchFormat()
@@ -834,7 +1231,7 @@ void DCRTPolyImpl<ModType,IntType,VecType,ParmType>::SwitchFormat()
 		m_format = COEFFICIENT;
 	}
 
-#pragma omp parallel for
+//#pragma omp parallel for
 	for (usint i = 0; i < m_vectors.size(); i++) {
 		m_vectors[i].SwitchFormat();
 	}
@@ -874,6 +1271,13 @@ bool DCRTPolyImpl<ModType,IntType,VecType,ParmType>::InverseExists() const
 		if (!m_vectors[i].InverseExists()) return false;
 	}
 	return true;
+}
+
+template<typename ModType, typename IntType, typename VecType, typename ParmType>
+double DCRTPolyImpl<ModType, IntType, VecType, ParmType>::Norm() const
+{
+	Poly poly(CRTInterpolate());
+	return poly.Norm();
 }
 
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
@@ -929,5 +1333,22 @@ bool DCRTPolyImpl<ModType,IntType,VecType,ParmType>::Deserialize(const Serialize
 
 	return ret;
 }
+
+
+ template<typename ModType, typename IntType, typename VecType, typename ParmType>
+   std::ostream& operator<<(std::ostream &os, const DCRTPolyImpl<ModType,IntType,VecType,ParmType> & p)
+
+ //TODO: Standardize this printing so it is like other poly's
+ {
+        os<<"---START PRINT DOUBLE CRT-- WITH SIZE" <<p.m_vectors.size() << std::endl;
+	for(usint i = 0; i < p.m_vectors.size(); i++) {
+		os<<"VECTOR " << i << std::endl;
+		os<<p.m_vectors[i];
+	}
+	os<<"---END PRINT DOUBLE CRT--" << std::endl;
+	return os;
+}
+
+
 
 } // namespace lbcrypto ends

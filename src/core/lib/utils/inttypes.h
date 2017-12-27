@@ -31,27 +31,6 @@
 #include <stdint.h>
 
 /**
- * @namespace lbcrypto
- * The namespace of lbcrypto
- */
-//namespace lbcrypto {
-
-/**
- * @brief Type used for representing signed 8-bit integers.
- */
-typedef int8_t schar;
-
-/**
- * @brief Type used for representing signed 16-bit short integers.
- */
-typedef int16_t sshort;
-
-/**
- * @brief Type used for representing signed 32-bit integers.
- */
-typedef int32_t sint;
-
-/**
  * @brief Type used for representing unsigned 8-bit integers.
  */
 typedef uint8_t uschar;
@@ -90,7 +69,5 @@ enum MODE {
 	RLWE = 0,
 	OPTIMIZED = 1
 };
-
-//} // namespace lbcrypto ends
 
 #endif

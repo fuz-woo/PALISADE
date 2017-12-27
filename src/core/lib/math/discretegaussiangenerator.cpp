@@ -31,13 +31,6 @@
 
 namespace lbcrypto {
 
-//	template<typename IntType, typename VecType>
-//	DiscreteGaussianGeneratorImpl<IntType,VecType>::DiscreteGaussianGeneratorImpl() : DistributionGenerator<IntType,VecType>() {
-//
-//		SetStd(1);
-//		Initialize();
-//	}
-
 	template<typename IntType, typename VecType>
 	DiscreteGaussianGeneratorImpl<IntType,VecType>::DiscreteGaussianGeneratorImpl(float std) : DistributionGenerator<IntType,VecType>() {
 
@@ -73,7 +66,7 @@ namespace lbcrypto {
 
 		double cusum = 1.0;
 
-		for (sint x = 1; x <= fin; x++) {
+		for (int x = 1; x <= fin; x++) {
 			cusum = cusum + 2 * exp(-x * x / (variance * 2));
 		}
 
@@ -82,7 +75,7 @@ namespace lbcrypto {
 		//fin = (int)ceil(sqrt(-2 * variance * log(acc))); //not needed - same as above
 		double temp;
 
-		for (sint i = 1; i <= fin; i++) {
+		for (int i = 1; i <= fin; i++) {
 			temp = m_a * exp(-((double)(i * i) / (2 * variance)));
 			m_vals.push_back(temp);
 		}
@@ -92,22 +85,16 @@ namespace lbcrypto {
 			m_vals[i] += m_vals[i - 1];
 		}
 
-		//for (usint i = 0; i<m_vals.size(); i++) {
-		//	std::cout << m_vals[i] << std::endl;
-		//}
-
-		//std::cout<<m_a<<std::endl;
-
 	}
 
 	template<typename IntType, typename VecType>
-	sint DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateInt() const {
+	int32_t DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateInt() const {
 
 		std::uniform_real_distribution<double> distribution(0.0, 1.0);
 
 		usint val = 0;
 		double seed;
-		sint ans;
+		int32_t ans;
 
 
 		seed = distribution(PseudoRandomNumberGenerator::GetPRNG()) - 0.5; //we need to use the binary uniform generator rather than regular continuous distribution; see DG14 for details
@@ -126,24 +113,26 @@ namespace lbcrypto {
 	}
 
 	template<typename IntType, typename VecType>
-	std::shared_ptr<sint> DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateIntVector(usint size) const {
+	std::shared_ptr<int32_t> DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateIntVector(usint size) const {
 
 		std::uniform_real_distribution<double> distribution(0.0, 1.0);
 
 		usint val = 0;
 		double seed;
-		std::shared_ptr<sint> ans( new sint[size], std::default_delete<int[]>() );
+		std::shared_ptr<int32_t> ans( new int32_t[size], std::default_delete<int[]>() );
 
 		for (usint i = 0; i < size; i++) {
-			seed = distribution(PseudoRandomNumberGenerator::GetPRNG()) - 0.5; //we need to use the binary uniform generator rathen than regular continuous distribution; see DG14 for details
+			seed = distribution(PseudoRandomNumberGenerator::GetPRNG()) - 0.5; //we need to use the binary uniform generator rather than regular continuous distribution; see DG14 for details
 			if (std::abs(seed) <= m_a / 2) {
 				val = 0;
 			}
-			else if (seed > 0) {
-				val = FindInVector(m_vals, (std::abs(seed) - m_a / 2));
-			}
-			else {
-				val = -(int)FindInVector(m_vals, (std::abs(seed) - m_a / 2));
+			else{
+				if (seed > 0) {
+					val = FindInVector(m_vals, (std::abs(seed) - m_a / 2));
+				}
+				else {
+					val = -(int)FindInVector(m_vals, (std::abs(seed) - m_a / 2));
+				}
 			}
 			(ans.get())[i] = val;
 		}
@@ -155,8 +144,10 @@ namespace lbcrypto {
 	usint DiscreteGaussianGeneratorImpl<IntType,VecType>::FindInVector(const std::vector<double> &S, double search) const {
 		//STL binary search implementation
 		auto lower = std::lower_bound(S.begin(), S.end(), search);
-		if (lower != S.end())
-			return lower - S.begin();
+		if (lower != S.end()){
+			return lower - S.begin() + 1;
+		}
+
 		else
 			throw std::runtime_error("DGG Inversion Sampling. FindInVector value not found: " + std::to_string(search));
 	}
@@ -196,27 +187,19 @@ namespace lbcrypto {
 	template<typename IntType, typename VecType>
 	VecType DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateVector(const usint size, const IntType &modulus) const {
 
-		std::shared_ptr<sint> result = GenerateIntVector(size);
+		std::shared_ptr<int32_t> result = GenerateIntVector(size);
 
 		VecType ans(size);
 		ans.SetModulus(modulus);
 
 		for (usint i = 0; i < size; i++) {
-			sint v = (result.get())[i];
+			int32_t v = (result.get())[i];
 			if (v < 0) {
 				v *= -1;
-#if MATHBACKEND != 6
-				ans.SetValAtIndex(i, modulus - IntType(v));
-#else
-				ans.SetValAtIndexWithoutMod(i, modulus - IntType(v));
-#endif
+				ans[i] = modulus - IntType(v);
 			}
 			else {
-#if MATHBACKEND != 6
-				ans.SetValAtIndex(i, IntType(v));
-#else
-				ans.SetValAtIndexWithoutMod(i, IntType(v));
-#endif
+			  ans[i] = IntType(v);
 			}
 		}
 
@@ -306,105 +289,182 @@ namespace lbcrypto {
 			}
 			//DEBUG("x "<<x<<" dice "<<dice);
 			count++;
-			if (count>limit) {
-				DEBUG("x "<<x<<" dice "<<dice);
+			if (count > limit) {
+				DEBUG("x " << x << " dice " << dice);
 				throw std::runtime_error("GenerateInteger could not find success after repeated attempts");
-		}
+			}
 
 		}
+
 		}//end pragma
 		return x;
 
 	}
-
-	/**
-		*Generates the probability matrix of given distribution, which is used in Knuth-Yao method
-	*/
 	template<typename IntType, typename VecType>
-	void DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateProbMatrix(double stddev, double mean) {
-		if (probMatrix != nullptr) {
-			delete[] probMatrix;
-		}
-		probMean = mean;
-		probMatrixSize = 10 * stddev + 2;
-		probMatrix = new uint32_t[probMatrixSize];
-		double error = 1;
-		for (int i = -5 * stddev + mean;i <= 5 * stddev + mean;i++) {
-			double prob = pow(M_E, -pow(i - mean, 2) / (2. * stddev * stddev)) / (stddev * sqrt(2.*M_PI));
+	int64_t DiscreteGaussianGeneratorImpl<IntType, VecType>::GenerateIntegerKarney(double mean, double stddev){
 
-			error -= prob;
-			probMatrix[int(i + 5 * stddev - mean)] = prob * pow(2, 32);
-			//Hamming weights are disabled for now
-			/*
-			for (int j = 0;j < 32;j++) {
-				hammingWeights[j] += ((probMatrix[int(i + m / 2)] >> (31 - j)) & 1);
+		int64_t result;
+		std::uniform_int_distribution<int32_t> uniform_sign(0, 1);
+		std::uniform_int_distribution<int64_t> uniform_j(0, ceil(stddev)-1);
 
-			}
-			*/
+		std::mt19937 &g = PseudoRandomNumberGenerator::GetPRNG();
+
+		bool flagSuccess = false;
+		int32_t k;
+
+		while (!flagSuccess) {
+			
+			// STEP D1
+			k = AlgorithmG(g);
+
+			// STEP D2
+			if (!AlgorithmP(g, k * (k - 1))) continue;
+		
+			// STEP D3
+			int32_t s = uniform_sign(g);
+			if (s == 0)
+				s = -1;
+
+			// STEP D4
+			double di0 = stddev * k + s * mean;
+			int64_t i0 = std::ceil(di0);
+			double x0 = (i0 - di0) / stddev;
+			int64_t j = uniform_j(g);
+
+			double x = x0 + j / stddev;
+
+			// STEPS D5 and D6
+			if (!(x < 1) || (x == 0 && s < 0 && k == 0))
+				continue;
+
+			// STEP D7
+			int32_t h = k + 1; while (h-- && AlgorithmB(g, k, x)) {};
+			if (!(h < 0)) continue;
+
+			// STEP D8
+			result = s*(i0 + j);
+			flagSuccess = true;
+
 		}
-		//std::cout << "Error probability: "<< error << std::endl;
-		probMatrix[probMatrixSize - 1] = error * pow(2, 32);
-		//Hamming weights are disabled for now
-		/*
-		for (int k = 0;k< 32;k++) {
-			hammingWeights[k] += ((probMatrix[probMatrixSize - 1] >> (31 - k)) & 1);
-		}
-		*/
+
+		return result;
+
+	}
+	
+	template<typename IntType, typename VecType>
+	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmP(std::mt19937 &g, int n){
+		while (n-- && AlgorithmH(g)){}; return n < 0;
 	}
 
-	/**
-	* Returns a generated integer. Uses Knuth-Yao method defined as Algorithm 1 in http://link.springer.com/chapter/10.1007%2F978-3-662-43414-7_19#page-1
-	*/
 	template<typename IntType, typename VecType>
-	int32_t DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateIntegerKnuthYao() {
-		int32_t S = 0;
-		bool discard = true;
-		std::uniform_int_distribution<int32_t> uniform_int(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max());
-		uint32_t seed = 0;
-		char counter = 0;
-		int32_t MAX_ROW = probMatrixSize - 1;
-		while (discard == true) {
-			//The distance
-			int32_t d = 0;
-			//Whether a terminal node is hit or not
-			uint32_t hit = 0;
-			//Indicator of column
-			short col = 0;
-			//bool scanningInitialized = false;
-			//To generate random bit a 32 bit integer is generated in every 32 iterations and each single bit is used in order to save cycles
-			while (hit == 0 && col <= 31) {
-				if (counter % 32 == 0) {
-					seed = uniform_int(PseudoRandomNumberGenerator::GetPRNG());
-					counter = 0;
-				}
-				uint32_t r = seed >> counter;
-				d = 2 * d + (~r & 1);
-				//if (d < hammingWeights[col] || scanningInitialized){
-					//scanningInitialized = true;
-
-				for (int32_t row = MAX_ROW;row > -1 && hit == 0;row--) {
-					d -= ((probMatrix[row] >> (31 - col)) & 1);
-					if (d == -1) {
-						hit = 1;
-						//If the terminal node is found on the last row, it means that it hit an error column therefore the sample is discarded
-						if (row == MAX_ROW) {
-							//std::cout << "Hit error row, discarding sample..." << std::endl;
-						}
-						else {
-							//Result is the row that the terminal node found in
-							S = row;
-							discard = false;
-						}
-					}
-				}
-				//}
-				col++;
-				counter++;
-			}
-		}
-		//The calculation to understand what integer the column actually corresponds to in probability matrix
-		return  S - (MAX_ROW - 1) / 2 + probMean;
+	int32_t DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmG(std::mt19937 &g)
+	{
+		int n = 0; while (AlgorithmH(g)) ++n; return n;
 	}
 
+	// Use single floating-point precision in most cases; if a situation w/ not enough precision is encountered,
+	// call the double-precision algorithm
+	template<typename IntType, typename VecType>
+	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmH(std::mt19937 &g){
+		
+		std::uniform_real_distribution<float> dist(0,1);
+		float h_a, h_b;
+		h_a = dist(g);
 
+		// less than the half
+		if (h_a > 0.5) 
+			return true;
+		else if (h_a < 0.5)
+		{
+			for (;;) {
+				h_b = dist(g);
+				if (h_b > h_a)
+					return false;
+				else if (h_b < h_a)
+					h_a = dist(g);
+				else //numbers are equal - need higher precision
+					return AlgorithmHDouble(g);
+				if (h_a > h_b)
+					return true;
+				else if (h_a == h_b) //numbers are equal - need higher precision
+					return AlgorithmHDouble(g);
+			}
+		}
+		else //numbers are equal - need higher precision
+			return AlgorithmHDouble(g);
+	}
+
+	template<typename IntType, typename VecType>
+	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmHDouble(std::mt19937 &g) {
+	
+		std::uniform_real_distribution<double> dist(0, 1);
+		double h_a, h_b;
+		h_a = dist(g);
+		// less than the half
+		if (!(h_a < 0.5)) return true;
+		for (;;) {
+			h_b = dist(g);
+			if (!(h_b<h_a))
+				return false;
+			else
+				h_a = dist(g);
+			if (!(h_a<h_b)) return true;
+		}
+	}
+
+	template<typename IntType, typename VecType>
+	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmB(std::mt19937 &g, int32_t k, double x) {
+
+		std::uniform_real_distribution<float> dist(0.0, 1.0);
+
+		float y = x;
+		int32_t n = 0, m = 2 * k + 2;
+		float z, r;
+		float rTemp;
+
+		for (;; ++n) {
+		
+			z = dist(g);
+			if (z > y)
+				break;
+			else if (z < y)
+			{
+				r = dist(g);
+				rTemp = (2 * k + x) / m;
+				if (r > rTemp)
+					break;
+				else if (r < rTemp)
+					y = z;
+				else // r == Temp - need double precision
+					return AlgorithmBDouble(g, k, x);
+			}
+			else // z == x - need double precision
+				return AlgorithmBDouble(g, k, x);
+		}
+
+		return (n % 2) == 0;
+
+	}
+
+	template<typename IntType, typename VecType>
+	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmBDouble(std::mt19937 &g, int32_t k, double x) {
+		std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+		double y = x;
+		int32_t n = 0, m = 2 * k + 2;
+		double z, r;
+
+		for (;; ++n) {
+
+			z = dist(g);
+			if (!(z < y))
+				break;
+			r = dist(g);
+			if (!(r < (2 * k + x) / m))
+				break;
+			y = z;
+		}
+
+		return (n % 2) == 0;
+	}
 } // namespace lbcrypto

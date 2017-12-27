@@ -33,12 +33,4 @@ is constrained only by memory.  This implementation requires that UBINT_32 be de
 currently not functioning and is an open work item.
 
 * MATHBACKEND 6
-This is an experimental integration of the NTL library with PALISADE. At the moment it is a work in progress and should not be used
-
-* MATHBACKEND 7
-If the programmer selects MATHBACKEND 7, the maximum size of BigInteger will be 64 bits. Native 64-bit integer calculations are used.
-This implementation is used as a part of the DCRTPoly object, regardless of the value set for MATHBACKEND.
-If the programmer selects MATHBACKEND 7, be aware that overflows of values during arithmetic operations are more likely given the small
-size of the integer in the backend. Note also that when MATHBACKEND is set to 7, the DCRTPoly object will fail to function properly, and
-several of the unit tests will fail due to overflow errors.  An open work item is to repair the unit tests for MATHBACKEND 7 and to proactively
-disable DCRTPoly when this backend is selected as the default.
+This is an integration of the NTL library with PALISADE.

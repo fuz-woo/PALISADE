@@ -30,21 +30,22 @@
 
 #include "../lib/cryptocontext.h"
 
-#include "encoding/byteplaintextencoding.h"
-#include "encoding/intplaintextencoding.h"
+#include "encoding/encodings.h"
 
 #include "utils/debug.h"
 #include "utils/parmfactory.h"
-#include "cryptolayertests.h"
 
 using namespace std;
 using namespace lbcrypto;
 
-class UnitTestBV : public ::testing::Test {
+class UTBGVDCRT : public ::testing::Test {
 protected:
-	virtual void SetUp() {}
+	void SetUp() {}
 
-	virtual void TearDown() {}
+	void TearDown() {
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+		CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+	}
 
 public:
 };
@@ -52,19 +53,19 @@ public:
 //FIXME this test might be redundant in other files; perhaps this entire file can go
 
 #if !defined(_MSC_VER)
-TEST(UTBVDCRT, Poly_bv_DCRT_MODREDUCE) {
+TEST_F(UTBGVDCRT, Poly_bgv_DCRT_MODREDUCE) {
 
 	usint m = 8;
 
 	usint numOfTower = 3;
 
-	usint plaintextModulus = 5;
+	PlaintextModulus plaintextModulus = 8;
 
 	float stdDev = 4;
 
-	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams(m, plaintextModulus, numOfTower, 40);
+	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams(m, numOfTower, 48);
 
-	shared_ptr<CryptoContext<DCRTPoly>> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBV(params, plaintextModulus, m, stdDev);
+	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBGV(params, plaintextModulus, m, stdDev);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(LEVELEDSHE);
@@ -72,23 +73,21 @@ TEST(UTBVDCRT, Poly_bv_DCRT_MODREDUCE) {
 	// Initialize the public key containers.
 	LPKeyPair<DCRTPoly> kp = cc->KeyGen();
 
-	std::vector<usint> vectorOfInts1 = { 4,1,2,3 };
+	std::vector<int64_t> vectorOfInts1 = { 4,1,2,3 };
 
-	IntPlaintextEncoding intArray1(vectorOfInts1);
-	IntPlaintextEncoding intArrayNew;
+	Plaintext intArray1 = cc->MakeCoefPackedPlaintext(vectorOfInts1);
+	Plaintext intArrayNew;
 
 	////////////////////////////////////////////////////////////
 	//Encryption
 	////////////////////////////////////////////////////////////
 
-	vector<shared_ptr<Ciphertext<DCRTPoly>>> ciphertext = cc->Encrypt(kp.publicKey, intArray1, false);
+	Ciphertext<DCRTPoly> ciphertext = cc->Encrypt(kp.publicKey, intArray1);
 
-	{
-		cc->Decrypt(kp.secretKey, ciphertext, &intArrayNew, false);
-		EXPECT_EQ(intArray1, intArrayNew) << "Decrypt fails";
-	}
+	cc->Decrypt(kp.secretKey, ciphertext, &intArrayNew);
+	EXPECT_EQ(intArray1->GetCoefPackedValue(), intArrayNew->GetCoefPackedValue()) << "Decrypt without ModReduce fails";
 
-	ciphertext[0] = cc->ModReduce(ciphertext[0]);
+	Ciphertext<DCRTPoly> ciphertextR = cc->ModReduce(ciphertext);
 
 	//drop a tower from the secret key
 	
@@ -96,10 +95,11 @@ TEST(UTBVDCRT, Poly_bv_DCRT_MODREDUCE) {
 	skEl.DropLastElement();
 	kp.secretKey->SetPrivateElement(skEl);
 
-	cc->Decrypt(kp.secretKey, ciphertext, &intArrayNew, false);
-	intArrayNew.resize(intArray1.size());
+	Plaintext intArrayNew2;
+	cc->Decrypt(kp.secretKey, ciphertextR, &intArrayNew2);
+	intArrayNew2->SetLength(intArray1->GetLength());
 
-	EXPECT_EQ(intArray1, intArrayNew) << "Decrypt after ModReduce fails";;
+	EXPECT_EQ(intArray1->GetCoefPackedValue(), intArrayNew2->GetCoefPackedValue()) << "Decrypt after ModReduce fails";;
 
 }
 #endif

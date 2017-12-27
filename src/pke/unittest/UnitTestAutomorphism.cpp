@@ -31,44 +31,47 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "../lib/cryptocontext.h"
 
-#include "encoding/byteplaintextencoding.h"
-#include "encoding/intplaintextencoding.h"
-#include "encoding/packedintplaintextencoding.h"
+#include "encoding/encodings.h"
 
 #include "utils/debug.h"
 
 using namespace std;
 using namespace lbcrypto;
 
-class UnitTestAutomorphism : public ::testing::Test {
+class UTAUTOMORPHISM : public ::testing::Test {
 protected:
-	virtual void SetUp() {}
+	void SetUp() {}
 
-	virtual void TearDown() {}
+	void TearDown() {
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+		CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+	}
 
 public:
 };
 
 //declaration for Automorphism Test on LTV scheme with polynomial operation in arbitrary cyclotomics.
-std::vector<usint> ArbLTVAutomorphismPackedArray(usint i);
-//declaration for Automorphism Test on BV scheme with polynomial operation in arbitrary cyclotomics.
-std::vector<usint> ArbBVAutomorphismPackedArray(usint i);
+std::vector<uint64_t> ArbLTVAutomorphismPackedArray(usint i);
+//declaration for Automorphism Test on BGV scheme with polynomial operation in arbitrary cyclotomics.
+std::vector<uint64_t> ArbBGVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on LTV scheme with polynomial operation in power of 2 cyclotomics.
-std::vector<usint> LTVAutomorphismPackedArray(usint i);
-//declaration for Automorphism Test on BV scheme with polynomial operation in powerof 2 cyclotomics.
-std::vector<usint> BVAutomorphismPackedArray(usint i);
-//declaration for Automorphism Test on FV scheme with polynomial operation in power of 2 cyclotomics.
-std::vector<usint> FVAutomorphismPackedArray(usint i);
+std::vector<uint64_t> LTVAutomorphismPackedArray(usint i);
+//declaration for Automorphism Test on BGV scheme with polynomial operation in powerof 2 cyclotomics.
+std::vector<uint64_t> BGVAutomorphismPackedArray(usint i);
+//declaration for Automorphism Test on BFV scheme with polynomial operation in power of 2 cyclotomics.
+std::vector<uint64_t> BFVAutomorphismPackedArray(usint i);
+//declaration for Automorphism Test on BFVrns scheme with polynomial operation in power of 2 cyclotomics.
+std::vector<uint64_t> BFVrnsAutomorphismPackedArray(usint i);
 //Helper to function to produce a output of the input vector by i to the left(cyclic rotation).
-std::vector<usint> Rotate(const std::vector<usint> &input,usint i);
+std::vector<uint64_t> Rotate(const std::vector<uint64_t> &input,usint i);
 //Helper to function to check if the elements in perm are the same in the init vector.
-bool CheckAutomorphism(const std::vector<usint> &perm,const std::vector<usint> &init);
+bool CheckAutomorphism(const std::vector<uint64_t> &perm,const std::vector<uint64_t> &init);
 
-TEST(UTAUTOMORPHISM, Test_LTV_Automorphism_PowerOf2) {
+TEST_F(UTAUTOMORPHISM, Test_LTV_Automorphism_PowerOf2) {
 	
-	PackedIntPlaintextEncoding::Destroy();
+	PackedEncoding::Destroy();
 	
-	std::vector<usint> initVector = { 1,2,3,4,5,6,7,8 }; 
+	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
 	
 	for (usint index = 3; index < 16; index = index + 2) {
 		auto morphedVector = LTVAutomorphismPackedArray(index);
@@ -78,38 +81,48 @@ TEST(UTAUTOMORPHISM, Test_LTV_Automorphism_PowerOf2) {
 }
 
 
-TEST(UTAUTOMORPHISM, Test_BV_Automorphism_PowerOf2) {
-	PackedIntPlaintextEncoding::Destroy();
+TEST_F(UTAUTOMORPHISM, Test_BGV_Automorphism_PowerOf2) {
+	PackedEncoding::Destroy();
 	
-	std::vector<usint> initVector = { 1,2,3,4,5,6,7,8 };
+	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
 
 	for (usint index = 3; index < 16; index = index + 2) {
-		auto morphedVector = BVAutomorphismPackedArray(index);
+		auto morphedVector = BGVAutomorphismPackedArray(index);
 		EXPECT_TRUE(CheckAutomorphism(morphedVector, initVector));
 	}
 
 }
 
-TEST(UTAUTOMORPHISM, Test_FV_Automorphism_PowerOf2) {
-	PackedIntPlaintextEncoding::Destroy();
+TEST_F(UTAUTOMORPHISM, Test_BFV_Automorphism_PowerOf2) {
+	PackedEncoding::Destroy();
 
-	std::vector<usint> initVector = { 1,2,3,4,5,6,7,8 };
+	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
 
 	for (usint index = 3; index < 16; index = index + 2) {
-		auto morphedVector = FVAutomorphismPackedArray(index);
+		auto morphedVector = BFVAutomorphismPackedArray(index);
 		EXPECT_TRUE(CheckAutomorphism(morphedVector, initVector));
 	}
 }
 
+TEST_F(UTAUTOMORPHISM, Test_BFVrns_Automorphism_PowerOf2) {
+	PackedEncoding::Destroy();
 
-TEST(UTAUTOMORPHISM, Test_LTV_Automorphism_Arb) {
+	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
+
+	for (usint index = 3; index < 16; index = index + 2) {
+		auto morphedVector = BFVrnsAutomorphismPackedArray(index);
+		EXPECT_TRUE(CheckAutomorphism(morphedVector, initVector));
+	}
+}
+
+TEST_F(UTAUTOMORPHISM, Test_LTV_Automorphism_Arb) {
 	
-	PackedIntPlaintextEncoding::Destroy();
+	PackedEncoding::Destroy();
 
 	usint m = 22;
 
 	auto totientList = GetTotientList(m);
-	std::vector<usint> initVector = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8,9,10 };
 
 	for (usint index = 1; index < 10; index++) {
 		auto morphedVector = ArbLTVAutomorphismPackedArray(totientList[index]);
@@ -119,28 +132,28 @@ TEST(UTAUTOMORPHISM, Test_LTV_Automorphism_Arb) {
 	
 }
 
-TEST(UTAUTOMORPHISM, Test_BV_Automorphism_Arb) {
-	PackedIntPlaintextEncoding::Destroy();
+TEST_F(UTAUTOMORPHISM, Test_BGV_Automorphism_Arb) {
+	PackedEncoding::Destroy();
 
 	usint m = 22;
 
 	auto totientList = GetTotientList(m);
-	std::vector<usint> initVector = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8,9,10 };
 
 	for (usint index = 1; index < 10; index++) {
-		auto morphedVector = ArbBVAutomorphismPackedArray(totientList[index]);
+		auto morphedVector = ArbBGVAutomorphismPackedArray(totientList[index]);
 		EXPECT_TRUE(CheckAutomorphism(morphedVector, initVector));
 	}
 
 }
 
-TEST(UTAUTOMORPHISM, Test_FV_Automorphism_Arb) {
+TEST_F(UTAUTOMORPHISM, Test_BFV_Automorphism_Arb) {
 	
 
 	EXPECT_EQ(1,1);
 }
 
-std::vector<usint> ArbLTVAutomorphismPackedArray(usint i) {
+std::vector<uint64_t> ArbLTVAutomorphismPackedArray(usint i) {
 
 	usint m = 22;
 	usint p = 2333;
@@ -154,50 +167,43 @@ std::vector<usint> ArbLTVAutomorphismPackedArray(usint i) {
 	BigInteger bigroot("77936753846653065954043047918387");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
 	float stdDev = 4;
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, p, 1, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, p, 1, stdDev);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
 	std::vector<usint> indexList = GetTotientList(m);
 	indexList.erase(indexList.begin());
 
 	auto evalKeys = cc->EvalAutomorphismKeyGen(kp.publicKey, kp.secretKey, indexList);
 
-	vector<shared_ptr<Ciphertext<Poly>>> permutedCiphertext;
+	Ciphertext<Poly> p1;
 
-	shared_ptr<Ciphertext<Poly>> p1;
+	p1 = cc->EvalAutomorphism(ciphertext, i, *evalKeys);
 
-	p1 = cc->EvalAutomorphism(ciphertext[0], i, *evalKeys);
+	Plaintext intArrayNew;
 
-	permutedCiphertext.push_back(p1);
-
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, permutedCiphertext, &intArrayNew, false);
+	cc->Decrypt(kp.secretKey, p1, &intArrayNew);
 	
-	std::vector<usint> result(intArrayNew);
-
-	return std::move(intArrayNew);
-
+	return intArrayNew->GetPackedValue();
 }
 
-std::vector<usint> ArbBVAutomorphismPackedArray(usint i) {
+std::vector<uint64_t> ArbBGVAutomorphismPackedArray(usint i) {
 	
 	
 	usint m = 22;
@@ -212,14 +218,14 @@ std::vector<usint> ArbBVAutomorphismPackedArray(usint i) {
 	BigInteger bigroot("77936753846653065954043047918387");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
 
 	float stdDev = 4;
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextBV(params, p, 8, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, p, 8, stdDev);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -227,37 +233,31 @@ std::vector<usint> ArbBVAutomorphismPackedArray(usint i) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
 	std::vector<usint> indexList = GetTotientList(m);
 	indexList.erase(indexList.begin());
 
 	auto evalKeys = cc->EvalAutomorphismKeyGen(kp.secretKey, indexList);
 
-	vector<shared_ptr<Ciphertext<Poly>>> permutedCiphertext;
+	Ciphertext<Poly> p1;
 
-	shared_ptr<Ciphertext<Poly>> p1;
+	p1 = cc->EvalAutomorphism(ciphertext, i, *evalKeys);
 
-	p1 = cc->EvalAutomorphism(ciphertext[0], i, *evalKeys);
+	Plaintext intArrayNew;
 
-	permutedCiphertext.push_back(p1);
+	cc->Decrypt(kp.secretKey, p1, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, permutedCiphertext, &intArrayNew, false);
-
-	std::vector<usint> result(intArrayNew);
-
-	return result;
+	return intArrayNew->GetPackedValue();
 
 }
 
-std::vector<usint> LTVAutomorphismPackedArray(usint i) {
+std::vector<uint64_t> LTVAutomorphismPackedArray(usint i) {
 
 	usint m = 16;
 	BigInteger q("67108913");
@@ -268,43 +268,37 @@ std::vector<usint> LTVAutomorphismPackedArray(usint i) {
 
 	shared_ptr<ILParams> params(new ILParams(m, q, rootOfUnity));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, plaintextModulus, 1, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, plaintextModulus, 1, stdDev);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = { 1,2,3,4,5,6,7,8 };
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
 	std::vector<usint> indexList = { 3,5,7,9,11,13,15 };
 
 	auto evalKeys = cc->EvalAutomorphismKeyGen(kp.publicKey, kp.secretKey, indexList);
 
-	vector<shared_ptr<Ciphertext<Poly>>> permutedCiphertext;
+	Ciphertext<Poly> p1;
 
-	shared_ptr<Ciphertext<Poly>> p1;
+	p1 = cc->EvalAutomorphism(ciphertext, i, *evalKeys);
 
-	p1 = cc->EvalAutomorphism(ciphertext[0], i, *evalKeys);
+	Plaintext intArrayNew;
 
-	permutedCiphertext.push_back(p1);
+	cc->Decrypt(kp.secretKey, p1, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, permutedCiphertext, &intArrayNew, false);
-
-	std::vector<usint> result(intArrayNew);
-
-	return result;
+	return intArrayNew->GetPackedValue();
 
 }
 
-std::vector<usint> BVAutomorphismPackedArray(usint i) {
+std::vector<uint64_t> BGVAutomorphismPackedArray(usint i) {
 
 	usint m = 16;
 	BigInteger q("67108913");
@@ -315,7 +309,7 @@ std::vector<usint> BVAutomorphismPackedArray(usint i) {
 
 	shared_ptr<ILParams> params(new ILParams(m, q, rootOfUnity));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextBV(params, plaintextModulus, 1, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, plaintextModulus, 1, stdDev);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -323,36 +317,30 @@ std::vector<usint> BVAutomorphismPackedArray(usint i) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = { 1,2,3,4,5,6,7,8 };
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
 	std::vector<usint> indexList = { 3,5,7,9,11,13,15 };
 
 	auto evalKeys = cc->EvalAutomorphismKeyGen(kp.secretKey, indexList);
 
-	vector<shared_ptr<Ciphertext<Poly>>> permutedCiphertext;
+	Ciphertext<Poly> p1;
 
-	shared_ptr<Ciphertext<Poly>> p1;
+	p1 = cc->EvalAutomorphism(ciphertext, i, *evalKeys);
 
-	p1 = cc->EvalAutomorphism(ciphertext[0], i, *evalKeys);
+	Plaintext intArrayNew;
 
-	permutedCiphertext.push_back(p1);
+	cc->Decrypt(kp.secretKey, p1, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, permutedCiphertext, &intArrayNew, false);
-
-	std::vector<usint> result(intArrayNew);
-
-	return result;
+	return intArrayNew->GetPackedValue();
 
 }
 
-std::vector<usint> FVAutomorphismPackedArray(usint i) {
+std::vector<uint64_t> BFVAutomorphismPackedArray(usint i) {
 
 	usint m = 16;
 	BigInteger q("67108913");
@@ -366,7 +354,7 @@ std::vector<usint> FVAutomorphismPackedArray(usint i) {
 
 	shared_ptr<ILParams> params(new ILParams(m, q, rootOfUnity));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextFV(
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(
 		params, plaintextModulus,
 		relWindow, stdDev, delta.ToString());
 
@@ -376,50 +364,85 @@ std::vector<usint> FVAutomorphismPackedArray(usint i) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = { 1,2,3,4,5,6,7,8 };
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
 	std::vector<usint> indexList = { 3,5,7,9,11,13,15 };
 
 	auto evalKeys = cc->EvalAutomorphismKeyGen(kp.secretKey, indexList);
 
-	vector<shared_ptr<Ciphertext<Poly>>> permutedCiphertext;
+	Ciphertext<Poly> p1;
 
-	shared_ptr<Ciphertext<Poly>> p1;
+	p1 = cc->EvalAutomorphism(ciphertext, i, *evalKeys);
 
-	p1 = cc->EvalAutomorphism(ciphertext[0], i, *evalKeys);
+	Plaintext intArrayNew;
 
-	permutedCiphertext.push_back(p1);
+	cc->Decrypt(kp.secretKey, p1, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
+	return intArrayNew->GetPackedValue();
 
-	cc->Decrypt(kp.secretKey, permutedCiphertext, &intArrayNew, false);
+}
 
-	std::vector<usint> result(intArrayNew);
+std::vector<uint64_t> BFVrnsAutomorphismPackedArray(usint i) {
 
-	return result;
+	PlaintextModulus p = 65537;
+	double sigma = 4;
+	double rootHermiteFactor = 1.006;
+
+	EncodingParams encodingParams(new EncodingParamsImpl(p));
+
+	//Set Crypto Parameters
+	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrns(
+			encodingParams, rootHermiteFactor, sigma, 0, 1, 0, OPTIMIZED,2);
+
+	cc->Enable(ENCRYPTION);
+	cc->Enable(SHE);
+
+	// Initialize the public key containers.
+	LPKeyPair<DCRTPoly> kp = cc->KeyGen();
+
+	Ciphertext<DCRTPoly> ciphertext;
+
+	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
+
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
+
+	std::vector<usint> indexList = { 3,5,7,9,11,13,15 };
+
+	auto evalKeys = cc->EvalAutomorphismKeyGen(kp.secretKey, indexList);
+
+	Ciphertext<DCRTPoly> p1;
+
+	p1 = cc->EvalAutomorphism(ciphertext, i, *evalKeys);
+
+	Plaintext intArrayNew;
+
+	cc->Decrypt(kp.secretKey, p1, &intArrayNew);
+
+	return intArrayNew->GetPackedValue();
 
 }
 
 
-std::vector<usint> Rotate(const std::vector<usint>& input, usint i)
+std::vector<uint64_t> Rotate(const std::vector<uint64_t>& input, usint i)
 {
 	usint n = input.size();
-	std::vector<usint> result(n,0);
+	std::vector<uint64_t> result(n,0);
 
 	for (usint j = 0; j < n; j++) {
 		usint newIndex = (n + j - i)%n;
-		result.at(newIndex) = input.at(j);
+		result[newIndex] = input[j];
 	}
 
 	return result;
 }
 
-bool CheckAutomorphism(const std::vector<usint>& perm, const std::vector<usint>& init)
+bool CheckAutomorphism(const std::vector<uint64_t>& perm, const std::vector<uint64_t>& init)
 {
 	bool result = true;
 	for (usint i = 0; i< init.size(); i++) {

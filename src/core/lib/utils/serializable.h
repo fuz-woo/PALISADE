@@ -25,10 +25,11 @@
  */ 
 #ifndef LBCRYPTO_SERIALIZABLE_H
 #define LBCRYPTO_SERIALIZABLE_H
-
+#include <vector>
 #include <unordered_map>
 #include <sstream>
 #include <string>
+#include <iomanip>
 #ifndef RAPIDJSON_HAS_STDSTRING
 #define RAPIDJSON_HAS_STDSTRING
 #endif
@@ -55,8 +56,6 @@ namespace lbcrypto {
 
 	class Serializable
 	{
-		static bool includeKeysInSerializedCryptoContext;
-
 		/**
 		* Version number of the serialization; defaults to 1
 		* @return version of the serialization
@@ -65,10 +64,6 @@ namespace lbcrypto {
 
 	public:
 		virtual ~Serializable() {}
-
-		static void EnableKeysInSerializedContext();
-		static void DisableKeysInSerializedContext();
-		static bool IncludeKeysInSerializedContext() { return includeKeysInSerializedCryptoContext; }
 
 		/**
 		* Serialize the object into a Serialized
@@ -95,6 +90,18 @@ namespace lbcrypto {
 		*/
 		virtual bool Deserialize(const Serialized& serObj) = 0;
 	};
+
+//helper template to stream vector contents provided T has an stream operator<< 
+template < typename T >
+std::ostream& operator << (std::ostream& os, const std::vector<T>& v)
+{
+    os << "[";
+    for (auto i = v.begin(); i!= v.end(); ++i){
+      os << " " << *i;
+    }
+    os << " ]";
+    return os;
+ };
 
 }
 

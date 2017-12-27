@@ -134,7 +134,7 @@ namespace lbcrypto {
 			 *
 			 * @return the resulting matrix
              */
-            inline MatrixStrassen<Element> GadgetVector() const;
+            inline MatrixStrassen<Element> GadgetVector(int32_t base = 2) const;
 
             /**
              * Computes the infinity norm
@@ -163,13 +163,6 @@ namespace lbcrypto {
              */  
             inline MatrixStrassen<Element> ScalarMult(Element const& other) const {
                 MatrixStrassen<Element> result(*this);
-            #if 0
-            for (size_t row = 0; row < result.rows; ++row) {
-                    for (size_t col = 0; col < result.cols; ++col) {
-                        *result.data[row][col] = *result.data[row][col] * other;
-                    }
-                }
-            #else
             #pragma omp parallel for
             for (int32_t col = 0; col < result.cols; ++col) {
             	for (int32_t row = 0; row < result.rows; ++row) {
@@ -177,8 +170,6 @@ namespace lbcrypto {
                         *result.data[row][col] = *result.data[row][col] * other;
                     }
                 }
-
-            #endif
                 return result;
             }
 
@@ -288,20 +279,14 @@ namespace lbcrypto {
                     throw invalid_argument("Addition operands have incompatible dimensions");
                 }
                 MatrixStrassen<Element> result(*this);
-            #if 0
-                for (size_t i = 0; i < rows; ++i) {
-                    for (size_t j = 0; j < cols; ++j) {
-                        *result.data[i][j] += *other.data[i][j];
-                    }
+
+                #pragma omp parallel for
+		for (int32_t j = 0; j < cols; ++j) {
+		  for (int32_t i = 0; i < rows; ++i) {
+		    *result.data[i][j] += *other.data[i][j];
+		  }
                 }
-            #else
-            #pragma omp parallel for
-            for (int32_t j = 0; j < cols; ++j) {
-            for (int32_t i = 0; i < rows; ++i) {
-                        *result.data[i][j] += *other.data[i][j];
-                    }
-                }
-            #endif
+
                 return result;
             }
 
@@ -335,20 +320,12 @@ namespace lbcrypto {
                     throw invalid_argument("Subtraction operands have incompatible dimensions");
                 }
                 MatrixStrassen<Element> result(allocZero, rows, other.cols);
-            #if 0
-                for (size_t i = 0; i < rows; ++i) {
-                    for (size_t j = 0; j < cols; ++j) {
-                        *result.data[i][j] = *data[i][j] - *other.data[i][j];
-                    }
-                }
-            #else
                 #pragma omp parallel for
-            for (int32_t j = 0; j < cols; ++j) {
-            	for (int32_t i = 0; i < rows; ++i) {
-                        *result.data[i][j] = *data[i][j] - *other.data[i][j];
-                    }
+                for (int32_t j = 0; j < cols; ++j) {
+                	for (int32_t i = 0; i < rows; ++i) {
+			  *result.data[i][j] = *data[i][j] - *other.data[i][j];
+			}
                 }
-            #endif
 
                 return result;
             }
@@ -449,12 +426,7 @@ namespace lbcrypto {
 				//return *this;
 			}
 
-            /**
-             * Print values of the matrix to the cout stream
-			 *
-             */ 
-            void PrintValues() const; 
-
+	    
             /**
              * Call switch format for each (ring) element
 			 *
@@ -606,11 +578,11 @@ namespace lbcrypto {
 	* @param &os stream
 	* @param &m matrix to be outputted
 	* @return the chained stream
-    */ 
+    */
     template<class Element>
     inline std::ostream& operator<<(std::ostream& os, const MatrixStrassen<Element>& m);
-
-	/**
+    
+    /**
     * Gives the Choleshky decomposition of the input matrix. 
 	* The assumption is that covariance matrix does not have large coefficients because it is formed by
     * discrete gaussians e and s; this implies int32_t can be used

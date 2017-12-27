@@ -31,6 +31,7 @@
 #include "../utils/inttypes.h"
 #include "../math/nbtheory.h"
 #include "../math/discretegaussiangenerator.h"
+#include "../encoding/encodingparams.h"
 
 namespace lbcrypto
 {
@@ -93,7 +94,7 @@ public:
 	 * @brief Assignment operator that copies elements.
 	 * @param rhs
 	 */
-	virtual const Element& operator=(std::initializer_list<sint> rhs) = 0;
+	virtual const Element& operator=(std::initializer_list<uint64_t> rhs) = 0;
 
 	// GETTERS
 	/**
@@ -138,29 +139,20 @@ public:
 	 * @param i is the index.
 	 * @return will throw a logic_error.
 	 */
-	virtual const IntType GetValAtIndex(usint i) const {
-		throw std::logic_error("GetValAtIndex not implemented");
+	virtual IntType& at(usint i) {
+		throw std::logic_error("at not implemented");
+	}
+	virtual const IntType& at(usint i) const {
+		throw std::logic_error("const at not implemented");
+	}
+	virtual IntType& operator[](usint i) {
+		throw std::logic_error("[] not implemented");
+	}
+	virtual const IntType& operator[](usint i) const {
+		throw std::logic_error("const [] not implemented");
 	}
 
-	//SETTERS
-	/**
-	 * @brief SetValAtIndex
-	 * This is only implemented for some derived classes, so the default implementation throws an exception.
-	 *
-	 * @param index is the index to set the value at.
-	 * @param val is the value to assign.
-	 */
-	virtual void SetValAtIndex(size_t index, const IntType& val) {
-		throw std::logic_error("SetValAtIndex not implemented");
-	}
-
-	/**
-	 * @brief SetValues allows Element values to be changed; this is used internally by the various operators
-	 *
-	 * @param values are the values to set.
-	 * @param format is the format/representations.
-	 */
-	virtual void SetValues(const VecType& values, Format format) = 0;
+	virtual NativePoly DecryptionCRTInterpolate(PlaintextModulus ptm) const = 0;
 
 	// OPERATORS
 	/**
@@ -295,6 +287,13 @@ public:
 	virtual Element AutomorphismTransform(const usint& i) const = 0;
 
 	/**
+	* @brief Transpose the ring element using the automorphism operation
+	*
+	* @return is the result of the transposition.
+	*/
+	virtual Element Transpose() const = 0;
+
+	/**
 	 * @brief Write the element as \f$ \sum\limits{i=0}^{\lfloor {\log q/base} \rfloor} {(base^i u_i)} \f$ and
 	 * return the vector of \f$ \left\{u_0, u_1,...,u_{\lfloor {\log q/base} \rfloor} \right\} \in R_{{base}^{\lceil {\log q/base} \rceil}} \f$;
 	 * This is used as a subroutine in the relinearization procedure.
@@ -326,6 +325,13 @@ public:
 	virtual bool InverseExists() const = 0;
 
 	/**
+	* @brief Returns the infinity norm, basically the largest value in the ring element.
+	*
+	* @return the largest value in the ring element.
+	*/
+	virtual double Norm() const = 0;
+
+	/**
 	 * @brief Returns true if the vector is empty/ m_values==NULL
 	 * 
 	 * @return true if the vector is empty and all values NULL.  false otherwise.
@@ -341,8 +347,8 @@ public:
 	virtual void MakeSparse(const uint32_t &wFactor) = 0;
 
 	/**
-	 * @brief ModByTwo operation on the Element
-	 * FIXME: comment
+	 * @brief Calculate Element mod 2
+	 *
 	 * @return result of performing a mod-2 operation on the element.
 	 */
 	virtual Element ModByTwo() const = 0;
@@ -381,20 +387,13 @@ public:
 	virtual std::vector<Element> PowersOfBase(usint baseBits) const = 0;
 
 	/**
-	 * @brief Test function to prints all values in either coefficient or evaluation format.
-	 * 
-	 */
-	virtual void PrintValues() const = 0;
-	//FIXME: it might be better to overload operator<<
-	
-	/**
-	 * @brief SignedMod - perform a modulus operation.
+	 * @brief Mod - perform a modulus operation.
 	 * Does proper mapping of [-modulus/2, modulus/2) to [0, modulus).
 	 *
 	 * @param modulus is the modulus to use.
 	 * @return is the return value of the modulus.
 	 */
-	virtual Element SignedMod(const IntType &modulus) const = 0;
+	virtual Element Mod(const IntType &modulus) const = 0;
 
 	/**
 	 * @brief Switch modulus and adjust the values

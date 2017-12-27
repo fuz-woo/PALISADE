@@ -49,7 +49,7 @@ void DiscreteUniformGeneratorImpl<IntType,VecType>::SetModulus (const IntType & 
 	m_modulus = modulus;
 
 	// Update values that depend on modulus.
-	usint modulusWidth = m_modulus.GetMSB();
+	auto modulusWidth = m_modulus.GetMSB();
 	// Get the number of chunks in the modulus
 	// 1 is subtracted to make sure the last chunk is fully used by the modulus
 	m_chunksPerValue = (modulusWidth-1) / CHUNK_WIDTH;
@@ -68,7 +68,6 @@ IntType DiscreteUniformGeneratorImpl<IntType,VecType>::GenerateInteger () const 
 	uint32_t value;
 
 	if( m_modulus == 0 ) {
-	std::cout << "DUG " << m_modulus << ":: " << CHUNK_WIDTH << "," << m_chunksPerValue << std::endl;
 		throw std::logic_error("0 modulus?");
 	}
 
@@ -122,12 +121,8 @@ VecType DiscreteUniformGeneratorImpl<IntType,VecType>::GenerateVector(const usin
 	VecType v(size,m_modulus);
 
 	for (usint i = 0; i < size; i++) {
-	IntType temp(this->GenerateInteger());
-#if MATHBACKEND != 6
-		v.SetValAtIndex(i, temp);
-#else
-		v.SetValAtIndexWithoutMod(i, temp);
-#endif
+	  IntType temp(this->GenerateInteger());
+	  v.at(i)= temp;
 	}
 
 	return v;

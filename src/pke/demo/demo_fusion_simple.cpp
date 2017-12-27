@@ -32,8 +32,6 @@
 
 #include "palisade.h"
 #include "cryptocontexthelper.h"
-#include "cryptocontextgen.h"
-#include "encoding/byteplaintextencoding.h"
 #include "utils/debug.h"
 #include "utils/serializablehelper.h"
 
@@ -72,14 +70,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	std::cout << "Choose parameter set: ";
-	CryptoContextHelper::printAllParmSetNames(std::cout);
+	CryptoContextHelper::printParmSetNamesByExcludeFilter(std::cout,"BFVrns");
 
 	string input;
 	std::cin >> input;
 
 	start = currentDateTime();
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	if( !cc ) {
 		cout << "Error on " << input << endl;
 		return 0;
@@ -89,8 +87,6 @@ int main(int argc, char *argv[]) {
 	diff = finish - start;
 
 	cout << "Param generation time: " << "\t" << diff << " ms" << endl;
-
-	//shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementLTV(ORDER, PTM);
 
 	//Turn on features
 	cc->Enable(ENCRYPTION);
@@ -113,9 +109,9 @@ int main(int argc, char *argv[]) {
 
 	LPKeyPair<Poly> kpMultiparty;
 
-	shared_ptr<LPEvalKey<Poly>> evalKey1;
-	shared_ptr<LPEvalKey<Poly>> evalKey2;
-	shared_ptr<LPEvalKey<Poly>> evalKey3;
+	LPEvalKey<Poly> evalKey1;
+	LPEvalKey<Poly> evalKey2;
+	LPEvalKey<Poly> evalKey3;
 	
 	////////////////////////////////////////////////////////////
 	// Perform Key Generation Operation
@@ -126,8 +122,8 @@ int main(int argc, char *argv[]) {
 	start = currentDateTime();
 
 	kp1 = cc->KeyGen();
-	kp2 = cc->MultipartyKeyGen(kp1.publicKey);
-	kp3 = cc->MultipartyKeyGen(kp1.publicKey);
+	kp2 = cc->MultipartyKeyGen(kp1.publicKey,false,true);
+	kp3 = cc->MultipartyKeyGen(kp1.publicKey,false,true);
 
 	finish = currentDateTime();
 	diff = finish - start;
@@ -159,7 +155,7 @@ int main(int argc, char *argv[]) {
 	start = currentDateTime();
 
 
-	vector<shared_ptr<LPPrivateKey<Poly>>> secretKeys;
+	vector<LPPrivateKey<Poly>> secretKeys;
 	secretKeys.push_back(kp1.secretKey);
 	secretKeys.push_back(kp2.secretKey);
 	secretKeys.push_back(kp3.secretKey);
@@ -185,14 +181,14 @@ int main(int argc, char *argv[]) {
 
 	std::cout <<"\n"<< "Generating proxy re-encryption key..." << std::endl;
 
-	bool flagBV = true;
+	bool flagBGV = true;
 
-	if ((input.find("BV") == string::npos) && (input.find("FV") == string::npos))
-		flagBV = false;
+	if ((input.find("BGV") == string::npos) && (input.find("BFV") == string::npos))
+		flagBGV = false;
 
 	start = currentDateTime();
 
-	if (flagBV) { 
+	if (flagBGV) { 
 		evalKey1 = cc->ReKeyGen(kpMultiparty.secretKey, kp1.secretKey);
 		evalKey2 = cc->ReKeyGen(kpMultiparty.secretKey, kp2.secretKey);
 		evalKey3 = cc->ReKeyGen(kpMultiparty.secretKey, kp3.secretKey);
@@ -215,21 +211,13 @@ int main(int argc, char *argv[]) {
 	////////////////////////////////////////////////////////////
 	// Encode source data
 	////////////////////////////////////////////////////////////
-/*
-	std::vector<uint32_t> vectorOfInts1 = {2,2,2,2,2,2,0,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts2 = {3,3,3,3,3,0,0,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts3 = {1,1,1,1,0,0,0,0,0,0,0,0};
-*/
-	std::vector<uint32_t> vectorOfInts1 = {1,1,1,1,1,1,1,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts2 = {1,0,0,1,1,0,0,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts3 = {1,1,1,1,0,0,0,0,0,0,0,0};
+	std::vector<int64_t> vectorOfInts1 = {1,1,1,1,1,1,1,0,0,0,0,0};
+	std::vector<int64_t> vectorOfInts2 = {1,0,0,1,1,0,0,0,0,0,0,0};
+	std::vector<int64_t> vectorOfInts3 = {1,1,1,1,0,0,0,0,0,0,0,0};
 
-	IntPlaintextEncoding plaintext1(vectorOfInts1);
-	IntPlaintextEncoding plaintext2(vectorOfInts2);
-	IntPlaintextEncoding plaintext3(vectorOfInts3);
-
-	//std::vector<uint32_t> vectorOfIntsAdd = { 2, 1, 1, 3, 0, 0, 0, 0, 3, 0, 3, 3, 3, 3 };
-	//IntPlaintextEncoding plaintextAdd(vectorOfIntsAdd);
+	Plaintext plaintext1 = cc->MakeCoefPackedPlaintext(vectorOfInts1);
+	Plaintext plaintext2 = cc->MakeCoefPackedPlaintext(vectorOfInts2);
+	Plaintext plaintext3 = cc->MakeCoefPackedPlaintext(vectorOfInts3);
 
 	////////////////////////////////////////////////////////////
 	// Encryption
@@ -237,9 +225,9 @@ int main(int argc, char *argv[]) {
 
 	start = currentDateTime();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext1;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext2;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext3;
+	Ciphertext<Poly> ciphertext1;
+	Ciphertext<Poly> ciphertext2;
+	Ciphertext<Poly> ciphertext3;
 
 	ciphertext1 = cc->Encrypt(kp1.publicKey, plaintext1);
 	ciphertext2 = cc->Encrypt(kp2.publicKey, plaintext2);
@@ -259,9 +247,9 @@ int main(int argc, char *argv[]) {
 
 	start = currentDateTime();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext1New;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext2New;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext3New;
+	Ciphertext<Poly> ciphertext1New;
+	Ciphertext<Poly> ciphertext2New;
+	Ciphertext<Poly> ciphertext3New;
 
 	ciphertext1New = cc->ReEncrypt(evalKey1, ciphertext1);
 	ciphertext2New = cc->ReEncrypt(evalKey2, ciphertext2);
@@ -278,17 +266,13 @@ int main(int argc, char *argv[]) {
 	// EvalAdd Operation on Re-Encrypted Data
 	////////////////////////////////////////////////////////////
 
-	shared_ptr<Ciphertext<Poly>> ciphertextAddNew12;
-	shared_ptr<Ciphertext<Poly>> ciphertextAddNew123;
-
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextAddVectNew;
+	Ciphertext<Poly> ciphertextAddNew12;
+	Ciphertext<Poly> ciphertextAddVectNew;
 
 	start = currentDateTime();
 
-	ciphertextAddNew12 = cc->EvalAdd(ciphertext1New[0],ciphertext2New[0]);
-	ciphertextAddNew123 = cc->EvalAdd(ciphertextAddNew12,ciphertext3New[0]);
-
-	ciphertextAddVectNew.push_back(ciphertextAddNew123);
+	ciphertextAddNew12 = cc->EvalAdd(ciphertext1New,ciphertext2New);
+	ciphertextAddVectNew = cc->EvalAdd(ciphertextAddNew12,ciphertext3New);
 
 	finish = currentDateTime();
 	diff = finish - start;
@@ -301,7 +285,7 @@ int main(int argc, char *argv[]) {
 	//Decryption after Accumulation Operation on Re-Encrypted Data
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding plaintextAddNew;
+	Plaintext plaintextAddNew;
 
 	start = currentDateTime();
 
@@ -312,7 +296,7 @@ int main(int argc, char *argv[]) {
 
 	//std::cin.get();
 
-	plaintextAddNew.resize(plaintext1.size());
+	plaintextAddNew->SetLength(plaintext1->GetLength());
 
 	cout << "\n Original Plaintext: \n";
 	cout << plaintext1 << endl;
@@ -328,34 +312,29 @@ int main(int argc, char *argv[]) {
 	//Decryption after Accumulation Operation on Re-Encrypted Data with Multiparty
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding plaintextAddNew1;
-	IntPlaintextEncoding plaintextAddNew2;
-	IntPlaintextEncoding plaintextAddNew3;
+	Plaintext plaintextAddNew1;
+	Plaintext plaintextAddNew2;
+	Plaintext plaintextAddNew3;
 
 	Poly partialPlaintext1;
 	Poly partialPlaintext2;
 	Poly partialPlaintext3;
-	//IntPlaintextEncoding plaintextAddNewFinal;
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextPartial1;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextPartial2;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextPartial3;
-
-	IntPlaintextEncoding plaintextMultipartyNew;
+	Plaintext plaintextMultipartyNew;
 
 	const shared_ptr<LPCryptoParameters<Poly>> cryptoParams = kp1.secretKey->GetCryptoParameters();
 	const shared_ptr<typename Poly::Params> elementParams = cryptoParams->GetElementParams();
 
 	start = currentDateTime();
 
-	ciphertextPartial1 = cc->MultipartyDecryptLead(kp1.secretKey, ciphertextAddVectNew);
-	ciphertextPartial2 = cc->MultipartyDecryptMain(kp2.secretKey, ciphertextAddVectNew);
-	ciphertextPartial3 = cc->MultipartyDecryptMain(kp3.secretKey, ciphertextAddVectNew);
+	auto ciphertextPartial1 = cc->MultipartyDecryptLead(kp1.secretKey, {ciphertextAddVectNew});
+	auto ciphertextPartial2 = cc->MultipartyDecryptMain(kp2.secretKey, {ciphertextAddVectNew});
+	auto ciphertextPartial3 = cc->MultipartyDecryptMain(kp3.secretKey, {ciphertextAddVectNew});
 
-	vector<vector<shared_ptr<Ciphertext<Poly>>>> partialCiphertextVec;
-	partialCiphertextVec.push_back(ciphertextPartial1);
-	partialCiphertextVec.push_back(ciphertextPartial2);
-	partialCiphertextVec.push_back(ciphertextPartial3);
+	vector<Ciphertext<Poly>> partialCiphertextVec;
+	partialCiphertextVec.push_back(ciphertextPartial1[0]);
+	partialCiphertextVec.push_back(ciphertextPartial2[0]);
+	partialCiphertextVec.push_back(ciphertextPartial3[0]);
 
 	cc->MultipartyDecryptFusion(partialCiphertextVec, &plaintextMultipartyNew);
 
@@ -369,7 +348,7 @@ int main(int argc, char *argv[]) {
 	cout << plaintext2 << endl;
 	cout << plaintext3 << endl;
 
-	plaintextMultipartyNew.resize(plaintext1.size());
+	plaintextMultipartyNew->SetLength(plaintext1->GetLength());
 
 	cout << "\n Resulting Fused Plaintext with Re-Encryption: \n" << endl;
 	cout << plaintextMultipartyNew << endl;
