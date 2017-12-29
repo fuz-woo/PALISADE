@@ -176,44 +176,25 @@ namespace exp_int {
   //desctructor
   template<class ubint_el_t>
   ubintvec<ubint_el_t>::~ubintvec(){
-    //std::cout<<"destructor called for vector of size: "<<this->m_data.size()<<"  "<<std::endl;
     m_data.clear();
   }
 
   //ACCESSORS
-
-
-  // Set value at index from ubint
   template<class ubint_el_t>
-  void ubintvec<ubint_el_t>::SetValAtIndex(usint index, const ubint_el_t& value){
-
+  ubint_el_t& ubintvec<ubint_el_t>::at(size_t index) {
     if(!this->IndexCheck(index)){
-      throw std::logic_error("ubintvec index out of range");
-    }
-    else{
-      this->m_data.at(index) = value;
-    }
-  }
-
-  // set value at index from string
-  template<class ubint_el_t>
-  void ubintvec<ubint_el_t>::SetValAtIndex(usint index, const std::string& str){
-    if(!this->IndexCheck(index)){
-      throw std::logic_error("ubintvec index out of range");
-    }
-    else{
-      this->m_data.at(index).SetValue(str);
-    }
-  }
-
-  template<class ubint_el_t>
-  const ubint_el_t& ubintvec<ubint_el_t>::GetValAtIndex(size_t index) const{
-    if(!this->IndexCheck(index)){
-      throw std::logic_error("ubintvec index out of range");
+      throw std::logic_error("index out of range");
     }
     return this->m_data[index];
   }
 
+  template<class ubint_el_t>
+  const ubint_el_t& ubintvec<ubint_el_t>::at(size_t index) const{
+    if(!this->IndexCheck(index)){
+      throw std::logic_error("index out of range");
+    }
+    return this->m_data[index];
+  }
 
 
 
@@ -309,16 +290,7 @@ namespace exp_int {
     return *this;
 
   }
-#if 0 //not used
-template<class ubint_el_t>
-  ubintvec<ubint_el_t> ubintvec<ubint_el_t>::Exp(const ubint_el_t &b) const{
-    ubintvec ans(*this);
-    for(usint i=0;i<this->m_data.size();i++){
-      ans.m_data[i] = ans.m_data[i].Exp(b);
-    }
-    return ans;
-  }
-#endif
+
   // vector elementwise add
   template<class ubint_el_t>
   ubintvec<ubint_el_t> ubintvec<ubint_el_t>::Add(const ubintvec &b) const{
@@ -514,10 +486,10 @@ template<class ubint_el_t>
 
     size_t pkVectorLength = GetLength();
     if( pkVectorLength > 0 ) {
-      std::string pkBufferString = GetValAtIndex(0).Serialize();
+      std::string pkBufferString = (*this)[0].SerializeToString();
       for (size_t i = 1; i < pkVectorLength; i++) {
 	pkBufferString += "|";
-	pkBufferString += GetValAtIndex(i).Serialize();
+	pkBufferString += (*this)[i].SerializeToString();
       }
       bbvMap.AddMember("VectorValues", pkBufferString, serObj->GetAllocator());
     }
@@ -552,7 +524,7 @@ template<class ubint_el_t>
     //usint ePos = 0;
     const char *vp = vIt->value.GetString();
     while( *vp != '\0' ) {
-      vp = vectorElem.Deserialize(vp);
+      vp = vectorElem.DeserializeFromString(vp);
       //this->SetValAtIndex(ePos++, vectorElem);
       this->m_data.push_back(vectorElem);
       if( *vp == '|' )

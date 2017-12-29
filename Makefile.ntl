@@ -1,0 +1,90 @@
+#Makefile to build and install ntl in palisade
+
+TAR ?= tar 
+
+#note change the following directory to the correct one on your install
+
+PALISADE_DIR := $(PWD)
+NTL_VER:= 10.5.0
+
+#check if the palisade directory is correct
+#ifneq ($(wildcard $(PALISADE_DIR)), )
+# $(info Makefile.ntl running PALISADE_DIR found)
+#else
+# $(info Makefile.ntl needs to be updated for correct PALISADE_DIR directory)
+#endif
+
+
+THIRD_PARTY_DIR := $(PALISADE_DIR)/third-party
+DISTROS_DIR := $(THIRD_PARTY_DIR)/distros
+NTL_DISTRO_DIR := $(DISTROS_DIR)/ntl-$(NTL_VER)/src
+
+
+#check if gmp has been installed into the correct directory
+# and build gmp if not.
+ifneq ($(wildcard $(THIRD_PARTY_DIR)/distros/lib/libgmp.a), )
+ #$(info Makefile.ntl: GMP install found)
+ GMP_NEEDED := 
+else
+ #$(info Makefile.ntl: running Makefile.gmp for GMP install)
+ GMP_NEEDED := gmp_all
+endif
+
+#check if ntl has been unpacked into the correct directory
+# and installs it if not.
+ifneq ($(wildcard $(THIRD_PARTY_DIR)/distros/ntl-$(NTL_VER)), )
+ #$(info Makefile.ntl: NTL already unpacked)
+ NTL_UNPACK_NEEDED := 
+else
+ #$(info Makefile.ntl: unpacking NTL)
+ NTL_UNPACK_NEEDED :=ntl_unpack
+endif
+
+#check if ntl has been installed into the correct directory
+# and installs it if not.
+ifneq ($(wildcard $(THIRD_PARTY_DIR)/lib/libntl.a), )
+ #$(info Makefile.ntl: NTL already installed)
+ NTL_CONFIG_NEEDED := 
+ NTL_MAKE_NEEDED := 
+ NTL_CHECK_NEEDED :=
+ NTL_INSTALL_NEEDED :=
+else
+ #$(info Makefile.ntl: installing NTL)
+ NTL_CONFIG_NEEDED := ntl_config
+ NTL_MAKE_NEEDED := ntl_make
+ #NTL_CHECK_NEEDED := ntl_check
+ NTL_INSTALL_NEEDED := ntl_install
+endif
+
+ntl_all: $(GMP_NEEDED) $(NTL_UNPACK_NEEDED) $(NTL_CONFIG_NEEDED) $(NTL_MAKE_NEEDED) $(NTL_CHECK_NEEDED) $(NTL_INSTALL_NEEDED)
+	@echo $(all)
+
+ntl_unpack: 
+	@echo 'Unpacking ntl for Palisade into $(NTL_DISTRO_DIR)'
+	cd $(DISTROS_DIR);\
+	$(TAR) xf ./ntl-$(NTL_VER).tar.gz
+
+ntl_config: $(NTL_UNPACK_NEEDED)
+	@echo 'Configuring ntl for Palisade in $(NTL_DISTRO_DIR)'
+	cd $(NTL_DISTRO_DIR); \
+	./configure PREFIX=$(THIRD_PARTY_DIR) GMP_PREFIX=$(THIRD_PARTY_DIR) NTL_THREADS=on NTL_THREAD_BOOST=on NTL_EXCEPTIONS=on SHARED=on NTL_STD_CXX11=on NTL_SAFE_VECTORS=off
+
+ntl_make: ntl_config
+	@echo 'making ntl for Palisade in $(NTL_DISTRO_DIR)'
+	cd $(NTL_DISTRO_DIR); \
+	$(MAKE)
+
+ntl_check: $(NTL_MAKE_NEEDED)
+	@echo 'checking ntl for Palisade in $(NTL_DISTRO_DIR)'
+	cd $(NTL_DISTRO_DIR); \
+	$(MAKE) check
+ntl_install: $(NTL_CHECK_NEEDED) $(NTL_MAKE_NEEDED)
+	@echo 'installing ntl for Palisade in $(THIRD_PARTY_DIR)'
+	cd $(NTL_DISTRO_DIR); \
+	$(MAKE) install
+clean_ntl:
+	@echo 'Cleaning ntl installation'
+	cd $(DISTROS_DIR);\
+	$(RM) -rf ntl-$(NTL_VER)
+	cd $(THIRD_PARTY_DIR); \
+	$(RM) -rf include lib share includels

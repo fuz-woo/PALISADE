@@ -47,8 +47,8 @@ getValueForName(const map<string,string>& allvals, const string key, string& val
 }
 
 template <typename Element>
-static shared_ptr<CryptoContext<Element>>
-buildContextFromSerialized(const map<string,string>& s, shared_ptr<typename Element::Params> parms)
+static CryptoContext<Element>
+buildContextFromSerialized(const map<string,string>& s, shared_ptr<typename Element::Params> parms, EncodingParams ep = 0)
 {
 	std::string parmtype;
 	std::string plaintextModulus;
@@ -72,6 +72,10 @@ buildContextFromSerialized(const map<string,string>& s, shared_ptr<typename Elem
 			return 0;
 		}
 
+		if( ep.get() != 0 )
+			return CryptoContextFactory<Element>::genCryptoContextLTV(parms, ep,
+					stoul(relinWindow), stof(stDev));
+
 		return CryptoContextFactory<Element>::genCryptoContextLTV(parms, stoul(plaintextModulus),
 				stoul(relinWindow), stof(stDev));
 	}
@@ -86,23 +90,32 @@ buildContextFromSerialized(const map<string,string>& s, shared_ptr<typename Elem
 		return CryptoContextFactory<Element>::genCryptoContextStehleSteinfeld(parms, stoul(plaintextModulus),
 				stoul(relinWindow), stof(stDev), stof(stDevStSt));
 	}
-	else if( parmtype == "FV" ) {
+	else if( parmtype == "BFV" ) {
 		if( !getValueForName(s, "plaintextModulus", plaintextModulus) ||
 				!getValueForName(s, "securityLevel", secLevel) )
 			return 0;
 
-		return CryptoContextFactory<Element>::genCryptoContextFV(stoul(plaintextModulus), stof(secLevel), 16, 4,
+		return CryptoContextFactory<Element>::genCryptoContextBFV(stoul(plaintextModulus), stof(secLevel), 16, 4,
 				0, 0, 1);
 
 	}
-	else if( parmtype == "BV" ) {
+	else if( parmtype == "BFVrns" ) {
+		if( !getValueForName(s, "plaintextModulus", plaintextModulus) ||
+				!getValueForName(s, "securityLevel", secLevel) )
+			return 0;
+
+		return CryptoContextFactory<Element>::genCryptoContextBFVrns(stoul(plaintextModulus), stof(secLevel), 4,
+				0, 0, 1);
+
+	}
+	else if( parmtype == "BGV" ) {
 		if( !getValueForName(s, "plaintextModulus", plaintextModulus) ||
 				!getValueForName(s, "relinWindow", relinWindow) ||
 				!getValueForName(s, "stDev", stDev) ) {
 			return 0;
 		}
 
-		return CryptoContextFactory<Element>::genCryptoContextBV(parms,
+		return CryptoContextFactory<Element>::genCryptoContextBGV(parms,
 				stoul(plaintextModulus), stoul(relinWindow), stof(stDev));
 	}
 	else if( parmtype == "Null" ) {
@@ -110,7 +123,8 @@ buildContextFromSerialized(const map<string,string>& s, shared_ptr<typename Elem
 			return 0;
 		}
 
-		return CryptoContextFactory<Element>::genCryptoContextNull(parms, stoul(plaintextModulus));
+		auto ptm = stoul(plaintextModulus);
+		return CryptoContextFactory<Element>::genCryptoContextNull(parms->GetCyclotomicOrder(), ptm);
 	}
 	else {
 		throw std::logic_error("Unrecognized parmtype " + parmtype + " in buildContextFromSerialized");
@@ -154,14 +168,17 @@ inline shared_ptr<LPCryptoParameters<Element>> DeserializeCryptoParameters(const
 	else if (type == "LPCryptoParametersStehleSteinfeld") {
 		parmPtr = new LPCryptoParametersStehleSteinfeld<Element>();
 	}
-	else if (type == "LPCryptoParametersBV") {
-		parmPtr = new LPCryptoParametersBV<Element>();
+	else if (type == "LPCryptoParametersBGV") {
+		parmPtr = new LPCryptoParametersBGV<Element>();
 	}
 	else if (type == "LPCryptoParametersNull") {
 		parmPtr = new LPCryptoParametersNull<Element>();
 	}
-	else if (type == "LPCryptoParametersFV") {
-		parmPtr = new LPCryptoParametersFV<Element>();
+	else if (type == "LPCryptoParametersBFV") {
+		parmPtr = new LPCryptoParametersBFV<Element>();
+	}
+	else if (type == "LPCryptoParametersBFVrns") {
+		parmPtr = new LPCryptoParametersBFVrns<Element>();
 	}
 	else
 		return 0;
@@ -203,31 +220,8 @@ inline shared_ptr<LPCryptoParameters<Element>> DeserializeAndValidateCryptoParam
 	return 0;
 }
 
-
-bool
-CryptoContextHelper::matchContextToSerialization(const CryptoContext<Poly> *cc, const Serialized& ser)
-{
-	shared_ptr<LPCryptoParameters<Poly>> ctxParams = cc->GetCryptoParameters();
-	shared_ptr<LPCryptoParameters<Poly>> cParams = DeserializeCryptoParameters<Poly>(ser);
-
-	if( !cParams ) return false;
-
-	return *ctxParams == *cParams;
-}
-
-bool
-CryptoContextHelper::matchContextToSerialization(const CryptoContext<DCRTPoly> *cc, const Serialized& ser)
-{
-	shared_ptr<LPCryptoParameters<DCRTPoly>> ctxParams = cc->GetCryptoParameters();
-	shared_ptr<LPCryptoParameters<DCRTPoly>> cParams = DeserializeCryptoParameters<DCRTPoly>(ser);
-
-	if( !cParams ) return false;
-
-	return *ctxParams == *cParams;
-}
-
-shared_ptr<CryptoContext<Poly>>
-CryptoContextHelper::getNewContext(const string& parmset)
+CryptoContext<Poly>
+CryptoContextHelper::getNewContext(const string& parmset, EncodingParams ep)
 {
 	std::string parmtype;
 	std::string ring;
@@ -245,9 +239,9 @@ CryptoContextHelper::getNewContext(const string& parmset)
 		return 0;
 	}
 
-	// FV uses parm generation so we skip this code for FV
+	// BFV uses parm generation so we skip this code for BFV
 	shared_ptr<typename Poly::Params> parms;
-	if( parmtype != "FV" ) {
+	if(( parmtype != "BFV" ) && ( parmtype != "BFVrns" )) {
 		if( !getValueForName(it->second, "ring", ring) ||
 				!getValueForName(it->second, "modulus", modulus) ||
 				!getValueForName(it->second, "rootOfUnity", rootOfUnity) ) {
@@ -259,10 +253,10 @@ CryptoContextHelper::getNewContext(const string& parmset)
 								typename Poly::Integer(rootOfUnity)));
 	}
 
-	return buildContextFromSerialized<Poly>(it->second, parms);
+	return buildContextFromSerialized<Poly>(it->second, parms, ep);
 }
 
-shared_ptr<CryptoContext<DCRTPoly>>
+CryptoContext<DCRTPoly>
 CryptoContextHelper::getNewDCRTContext(const string& parmset, usint numTowers, usint primeBits)
 {
 	std::string parmtype;
@@ -280,15 +274,15 @@ CryptoContextHelper::getNewDCRTContext(const string& parmset, usint numTowers, u
 		return 0;
 	}
 
-	// FV uses parm generation so we skip this code for FV
+	// BFV uses parm generation so we skip this code for BFV
 	shared_ptr<DCRTPoly::Params> parms;
-	if( parmtype != "FV" ) {
+	if(( parmtype != "BFV" ) && ( parmtype != "BFVrns" )) {
 		if( !getValueForName(it->second, "ring", ring) ||
 				!getValueForName(it->second, "plaintextModulus", plaintextModulus) ) {
 			return 0;
 		}
 
-		parms = GenerateDCRTParams(stoul(ring), stoul(plaintextModulus), numTowers, primeBits);
+		parms = GenerateDCRTParams(stoul(ring), numTowers, primeBits);
 
 	}
 	return buildContextFromSerialized<DCRTPoly>(it->second, parms);
@@ -341,13 +335,33 @@ CryptoContextHelper::printAllParmSetNames(std::ostream& out)
 void
 CryptoContextHelper::printParmSetNamesByFilter(std::ostream& out, const string &filter)
 {
-	map<string, map<string, string>>::iterator it = CryptoContextParameterSets.begin();
+	size_t counter = 0;
+	for (map<string, map<string, string>>::iterator it = CryptoContextParameterSets.begin(); it != CryptoContextParameterSets.end(); it++) {
+		if (it->first.find(filter) != string::npos) {
+			if (counter == 0)
+				out << it->first;
+			else
+				out << ", " << it->first;
+			counter++;
+		}
+	}
+	out << std::endl;
 
-	out << it->first;
+}
 
-	for (it++; it != CryptoContextParameterSets.end(); it++) {
-		if (it->first.find(filter) != string::npos)
-			out << ", " << it->first;
+void
+CryptoContextHelper::printParmSetNamesByExcludeFilter(std::ostream& out, const string &filter)
+{
+
+	size_t counter = 0;
+	for (map<string, map<string, string>>::iterator it = CryptoContextParameterSets.begin(); it != CryptoContextParameterSets.end(); it++) {
+		if (it->first.find(filter) == string::npos) {
+			if (counter == 0)
+				out << it->first;
+			else
+				out << ", " << it->first;
+			counter++;
+		}
 	}
 	out << std::endl;
 

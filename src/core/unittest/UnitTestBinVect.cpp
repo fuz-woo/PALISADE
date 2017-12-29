@@ -70,11 +70,11 @@ Compares two integer values
 //---------------------TESTING INTEGER OPERATIONS ON VECTOR---------------------------------//
 
 /*
-	GetValAtIndex() operates on Big Vector, retrieves the value at the given index of a vector
-	The functions returns BigIntegererger, which is passed to ConvertToInt() to convert to integer
+	at() operates on Big Vector, retrieves the value at the given index of a vector
+	The functions returns BigInteger, which is passed to ConvertToInt() to convert to integer
 	One dimensional integer array expectedResult is created
 	Indivdual expected result for each index of the vector is store in array
-	EXPECT_EQ is given the above integer from GetValAtIndex, and the value of the expectedResult at the corresponding index
+	EXPECT_EQ is given the above integer from at, and the value of the expectedResult at the corresponding index
 */
 
 
@@ -86,47 +86,104 @@ Compares two integer values
 /* 	The method "Mod" operates on Big Vector m, BigInteger q
   	Returns:  m mod q, and the result is stored in Big Vector calculatedResult.
 */
-TEST(UTBinVect, SetModulusTest){
+TEST(UTBinVect, AtAndSetModulusTest){
+	bool dbg_flag = false;
+	usint len = 10;
+	BigVector m(len);
 
-	BigVector m(10);
-	
-	m.SetValAtIndex(0,"987968");
-	m.SetValAtIndex(1,"587679");
-	m.SetValAtIndex(2,"456454");
-	m.SetValAtIndex(3,"234343");
-	m.SetValAtIndex(4,"769789");
-	m.SetValAtIndex(5,"465654");
-	m.SetValAtIndex(6,"79");
-	m.SetValAtIndex(7,"346346");
-	m.SetValAtIndex(8,"325328");
-	m.SetValAtIndex(9,"7698798");	
+	//note at() does not set modulus
+	m.at(0)="987968";
+	m.at(1)="587679";
+	m.at(2)="456454";
+	m.at(3)="234343";
+	m.at(4)="769789";
+	m.at(5)="465654";
+	m.at(6)="79";
+	m.at(7)="346346";
+	m.at(8)="325328";
+	m.at(9)="7698798";	
 
 	BigInteger q("233");
 
 	m.SetModulus(q);
 
+	DEBUG("m"<<m);
 	BigVector calculatedResult = m.Mod(q);
+	DEBUG("calculated result"<<m);
+	uint64_t expectedResult[] = {48,53,7,178,190,120,79,108,60,12};
+	for (usint i=0;i<len;i++){
+	  EXPECT_EQ (expectedResult[i],calculatedResult[i].ConvertToInt())
+	    << "Mod failed";
+	}
+	BigVector n(len,q);
+	
+	n.at(0)="987968"; //note at() does not take modulus
+	n.at(1)="587679";
+	n.at(2)="456454";
+	n.at(3)="234343";
+	n.at(4)="769789";
+	n.at(5)="465654";
+	n.at(6)="79";
+	n.at(7)="346346";
+	n.at(8)="325328";
+	n.at(9)="7698798";	
 
-	uint64_t expectedResult[10] = {48,53,7,178,190,120,79,108,60,12};	// the expected values are stored as one dimensional integer array
-
-	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+	DEBUG("n"<<n);
+	for (usint i=0;i<len;i++){
+		if (i !=6){ // value at 6 is < q
+		  EXPECT_NE (expectedResult[i],n[i].ConvertToInt())
+		    << "at no mod failed";
+		}else{
+		  EXPECT_EQ (expectedResult[i],n[i].ConvertToInt())
+		    << "at no mod failed";
+		}
 	}
 
+	n.atMod(0,"987968"); //note atMod() does take modulus
+	n.atMod(1,"587679");
+	n.atMod(2,"456454");
+	n.atMod(3,"234343");
+	n.atMod(4,"769789");
+	n.atMod(5,"465654");
+	n.atMod(6,"79");
+	n.atMod(7,"346346");
+	n.atMod(8,"325328");
+	n.atMod(9,"7698798");	
+
+	for (usint i=0;i<len;i++){
+	  EXPECT_EQ (expectedResult[i], n[i].ConvertToInt())
+	    << "atMod failed";
+	}
+	BigVector l(len,q);
+	//note list assignment does take modulus
+	l = {"987968", 
+	     "587679",
+	     "456454",
+	     "234343",
+	     "769789",
+	     "465654",
+	     "79",
+	     "346346",
+	     "325328",
+	     "7698798"};	
+	DEBUG("l"<<l);
+	for (usint i=0;i<len;i++){	
+	  EXPECT_EQ (expectedResult[i], l[i].ConvertToInt())
+	    << "Mod on list assignment failed";
+	}
 }
 
 
 TEST(UTBinVect,NTL_modulus_framework){
-#if MATHBACKEND  == 6 //NTL backend
-
-  bool dbg_flag = true;
-
+	
+  bool dbg_flag = false;
+	
   //code to test that the modulus framwork is ok
-
+  
   NTL::myZZ q1("1234567"); // a bigger number
   NTL::myZZ q2("345"); // a smaller bigger number
 
-  NTL::myVecP<NTL::myZZ_p>  m(5); 
+  NTL::myVecP<NTL::myZZ>  m(5); 
   m = {"9868", "5879", "4554", "2343", "4624",}; 
   vector<usint> m_expected_1 = {9868, 5879, 4554, 2343, 4624,}; 
 
@@ -142,35 +199,25 @@ TEST(UTBinVect,NTL_modulus_framework){
   for (size_t i = 0; i < m.size(); i++){
     EXPECT_EQ(m_expected_1[i],m[i]) << "Failure in NTL ["<<i<<"]";
   }
-  NTL::myZZ_p elem = m[0]; //should inheret the modulus.
+  NTL::myZZ elem = m[0]; 
 
   EXPECT_EQ(9868U,elem) << "Failure in NTL elem 1";
-  EXPECT_EQ(qtest1,elem.GetModulus()) << "Failure in NTL elem.GetModulus() 1";
 
   //now switch the modulus.
   m.SetModulus(q2);
+  //but the vector values do not get updated!
 
   //test the modulus of the entire vector.
   NTL::myZZ qtest2 = m.GetModulus();
   DEBUG("m "<<m);
   DEBUG("q2 "<<q2);
   DEBUG("qtest2 "<<qtest2);
-  vector<usint> m_expected_2 = {208, 14, 69, 273, 139,}; 
+  vector<usint> m_modulus_2 = {208, 14, 69, 273, 139,}; 
   EXPECT_EQ(q2, qtest2)<<"Failure NTL vector.GetModulus() 2";
 
   for (size_t i = 0; i < m.size(); i++){
-    EXPECT_EQ(m_expected_2[i],m[i]) << "Failure in NTL ["<<i<<"]";
+    EXPECT_NE(m_modulus_2[i],m[i]) << "Failure in NTL ["<<i<<"]";
   }
-
-  NTL::myZZ_p elem2 = m[0];
-
-  EXPECT_EQ(208U,elem2) << "Failure in NTL elem";
-  EXPECT_EQ(qtest2,elem2.GetModulus()) << "Failure in NTL elem.GetModulus()";
- 
-  EXPECT_NE(elem.GetModulus(), elem2.GetModulus())
-    << "Failure in NTL compare moduli()";
-
-#endif
 }
 
 TEST(UTBinVect, CTOR_Test){
@@ -188,7 +235,7 @@ TEST(UTBinVect, CTOR_Test){
 
 
     for (usint i=0;i<len;i++){
-      EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+      EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
     }
   }
 
@@ -196,7 +243,7 @@ TEST(UTBinVect, CTOR_Test){
     BigVector m(len, q,  {48,53,7,178,190,120,79,108,60,12});
 
     for (usint i=0;i<len;i++){
-      EXPECT_EQ (expectedResult[i], m.GetValAtIndex(i).ConvertToInt());
+      EXPECT_EQ (expectedResult[i], m.at(i).ConvertToInt());
     }
 
   }
@@ -217,18 +264,19 @@ TEST(UTBinVect,ModAddBBITestBigModulus){
 	BigVector m(5,q);		// calling constructor to create a vector of length 5 and passing value of q
 	BigInteger n("3");
 
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	//at() is ok since q is biger than values
+	m.at(0)="9868";
+	m.at(1)="5879";
+	m.at(2)="4554";
+	m.at(3)="2343";
+	m.at(4)="9789";
 
 	BigVector calculatedResult = m.ModAdd(n);
 
 	uint64_t expectedResult[5] = {9871, 5882,4557,2346,9792};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 
 }
@@ -244,11 +292,12 @@ TEST(UTBinVect,ModAddBBITestSmallerModulus){
 	BigInteger n("34365");
 
 	DEBUG("m's modulus "<<m.GetModulus());
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	//at() does not apply mod. 
+	m.at(0)="9868";
+	m.at(1)="5879";
+	m.at(2)="4554";
+	m.at(3)="2343";
+	m.at(4)="9789";
 	
 	BigVector calculatedResult = m.ModAdd(n);
 
@@ -257,7 +306,7 @@ TEST(UTBinVect,ModAddBBITestSmallerModulus){
 	uint64_t expectedResult[5] = {1825,1370,45,1368,1746};
 	
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 }
 
@@ -280,18 +329,18 @@ TEST(UTBinVect,modsub_first_number_less_than_second_number){
 	BigVector m(5,q);				// calling constructor to create a vector of length 5 and passing value of q
 	BigInteger n("34365");
 
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	m.at(0)="9868";
+	m.at(1)="5879";
+	m.at(2)="4554";
+	m.at(3)="2343";
+	m.at(4)="9789";
 	
 	BigVector calculatedResult = m.ModSub(n);
 
 	uint64_t expectedResult[5] = {241,3320,1995,3318,162};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 }
 
@@ -303,18 +352,18 @@ TEST(UTBinVect,modsub_first_number_greater_than_second_number){
 	BigVector m(5,q);		// calling constructor to create a vector of length 5 and passing value of q
 	BigInteger n("765");
 	
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	m.at(0)="9868";
+	m.at(1)="5879";
+	m.at(2)="4554";
+	m.at(3)="2343";
+	m.at(4)="9789";
 	
 	BigVector calculatedResult = m.ModSub(n);
 
 	uint64_t expectedResult[5] = {3,4,9,3,29};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 }
 
@@ -331,18 +380,18 @@ TEST(UTBinVect,test_modmul_BBI){
 	BigVector m(5,q);				// calling constructor to create a vector of length 5 and passing value of q
 	BigInteger n("46");
 
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	m.at(0)="9868";
+	m.at(1)="5879";
+	m.at(2)="4554";
+	m.at(3)="2343";
+	m.at(4)="9789";
 
 	BigVector calculatedResult = m.ModMul(n);
 
 	uint64_t expectedResult[5] = {1576,1850,978,1758,1476};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 }
 
@@ -360,11 +409,11 @@ TEST(UTBinVect,test_modexp){
 	BigVector m(5,q);				// calling constructor to create a vector of length 5 and passing value of q
 	BigInteger n("3");
 
-	m.SetValAtIndex(0,"968");
-	m.SetValAtIndex(1,"579");
-	m.SetValAtIndex(2,"4");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"97");
+	m.at(0)="968";
+	m.at(1)="579";
+	m.at(2)="4";
+	m.at(3)="2343";
+	m.at(4)="97";
 	DEBUG("m's modulus "<<m.GetModulus());
 	
 	BigVector calculatedResult = m.ModExp(n);
@@ -372,7 +421,7 @@ TEST(UTBinVect,test_modexp){
 	uint64_t expectedResult[5] = {2792,3123,64,159,901};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 }
 
@@ -390,18 +439,18 @@ TEST(UTBinVect,test_modinv){
 	BigInteger q("35");			// constructor calling to set mod value
 	BigVector m(5,q);				// calling constructor to create a vector of length 5 and passing value of q
 
-	m.SetValAtIndex(0,"968");
-	m.SetValAtIndex(1,"579");
-	m.SetValAtIndex(2,"4");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"97");
+	m.at(0)="968";
+	m.at(1)="579";
+	m.at(2)="4";
+	m.at(3)="2343";
+	m.at(4)="97";
 	
 	BigVector calculatedResult = m.ModInverse();
 
 	uint64_t expectedResult[5] = {32,24,9,17,13};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 
 }
@@ -421,17 +470,17 @@ TEST(UTBinVect, modadd_vector_result_smaller_modulus){
 	BigVector m(5,q);			// calling constructor to create a vector of length 5 and passing value of q
 	BigVector n(5,q);
 
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	m.at(0)="9868";
+	m.at(1)="5879";
+	m.at(2)="4554";
+	m.at(3)="2343";
+	m.at(4)="9789";
 
-	n.SetValAtIndex(0,"4533");
-	n.SetValAtIndex(1,"4549");
-	n.SetValAtIndex(2,"6756");
-	n.SetValAtIndex(3,"1233");
-	n.SetValAtIndex(4,"7897");
+	n.at(0)="4533";
+	n.at(1)="4549";
+	n.at(2)="6756";
+	n.at(3)="1233";
+	n.at(4)="7897";
 	
 	BigVector calculatedResult = m.ModAdd(n);
 
@@ -439,7 +488,7 @@ TEST(UTBinVect, modadd_vector_result_smaller_modulus){
 
 	for (usint i=0;i<5;i++)
 	{
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 }
 
@@ -447,30 +496,28 @@ TEST(UTBinVect, modadd_vector_result_smaller_modulus){
 // TEST CASE WHEN NUMBERS AFTER ADDITION ARE GREATER THAN MODULUS 
 
 TEST(UTBinVect, modadd_vector_result_greater_modulus){
-
+    bool dbg_flag = false;
 	BigInteger q("657");		// constructor calling to set mod value
 	BigVector m(5,q);			// calling constructor to create a vector of length 5 and passing value of q
 	BigVector n(5,q);	
 	
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	m = {"9868","5879","4554","2343","9789"};
 
-	n.SetValAtIndex(0,"4533");
-	n.SetValAtIndex(1,"4549");
-	n.SetValAtIndex(2,"6756");
-	n.SetValAtIndex(3,"1233");
-	n.SetValAtIndex(4,"7897");
+	n={"4533", "4549", "6756", "1233", "7897"};
 	
+	DEBUG("m "<<m);
+	DEBUG("m mod"<<m.GetModulus());
+	DEBUG("n "<<n);
+	DEBUG("n mod "<<n.GetModulus());
+
 	BigVector calculatedResult = m.ModAdd(n);
 
+	DEBUG("result mod "<<calculatedResult.GetModulus());	
 	uint64_t expectedResult[5] = {604,573,141,291,604};
 
 	for (usint i=0;i<5;i++)
 	{
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 
 }
@@ -482,28 +529,28 @@ TEST(UTBinVect, modadd_vector_result_greater_modulus){
   	Returns:  (m+n)mod q, and the result is stored in Big Vector a.
 */
 TEST(UTBinVect,method_plus_equals_vector_operation){
+	bool dbg_flag = false;
 	BigInteger q("657");	
 	BigVector m(5,q); // calling constructor to create a vector of length 5 and passing value of q
 	BigVector n(5,q);
 	
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	m = {"9868", "5879", "4554", "2343", "9789"};
 
-	n.SetValAtIndex(0,"4");
-	n.SetValAtIndex(1,"9");
-	n.SetValAtIndex(2,"66");
-	n.SetValAtIndex(3,"33");
-	n.SetValAtIndex(4,"7");
-
+	n.at(0)="4"; //note at does not allow uses of modulus.
+	n.at(1)="9";
+	n.at(2)="66";
+	n.at(3)="33";
+	n.at(4)="7";
+ 
+	DEBUG("m "<<m);
+	DEBUG("n "<<n);
+	
 	m+=n;
-
+	DEBUG("m" <<m);
 	uint64_t expectedResult[5] = {17,632,21,405,598};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (m.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (m.at(i)).ConvertToInt());
 	}
 }
 
@@ -520,23 +567,23 @@ TEST(UTBinVect, modmul_vector){
 	BigVector m(5,q);			// calling constructor to create a vector of length 5 and passing value of q
 	BigVector n(5,q);
 
-	m.SetValAtIndex(0,"9868");
-	m.SetValAtIndex(1,"5879");
-	m.SetValAtIndex(2,"4554");
-	m.SetValAtIndex(3,"2343");
-	m.SetValAtIndex(4,"9789");
+	m.at(0)="9868";
+	m.at(1)="5879";
+	m.at(2)="4554";
+	m.at(3)="2343";
+	m.at(4)="9789";
 
-	n.SetValAtIndex(0,"4");
-	n.SetValAtIndex(1,"9");
-	n.SetValAtIndex(2,"66");
-	n.SetValAtIndex(3,"33");
-	n.SetValAtIndex(4,"7");
+	n.at(0)="4";
+	n.at(1)="9";
+	n.at(2)="66";
+	n.at(3)="33";
+	n.at(4)="7";
 	
 	BigVector calculatedResult = m.ModMul(n);
 
 	uint64_t expectedResult[5] = {52,351,315,450,195};
 
 	for (usint i=0;i<5;i++){
-		EXPECT_EQ (expectedResult[i], (calculatedResult.GetValAtIndex(i)).ConvertToInt());
+		EXPECT_EQ (expectedResult[i], (calculatedResult.at(i)).ConvertToInt());
 	}
 }

@@ -33,8 +33,6 @@ using namespace std;
 #include "cryptocontexthelper.h"
 
 #include "utils/serializablehelper.h"
-#include "encoding/byteplaintextencoding.h"
-#include "encoding/intplaintextencoding.h"
 
 using namespace lbcrypto;
 
@@ -43,10 +41,10 @@ usint	IntVectorLen = 10; // default value
 
 void usage(const string& cmd, const string& msg = "");
 
-typedef void (*cmdparser)(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]);
+typedef void (*cmdparser)(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]);
 
 void
-reencrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]) {
+reencrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -62,7 +60,7 @@ reencrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *arg
 		return;
 	}
 
-	shared_ptr<LPEvalKey<Poly>> evalKey = ctx->deserializeEvalKey(kser);
+	LPEvalKey<Poly> evalKey = ctx->deserializeEvalKey(kser);
 	if( evalKey == NULL ) {
 		cerr << "Could not deserialize re encryption key" << endl;
 		return;
@@ -89,7 +87,7 @@ reencrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *arg
 }
 
 void
-decrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]) {
+decrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -105,7 +103,7 @@ decrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 		return;
 	}
 
-	shared_ptr<LPPrivateKey<Poly>> sk = ctx->deserializeSecretKey(kser);
+	LPPrivateKey<Poly> sk = ctx->deserializeSecretKey(kser);
 	if( !sk ) {
 		cerr << "Could not decrypt private key" << endl;
 		return;
@@ -135,24 +133,19 @@ decrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 		}
 
 		// Initialize the public key containers.
-		shared_ptr<Ciphertext<Poly>> ct = ctx->deserializeCiphertext(kser);
+		Ciphertext<Poly> ct = ctx->deserializeCiphertext(kser);
 		if( ct == NULL ) {
 			cerr << "Could not deserialize ciphertext" << endl;
 			return;
 		}
 
-		vector<shared_ptr<Ciphertext<Poly>>> ciphertext( { ct } );
-
 		// Decrypt and write out the integers
-		IntPlaintextEncoding iPlaintext;
+		Plaintext iPlaintext;
 
 		// now decrypt iPlaintext
-		ctx->Decrypt(sk, ciphertext, &iPlaintext, false);
+		ctx->Decrypt(sk, ct, &iPlaintext);
 
-		for( size_t i=0; i<IntVectorLen; i++ ) {
-			outF << iPlaintext.at(i) << ' ';
-		}
-		outF << endl;
+		outF << iPlaintext << endl;
 	}
 
 	inCt.close();
@@ -162,7 +155,7 @@ decrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 }
 
 void
-encrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]) {
+encrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -185,7 +178,7 @@ encrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 	}
 
 	// Initialize the public key containers.
-	shared_ptr<LPPublicKey<Poly>> pk = ctx->deserializePublicKey(kser);
+	LPPublicKey<Poly> pk = ctx->deserializePublicKey(kser);
 
 	if( !pk ) {
 		cerr << "Could not deserialize public key" << endl;
@@ -207,9 +200,7 @@ encrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 	else {
 		ctSer.close();
 
-		// pull in file full of integers and do the encryption
-		IntPlaintextEncoding iPlaintext;
-
+		vector<int64_t> intVector;
 		for( size_t i=0; i<IntVectorLen; i++ ) {
 			int val;
 
@@ -218,36 +209,27 @@ encrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 				break;
 			}
 
-			iPlaintext.push_back(val);
+			intVector.push_back(val);
 		}
+
+		// pull in file full of integers and do the encryption
+		Plaintext iPlaintext = ctx->MakeCoefPackedPlaintext(intVector);
 
 		// now encrypt iPlaintext
-		std::vector<shared_ptr<Ciphertext<Poly>>> ciphertext = ctx->Encrypt(pk, iPlaintext, false);
+		Ciphertext<Poly> ciphertext = ctx->Encrypt(pk, iPlaintext);
 
-		// FIXME: this works iff size == 1
-		if( ciphertext.size() != 1 ) {
-			cerr << ciphertext.size() << " is the wrong # of ciphertexts!!!" << endl;
-			return;
-		}
-
-		for( size_t i=0; i<ciphertext.size(); i++ ) {
-			Serialized cSer;
-			if( ciphertext[i]->Serialize(&cSer) ) {
-				if( !SerializableHelper::WriteSerializationToFile(cSer, ciphertextname) ) {
-					cerr << "Error writing serialization of ciphertext to " + ciphertextname << endl;
-					return;
-				}
-			}
-			else {
-				cerr << "Error serializing ciphertext" << endl;
+		Serialized cSer;
+		if( ciphertext->Serialize(&cSer) ) {
+			if( !SerializableHelper::WriteSerializationToFile(cSer, ciphertextname) ) {
+				cerr << "Error writing serialization of ciphertext to " + ciphertextname << endl;
 				return;
 			}
 		}
+		else {
+			cerr << "Error serializing ciphertext" << endl;
+			return;
+		}
 	}
-
-//	if( !er.isValid ) {
-//		cerr << "failed to encrypt" << endl;
-//	}
 
 	inf.close();
 	ctSer.close();
@@ -255,7 +237,7 @@ encrypter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 }
 
 void
-rekeymaker(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]) {
+rekeymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -272,7 +254,7 @@ rekeymaker(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv
 	}
 
 	// Initialize the public key containers.
-	shared_ptr<LPPublicKey<Poly>> pk = ctx->deserializePublicKey(kser);
+	LPPublicKey<Poly> pk = ctx->deserializePublicKey(kser);
 
 	Serialized	kser2;
 	if( SerializableHelper::ReadSerializationFromFile(privname, &kser2) == false ) {
@@ -280,7 +262,7 @@ rekeymaker(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv
 		return;
 	}
 
-	shared_ptr<LPPrivateKey<Poly>> sk = ctx->deserializeSecretKey(kser2);
+	LPPrivateKey<Poly> sk = ctx->deserializeSecretKey(kser2);
 
 	if( !pk ) {
 		cerr << "Could not deserialize public key" << endl;
@@ -292,7 +274,7 @@ rekeymaker(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv
 		return;
 	}
 
-	shared_ptr<LPEvalKey<Poly>> evalKey = ctx->ReKeyGen(pk, sk);
+	LPEvalKey<Poly> evalKey = ctx->ReKeyGen(pk, sk);
 
 	if( evalKey ) {
 		Serialized evalK;
@@ -315,7 +297,7 @@ rekeymaker(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv
 }
 
 void
-keymaker(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]) {
+keymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 1 ) {
 		usage(cmd, "missing keyname");
 		return;
@@ -358,7 +340,7 @@ keymaker(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]
 }
 
 void
-evaladder(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]) {
+evaladder(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -375,7 +357,7 @@ evaladder(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 	}
 
 	// Initialize the public key containers.
-	shared_ptr<Ciphertext<Poly>> c1 = ctx->deserializeCiphertext(kser);
+	Ciphertext<Poly> c1 = ctx->deserializeCiphertext(kser);
 
 	if( !c1 ) {
 		cerr << "Could not deserialize cipher1" << endl;
@@ -389,7 +371,7 @@ evaladder(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 	}
 
 	// Initialize the public key containers.
-	shared_ptr<Ciphertext<Poly>> c2 = ctx->deserializeCiphertext(kser2);
+	Ciphertext<Poly> c2 = ctx->deserializeCiphertext(kser2);
 
 	if( !c2 ) {
 		cerr << "Could not deserialize cipher2" << endl;
@@ -397,13 +379,13 @@ evaladder(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 	}
 
 	cout << "EvalAdd-ing:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c1->GetElement().GetValAtIndex(i) << " ";
+	for( size_t i=0; i<IntVectorLen; i++ ) cout << c1->GetElement().at(i) << " ";
 	cout << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c2->GetElement().GetValAtIndex(i) << " ";
+	for( size_t i=0; i<IntVectorLen; i++ ) cout << c2->GetElement().at(i) << " ";
 	cout << endl;
-	shared_ptr<Ciphertext<Poly>> cdsum = ctx->EvalAdd(c1, c2);
+	Ciphertext<Poly> cdsum = ctx->EvalAdd(c1, c2);
 	cout << "Result:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << cdsum->GetElement().GetValAtIndex(i) << " ";
+	for( size_t i=0; i<IntVectorLen; i++ ) cout << cdsum->GetElement().at(i) << " ";
 	cout << endl;
 
 	Serialized cSer;
@@ -426,7 +408,7 @@ evaladder(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[
 }
 
 void
-evalmulter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv[]) {
+evalmulter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -443,7 +425,7 @@ evalmulter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv
 	}
 
 	// Initialize the public key containers.
-	shared_ptr<Ciphertext<Poly>> c1 = ctx->deserializeCiphertext(kser);
+	Ciphertext<Poly> c1 = ctx->deserializeCiphertext(kser);
 
 	if( !c1 ) {
 		cerr << "Could not deserialize cipher1" << endl;
@@ -457,7 +439,7 @@ evalmulter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv
 	}
 
 	// Initialize the public key containers.
-	shared_ptr<Ciphertext<Poly>> c2 = ctx->deserializeCiphertext(kser2);
+	Ciphertext<Poly> c2 = ctx->deserializeCiphertext(kser2);
 
 	if( !c2 ) {
 		cerr << "Could not deserialize cipher2" << endl;
@@ -465,13 +447,13 @@ evalmulter(shared_ptr<CryptoContext<Poly>> ctx, string cmd, int argc, char *argv
 	}
 
 	cout << "EvalMult-ing:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c1->GetElement().GetValAtIndex(i) << " ";
+	for( size_t i=0; i<IntVectorLen; i++ ) cout << c1->GetElement().at(i) << " ";
 	cout << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c2->GetElement().GetValAtIndex(i) << " ";
+	for( size_t i=0; i<IntVectorLen; i++ ) cout << c2->GetElement().at(i) << " ";
 	cout << endl;
-	shared_ptr<Ciphertext<Poly>> cdsum = ctx->EvalMult(c1, c2);
+	Ciphertext<Poly> cdsum = ctx->EvalMult(c1, c2);
 	cout << "Result:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << cdsum->GetElement().GetValAtIndex(i) << " ";
+	for( size_t i=0; i<IntVectorLen; i++ ) cout << cdsum->GetElement().at(i) << " ";
 	cout << endl;
 
 	Serialized cSer;
@@ -548,7 +530,7 @@ main( int argc, char *argv[] )
 		return 0;
 	}
 
-	shared_ptr<CryptoContext<Poly>> ctx;
+	CryptoContext<Poly> ctx;
 
 	int cmdidx = 1;
 	while( cmdidx < argc ) {

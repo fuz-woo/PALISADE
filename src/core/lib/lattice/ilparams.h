@@ -36,11 +36,7 @@ namespace lbcrypto
 {
 template<typename IntType> class ILParamsImpl;
 typedef ILParamsImpl<BigInteger> ILParams;
-}
-
-namespace native_int
-{
-typedef lbcrypto::ILParamsImpl<native_int::BigInteger> ILParams;
+typedef ILParamsImpl<NativeInteger> ILNative1Params;
 }
 
 namespace lbcrypto
@@ -58,7 +54,7 @@ public:
 
 	/**
 	 * Constructor that initializes nothing.
-	 * All of the private members will be initialised to zero.
+	 * All of the private members will be initialized to zero.
 	 */
 	ILParamsImpl()
 		: ElemParams<IntType>(0, 0, 0, 0, 0) {}

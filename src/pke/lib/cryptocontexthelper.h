@@ -59,6 +59,7 @@ public:
 	static void printAllParmSetNames(std::ostream& out);
 
 	/**
+	* Prints all parameter sets matching the filter
 	*
 	* @param out stream to write to
 	* @param filter is a substring that matches parameter set names
@@ -66,12 +67,20 @@ public:
 	static void printParmSetNamesByFilter(std::ostream& out, const string &filter);
 
 	/**
+	* Prints all parameter sets excluding the ones matching the filter
+	*
+	* @param out stream to write to
+	* @param filter is a substring that matches parameter set names
+	*/
+	static void printParmSetNamesByExcludeFilter(std::ostream& out, const string &filter);
+
+	/**
 	 * Generate a CryptoContext for a given parameter set name
 	 *
 	 * @param parmsetname name of parameter set to use
 	 * @return newly constructed CryptoContext, or null on failure
 	 */
-	static shared_ptr<CryptoContext<Poly>> getNewContext(const string& parmsetname);
+	static CryptoContext<Poly> getNewContext(const string& parmsetname, EncodingParams p = 0);
 
 	/**
 	 * Generate a DCRT CryptoContext for a given parameter set name
@@ -81,10 +90,7 @@ public:
 	 * @param primeBits - bit width of the primes in the towers
 	 * @return newly constructed CryptoContext, or null on failure
 	 */
-	static shared_ptr<CryptoContext<DCRTPoly>> getNewDCRTContext(const string& parmsetname, usint numTowers, usint primeBits);
-
-	static bool matchContextToSerialization(const CryptoContext<Poly> *cc, const Serialized& ser);
-	static bool matchContextToSerialization(const CryptoContext<DCRTPoly> *cc, const Serialized& ser);
+	static CryptoContext<DCRTPoly> getNewDCRTContext(const string& parmsetname, usint numTowers, usint primeBits);
 };
 
 }

@@ -26,29 +26,44 @@
  
 #ifndef _SRC_LIB_UTILS_HASHUTIL_H
 #define _SRC_LIB_UTILS_HASHUTIL_H
-#include "../encoding/byteplaintextencoding.h"
+
+#include <iostream>
+#include <string>
+#include <vector>
+using std::string;
+using std::vector;
+
+namespace lbcrypto {
 
 enum HashAlgorithm { SHA_256 = 0, SHA_512 = 1 };
 
 class HashUtil {
 public:
-	static lbcrypto::BytePlaintextEncoding Hash(lbcrypto::BytePlaintextEncoding message, HashAlgorithm algo) {
+	static void Hash(string message, HashAlgorithm algo, vector<uint8_t>& digest) {
 		switch (algo) {
 		case SHA_256:
-			return SHA256(message);
+			SHA256(message, digest);
+			return;
+
 		case SHA_512:
-		  std::cerr <<"error SHA512 disabled, returning SHA256 instead"<<std::endl;
-			return SHA256(message);
+			// FIXME SHA512 disabled, returning SHA256 instead
+			SHA256(message, digest);
+			return;
+
 		default:
 			throw std::logic_error("ERROR: Unknown Hash Algorithm");
-			return lbcrypto::BytePlaintextEncoding();
 		}
 	}
+
+	static std::string HashString(std::string message);
+
 private:
-	static lbcrypto::BytePlaintextEncoding SHA256(lbcrypto::BytePlaintextEncoding message);
-	static lbcrypto::BytePlaintextEncoding SHA512(lbcrypto::BytePlaintextEncoding message);
+	static void SHA256(string message, vector<uint8_t>& digest);
+	static void SHA512(string message, vector<uint8_t>& digest);
 	static const uint32_t k_256[64];
 	static const uint64_t k_512[80];
 };
+
+}
 
 #endif

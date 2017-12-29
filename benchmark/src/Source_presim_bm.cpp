@@ -48,7 +48,7 @@ Additionally we excercise the gnu benchmark library
 
 #include "cryptocontexthelper.h"
 
-#include "encoding/byteplaintextencoding.h"
+#include "encoding/encodings.h"
 #include "utils/debug.h"
 #include <vector>
 
@@ -149,15 +149,15 @@ void EncryptionSchemeSimulation(usint count){
 	//Set crypto parameters
 	shared_ptr<Poly::Params> parms( new Poly::Params(m, modulus, rootOfUnity) );
 
-	shared_ptr<CryptoContext<Poly>> cc =  CryptoContextFactory<Poly>::genCryptoContextLTV(parms, ptModulus, relWindow, stdDev);
+	CryptoContext<Poly> cc =  CryptoContextFactory<Poly>::genCryptoContextLTV(parms, ptModulus, relWindow, stdDev);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 
 	//Precomputations for FTT
-	ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().PreCompute(rootOfUnity, m, modulus);
+	ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(rootOfUnity, m, modulus);
 
 	//prepare the plaintext
-	BytePlaintextEncoding plaintext;
+	Plaintext plaintext;
 	ifstream txt("n_sample.txt");
 	std::string all;
 	txt >> all;
@@ -167,7 +167,7 @@ void EncryptionSchemeSimulation(usint count){
 		all = all + all;
 	}
 
-	plaintext = all.substr(0, n / 8);
+	plaintext = cc->MakeStringPlaintext(all.substr(0, n / 8));
 
 	usint errorCount = 0;
 
@@ -189,11 +189,11 @@ void EncryptionSchemeSimulation(usint count){
 			exit(1);
 		}
 
-		vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+		Ciphertext<Poly> ciphertext;
 
 		ciphertext = cc->Encrypt(kp.publicKey, plaintext);
 
-		BytePlaintextEncoding plaintextNew;
+		Plaintext plaintextNew;
 
 		DecryptResult result = cc->Decrypt(kp.secretKey, ciphertext, &plaintextNew);
 
@@ -220,8 +220,6 @@ void EncryptionSchemeSimulation(usint count){
 	fout.close();
 
 	ptextFile.close();
-
-	ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().Destroy();
 }
 
 
@@ -276,11 +274,9 @@ void PRESimulation(usint count, usint dataset){
 
 	ofstream fout;
 
-	#if MATHBACKEND == 2
 		fout.open("singlepreperformance_m_" + std::to_string(data[i].m) + "_d_" + std::to_string(data[i].depth) + 
 			"_r_" + std::to_string(data[i].relinWindow) + "_len_" + std::to_string(data[i].bitLength) + 
 			 ".txt");
-	#endif
 
 	//POPULATE THE PARAMETERS AND PERFORM PRE-COMPUTATIONS
 	//prepare the parameters
@@ -297,15 +293,15 @@ void PRESimulation(usint count, usint dataset){
 	//Set crypto parameters
 	shared_ptr<Poly::Params> parms( new Poly::Params(m, modulus, rootOfUnity) );
 
-	shared_ptr<CryptoContext<Poly>> cc =  CryptoContextFactory<Poly>::genCryptoContextLTV(parms, ptModulus, relWindow, stdDev);
+	CryptoContext<Poly> cc =  CryptoContextFactory<Poly>::genCryptoContextLTV(parms, ptModulus, relWindow, stdDev);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 
 	// Precomputations for FTT
-	ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().PreCompute(rootOfUnity, m, modulus);
+	ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(rootOfUnity, m, modulus);
 
 	// prepare the plaintext
-	BytePlaintextEncoding plaintext;
+	Plaintext plaintext;
 	ifstream txt("n_sample.txt");
 	std::string all;
 	txt >> all;
@@ -319,9 +315,9 @@ void PRESimulation(usint count, usint dataset){
 
 	//LWE-NTRU encryption/pre-encryption algorithm instance
 
-	std::vector<shared_ptr<LPPublicKey<Poly>>> publicKeys;
-	std::vector<shared_ptr<LPPrivateKey<Poly>>> privateKeys;
-	std::vector<shared_ptr<LPEvalKey<Poly>>> evalKeys;
+	std::vector<LPPublicKey<Poly>> publicKeys;
+	std::vector<LPPrivateKey<Poly>> privateKeys;
+	std::vector<LPEvalKey<Poly>> evalKeys;
 
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp;
@@ -340,7 +336,7 @@ void PRESimulation(usint count, usint dataset){
 
 	for (usint d = 0; d < depth; d++){
 
-		shared_ptr<LPEvalKey<Poly>> evalKey;
+		LPEvalKey<Poly> evalKey;
 
 		LPKeyPair<Poly> newKp = cc->KeyGen();
 
@@ -356,21 +352,18 @@ void PRESimulation(usint count, usint dataset){
 
 	//all expensive operations are moved outside the loop
 
-	BytePlaintextEncoding arrPlaintext[NUMBER_OF_RUNS];
-	shared_ptr<Ciphertext<Poly>> arrCiphertext[NUMBER_OF_RUNS];
+	Plaintext arrPlaintext[NUMBER_OF_RUNS];
+	Ciphertext<Poly> arrCiphertext[NUMBER_OF_RUNS];
 
 	for (usint j = 0; j < count; j++){
-		arrPlaintext[j] = all.substr(j*(n / 8), n / 8);
+		arrPlaintext[j] = cc->MakeStringPlaintext( all.substr(j*(n / 8), n / 8) );
 	}
 
 	start = currentDateTime();
 
 	for (usint j = 0; j < count; j++){
 
-		vector<shared_ptr<Ciphertext<Poly>>> ciphertext =
-				cc->Encrypt(kp.publicKey, arrPlaintext[j]);
-		arrCiphertext[j] = ciphertext[0];
-
+		arrCiphertext[j] = cc->Encrypt(kp.publicKey, arrPlaintext[j]);
 	}
 
 	finish = currentDateTime();
@@ -381,18 +374,14 @@ void PRESimulation(usint count, usint dataset){
 
 	usint errorcounter = 0;
 
-	BytePlaintextEncoding plaintextNew[NUMBER_OF_RUNS];
+	Plaintext plaintextNew[NUMBER_OF_RUNS];
 
 	//decryption loop
 
 	start = currentDateTime();
 
 	for (usint j = 0; j < count; j++){
-
-		vector<shared_ptr<Ciphertext<Poly>>> ct;
-		ct.push_back(arrCiphertext[j]);
-		DecryptResult result = cc->Decrypt(kp.secretKey, ct, &plaintextNew[j]);
-		ct.clear();
+		DecryptResult result = cc->Decrypt(kp.secretKey, arrCiphertext[j], &plaintextNew[j]);
 	}
 
 	finish = currentDateTime();
@@ -412,7 +401,7 @@ void PRESimulation(usint count, usint dataset){
 	cout << "Number of decryption errors: " << "\t" << errorcounter << endl;
 	fout << "Number of decryption errors: " << "\t" << errorcounter << endl;
 
-	shared_ptr<Ciphertext<Poly>> arrCiphertextNew[NUMBER_OF_RUNS];
+	Ciphertext<Poly> arrCiphertextNew[NUMBER_OF_RUNS];
 
 	//computing re-encryption time
 
@@ -421,15 +410,7 @@ void PRESimulation(usint count, usint dataset){
 		start = currentDateTime();
 
 		for (usint j = 0; j < count; j++){
-
-			vector<shared_ptr<Ciphertext<Poly>>> ct;
-			vector<shared_ptr<Ciphertext<Poly>>> ctRe;
-
-			ct.push_back(arrCiphertext[j]);
-			ctRe = cc->ReEncrypt(evalKeys[d], ct);
-			arrCiphertextNew[j] = ctRe[0];
-			ct.clear();
-			ctRe.clear();
+			arrCiphertextNew[j] = cc->ReEncrypt(evalKeys[d], arrCiphertext[j]);
 		}
 
 		finish = currentDateTime();
@@ -451,11 +432,7 @@ void PRESimulation(usint count, usint dataset){
 	start = currentDateTime();
 
 	for (usint j = 0; j < count; j++){
-
-		vector<shared_ptr<Ciphertext<Poly>>> ct;
-		ct.push_back(arrCiphertextNew[j]);
-		DecryptResult result = cc->Decrypt(privateKeys.back(), ct, &plaintextNew[j]);
-		ct.clear();
+		DecryptResult result = cc->Decrypt(privateKeys.back(), arrCiphertextNew[j], &plaintextNew[j]);
 	}
 
 	finish = currentDateTime();
@@ -532,8 +509,6 @@ void PRESimulation(usint count, usint dataset){
 	fout.close();
 
 	ptextFile.close();
-
-	ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().Destroy();
 }
 
 // double currentDateTime()

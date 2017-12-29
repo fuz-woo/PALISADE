@@ -31,25 +31,16 @@
 
 namespace lbcrypto
 {
-/**
- * @class EncodingParamsImpl
- * @brief defining EncodingParams.
- */
-template<typename IntType> class EncodingParamsImpl;
-/**
- * @brief defining typedef  EncodingParamsImpl<BigInteger> as EncodingParams. 
- */
-typedef EncodingParamsImpl<BigInteger> EncodingParams;
-}
+class EncodingParamsImpl;
 
-namespace lbcrypto
-{
+typedef std::shared_ptr<EncodingParamsImpl>	EncodingParams;
+typedef uint64_t							PlaintextModulus;
+
 
 /**
  * @class EncodingParamsImpl
- * @brief Templated serializable parameters for plaintext encodings defines plaintext space.
+ * @brief All parameters for plaintext encodings into ciphertext space.
  */
-template<typename IntType>
 class EncodingParamsImpl : public Serializable
 {
 public:
@@ -57,25 +48,25 @@ public:
 	/**
 	 * Main constructor. Supports (1) default constructor, (2) regular encoding with plaintext modulus set,
 	 * (3) packed encoding with at least first two parameters set.
-	 * All of the private members not explicitly included as aerguments will be initialized to zero.
+	 * All of the private members not explicitly included as arguments will be initialized to zero.
 	 *
 	 * @param plaintextModulus plainext modulus (used by all encodings)
 	 * @param plaintextGenerator (used by packed encoding for plaintext slot rotation)
 	 * @param batchSize sets the maximum batch size (as a power of 2) needed for EvalSum
 	 */
 	EncodingParamsImpl(
-		const IntType& plaintextModulus = IntType::ZERO,
-		usint plaintextGenerator = 0,
-		usint batchSize = 0,
-		const IntType& plaintextRootOfUnity = IntType::ZERO,
-		const IntType& plaintextBigModulus = IntType::ZERO,
-		const IntType& plaintextBigRootOfUnity = IntType::ZERO) {
+		PlaintextModulus plaintextModulus = 0,
+		uint32_t batchSize = 0,
+		uint32_t plaintextGenerator = 0,
+		const NativeInteger& plaintextRootOfUnity = NativeInteger(0),
+		const NativeInteger& plaintextBigModulus = NativeInteger(0),
+		const NativeInteger& plaintextBigRootOfUnity = NativeInteger(0)) {
 			m_plaintextModulus = plaintextModulus;
 			m_plaintextRootOfUnity = plaintextRootOfUnity;
 			m_plaintextBigModulus = plaintextBigModulus;
 			m_plaintextBigRootOfUnity = plaintextBigRootOfUnity;
-			m_plaintextGenerator = plaintextGenerator;
 			m_batchSize = batchSize;
+			m_plaintextGenerator = plaintextGenerator;
 	}
 
 	/**
@@ -135,14 +126,14 @@ public:
 	* @brief Getter for the plaintext modulus.
 	* @return The plaintext modulus.
 	*/
-	const IntType &GetPlaintextModulus() const { 
+	const PlaintextModulus &GetPlaintextModulus() const {
 		return m_plaintextModulus; 
 	}
 	
 	/**
 	* @brief Setter for the plaintext modulus.
 	*/
-	void SetPlaintextModulus(const IntType &plaintextModulus) {
+	void SetPlaintextModulus(PlaintextModulus plaintextModulus) {
 		m_plaintextModulus = plaintextModulus;
 	}
 
@@ -150,14 +141,14 @@ public:
 	* @brief Getter for the plaintext modulus root of unity.
 	* @return The plaintext modulus root of unity.
 	*/
-	const IntType &GetPlaintextRootOfUnity() const {
+	const NativeInteger &GetPlaintextRootOfUnity() const {
 		return m_plaintextRootOfUnity;
 	}
 
 	/**
 	* @brief Setter for the plaintext modulus root of unity.
 	*/
-	void SetPlaintextRootOfUnity(const IntType &plaintextRootOfUnity) {
+	void SetPlaintextRootOfUnity(const NativeInteger &plaintextRootOfUnity) {
 		m_plaintextRootOfUnity = plaintextRootOfUnity;
 	}
 
@@ -165,14 +156,14 @@ public:
 	* @brief Getter for the big plaintext modulus.
 	* @return The plaintext modulus.
 	*/
-	const IntType &GetPlaintextBigModulus() const {
+	const NativeInteger &GetPlaintextBigModulus() const {
 		return m_plaintextBigModulus;
 	}
 
 	/**
 	* @brief Setter for the big plaintext modulus.
 	*/
-	void SetPlaintextBigModulus(const IntType &plaintextBigModulus) {
+	void SetPlaintextBigModulus(const NativeInteger &plaintextBigModulus) {
 		m_plaintextBigModulus = plaintextBigModulus;
 	}
 
@@ -180,14 +171,14 @@ public:
 	* @brief Getter for the big plaintext modulus root of unity.
 	* @return The big plaintext modulus root of unity.
 	*/
-	const IntType &GetPlaintextBigRootOfUnity() const {
+	const NativeInteger &GetPlaintextBigRootOfUnity() const {
 		return m_plaintextBigRootOfUnity;
 	}
 
 	/**
 	* @brief Setter for the big plaintext modulus root of unity.
 	*/
-	void SetPlaintextBigRootOfUnity(const IntType &plaintextBigRootOfUnity) {
+	void SetPlaintextBigRootOfUnity(const NativeInteger &plaintextBigRootOfUnity) {
 		m_plaintextBigRootOfUnity = plaintextBigRootOfUnity;
 	}
 
@@ -208,7 +199,7 @@ public:
 	* @brief Getter for the plaintext batch size.
 	* @return The plaintext batch size.
 	*/
-	const usint GetBatchSize() const { return m_batchSize; }
+	const uint32_t GetBatchSize() const { return m_batchSize; }
 
 	/**
 	* @brief Setter for the batch size
@@ -232,7 +223,7 @@ public:
 	 * @param other the other parameter set to compare to.
 	 * @return true if values of all data are equal.
 	 */
-	bool operator==(const EncodingParamsImpl<IntType> &other) const {
+	bool operator==(const EncodingParamsImpl &other) const {
 		return m_plaintextModulus == other.m_plaintextModulus &&
 			   m_plaintextRootOfUnity == other.m_plaintextRootOfUnity &&
 			   m_plaintextBigModulus == other.m_plaintextBigModulus &&
@@ -245,7 +236,7 @@ public:
 	 * @param other the other parameter set to compare to.
 	 * @return true if values of any data is not equal.
 	 */
-	bool operator!=(const EncodingParamsImpl<IntType> &other) const {
+	bool operator!=(const EncodingParamsImpl &other) const {
 		return !(*this == other);
 	}
 
@@ -263,17 +254,17 @@ private:
 	}
 
 	// plaintext modulus that is used by all schemes
-	IntType		m_plaintextModulus;
+	PlaintextModulus	m_plaintextModulus;
 	// root of unity for plaintext modulus
-	IntType		m_plaintextRootOfUnity;
+	NativeInteger		m_plaintextRootOfUnity;
 	// big plaintext modulus that is used for arbitrary cyclotomics
-	IntType		m_plaintextBigModulus;
+	NativeInteger		m_plaintextBigModulus;
 	// root of unity for big plaintext modulus
-	IntType		m_plaintextBigRootOfUnity;
+	NativeInteger		m_plaintextBigRootOfUnity;
 	// plaintext generator is used for packed encoding (to find the correct automorphism index)
-	usint		m_plaintextGenerator;
+	uint32_t			m_plaintextGenerator;
 	// maximum batch size used by EvalSumKeyGen for packed encoding
-	usint		m_batchSize;
+	uint32_t			m_batchSize;
 
 public:
 	/**

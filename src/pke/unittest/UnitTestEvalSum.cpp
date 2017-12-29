@@ -32,37 +32,35 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 #include "../lib/cryptocontext.h"
 
-#include "encoding/byteplaintextencoding.h"
-#include "encoding/intplaintextencoding.h"
-#include "encoding/packedintplaintextencoding.h"
+#include "encoding/encodings.h"
 
 #include "utils/debug.h"
 
 using namespace std;
 using namespace lbcrypto;
 
-class UnitTestEvalSum : public ::testing::Test {
+class UTEvalSum : public ::testing::Test {
 protected:
-	virtual void SetUp() {}
+	void SetUp() {}
 
-	virtual void TearDown() {}
+	void TearDown() {
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+		CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+	}
 
 public:
 };
 
 
-usint ArbLTVEvalSumPackedArray(std::vector<usint> &clearVector);
-usint ArbBVEvalSumPackedArray(std::vector<usint> &clearVector);
-usint ArbBVEvalSumPackedArrayPrime(std::vector<usint> &clearVector);
-usint ArbFVEvalSumPackedArray(std::vector<usint> &clearVector);
+usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p);
+usint ArbBGVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p);
+usint ArbBGVEvalSumPackedArrayPrime(std::vector<uint64_t> &clearVector, PlaintextModulus p);
+usint ArbBFVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p);
 
+void
+EvalSumSetup(std::vector<uint64_t>& input, usint& expectedSum, PlaintextModulus plaintextMod) {
 
-TEST(UTEvalSum, Test_LTV_EvalSum) {
-
-	usint size = 10;
-	std::vector<usint> input(size,0);
 	usint limit = 15;
-	usint plainttextMod = 89;
 
 	random_device rnd_device;
 	mt19937 mersenne_engine(rnd_device());
@@ -71,107 +69,85 @@ TEST(UTEvalSum, Test_LTV_EvalSum) {
 	auto gen = std::bind(dist, mersenne_engine);
 	generate(input.begin(), input.end()-2, gen);
 
-	usint expectedSum = std::accumulate(input.begin(), input.end(), 0);
+	expectedSum = std::accumulate(input.begin(), input.end(), 0);
 
-	expectedSum %= plainttextMod;
-	
-	usint result = ArbLTVEvalSumPackedArray(input);
-
-	EXPECT_EQ(result, expectedSum);
-	
+	expectedSum %= plaintextMod;
 }
 
+TEST_F(UTEvalSum, Test_LTV_EvalSum) {
 
-TEST(UTEvalSum, Test_BV_EvalSum) {
 	usint size = 10;
-	std::vector<usint> input(size,0);
-	usint limit = 15;
-	usint plainttextMod = 89;
+	std::vector<uint64_t> input(size,0);
+	usint expectedSum;
+	
+	EvalSumSetup(input,expectedSum, 89);
 
-	random_device rnd_device;
-	mt19937 mersenne_engine(rnd_device());
-	uniform_int_distribution<usint> dist(0, limit);
-
-	auto gen = std::bind(dist, mersenne_engine);
-	generate(input.begin(), input.end()-2, gen);
-
-	usint expectedSum = std::accumulate(input.begin(), input.end(), 0);
-
-	expectedSum %= plainttextMod;
-
-	usint result = ArbBVEvalSumPackedArray(input);
+	usint result = ArbLTVEvalSumPackedArray(input, 89);
 
 	EXPECT_EQ(result, expectedSum);
 }
 
-TEST(UTEvalSum, Test_BV_EvalSum_Prime_Cyclotomics) {
+TEST_F(UTEvalSum, Test_BGV_EvalSum) {
+
 	usint size = 10;
-	std::vector<usint> input(size, 0);
-	usint limit = 15;
-	usint plainttextMod = 23;
+	std::vector<uint64_t> input(size,0);
+	usint expectedSum;
 
-	random_device rnd_device;
-	mt19937 mersenne_engine(rnd_device());
-	uniform_int_distribution<usint> dist(0, limit);
+	EvalSumSetup(input,expectedSum, 89);
 
-	auto gen = std::bind(dist, mersenne_engine);
-	generate(input.begin(), input.end() - 2, gen);
-
-	usint expectedSum = std::accumulate(input.begin(), input.end(), 0);
-
-	expectedSum %= plainttextMod;
-
-	usint result = ArbBVEvalSumPackedArrayPrime(input);
+	usint result = ArbBGVEvalSumPackedArray(input, 89);
 
 	EXPECT_EQ(result, expectedSum);
 }
 
-TEST(UTEvalSum, Test_FV_EvalSum) {
+TEST_F(UTEvalSum, Test_BGV_EvalSum_Prime_Cyclotomics) {
+
+	usint size = 10;
+	std::vector<uint64_t> input(size,0);
+	usint expectedSum;
+
+	EvalSumSetup(input,expectedSum, 23);
+
+	usint result = ArbBGVEvalSumPackedArrayPrime(input, 23);
+
+	EXPECT_EQ(result, expectedSum);
+}
+
+TEST_F(UTEvalSum, Test_BFV_EvalSum) {
 	
 	usint size = 10;
-	std::vector<usint> input(size,0);
-	usint limit = 15;
-	usint plainttextMod = 89;
+	std::vector<uint64_t> input(size,0);
+	usint expectedSum;
 
-	random_device rnd_device;
-	mt19937 mersenne_engine(rnd_device());
-	uniform_int_distribution<usint> dist(0, limit);
+	EvalSumSetup(input,expectedSum, 89);
 
-	auto gen = std::bind(dist, mersenne_engine);
-	generate(input.begin(), input.end()-2, gen);
-
-	usint expectedSum = std::accumulate(input.begin(), input.end(), 0);
-
-	expectedSum %= plainttextMod;
-
-	usint result = ArbFVEvalSumPackedArray(input);
+	usint result = ArbBFVEvalSumPackedArray(input, 89);
 
 	EXPECT_EQ(result, expectedSum);
 
 }
 
-
-
-usint ArbLTVEvalSumPackedArray(std::vector<usint> &clearVector) {
-
-	PackedIntPlaintextEncoding::Destroy();
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().Destroy();
+usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 22;
-	usint p = 89;
 	BigInteger modulusP(p);
 
-	BigInteger modulusQ("1152921504606847009");
+	/*BigInteger modulusQ("1152921504606847009");
 	BigInteger squareRootOfRoot("1147559132892757400");
 
 	BigInteger bigmodulus("1361129467683753853853498429727072847489");
-	BigInteger bigroot("574170933302565148884487552139817611806");
+	BigInteger bigroot("574170933302565148884487552139817611806");*/
 
+	BigInteger modulusQ("1267650600228229401496703214121");
+	BigInteger squareRootOfRoot("498618454049802547396506932253");
+
+	BigInteger bigmodulus("1645504557321206042154969182557350504982735865633579863348616321");
+	BigInteger bigroot("201473555181182026164891698186176997440470643522932663932844212");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	float stdDev = 4;
 
@@ -179,9 +155,9 @@ usint ArbLTVEvalSumPackedArray(std::vector<usint> &clearVector) {
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP, PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP), batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, encodingParams, 16, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, encodingParams, 16, stdDev);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -189,34 +165,28 @@ usint ArbLTVEvalSumPackedArray(std::vector<usint> &clearVector) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = std::move(clearVector);
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	std::vector<uint64_t> vectorOfInts = std::move(clearVector);
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	cc->EvalSumKeyGen(kp.secretKey, kp.publicKey);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
-	auto ciphertext1 = cc->EvalSum(ciphertext[0], batchSize);
+	auto ciphertextSum = cc->EvalSum(ciphertext, batchSize);
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextSum;
+	Plaintext intArrayNew;
 
-	ciphertextSum.push_back(ciphertext1);
+	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew, false);
-
-	return intArrayNew[0];
+	return intArrayNew->GetPackedValue()[0];
 
 }
 
-
-usint ArbBVEvalSumPackedArray(std::vector<usint> &clearVector) {
+usint ArbBGVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 22;
-	usint p = 89;
 	BigInteger modulusP(p);
 	
 	BigInteger modulusQ("955263939794561");
@@ -226,9 +196,9 @@ usint ArbBVEvalSumPackedArray(std::vector<usint> &clearVector) {
 	BigInteger bigroot("77936753846653065954043047918387");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	float stdDev = 4;
 
@@ -236,9 +206,9 @@ usint ArbBVEvalSumPackedArray(std::vector<usint> &clearVector) {
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP, PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP), batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextBV(params, encodingParams, 8, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -246,32 +216,26 @@ usint ArbBVEvalSumPackedArray(std::vector<usint> &clearVector) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = std::move(clearVector);
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	Plaintext intArray = cc->MakePackedPlaintext(clearVector);
 
 	cc->EvalSumKeyGen(kp.secretKey);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
-	auto ciphertext1 = cc->EvalSum(ciphertext[0], batchSize);
+	auto ciphertextSum = cc->EvalSum(ciphertext, batchSize);
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextSum;
+	Plaintext intArrayNew;
 
-	ciphertextSum.push_back(ciphertext1);
+	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew, false);
-
-	return intArrayNew[0];
+	return intArrayNew->GetPackedValue()[0];
 }
 
-usint ArbBVEvalSumPackedArrayPrime(std::vector<usint> &clearVector) {
+usint ArbBGVEvalSumPackedArrayPrime(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 11;
-	usint p = 23;
 	BigInteger modulusP(p);
 
 	BigInteger modulusQ("1125899906842679");
@@ -281,9 +245,9 @@ usint ArbBVEvalSumPackedArrayPrime(std::vector<usint> &clearVector) {
 	BigInteger bigroot("74771531227552428119450922526156");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	float stdDev = 4;
 
@@ -291,9 +255,9 @@ usint ArbBVEvalSumPackedArrayPrime(std::vector<usint> &clearVector) {
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP, PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP), batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextBV(params, encodingParams, 8, stdDev);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev);
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -301,34 +265,26 @@ usint ArbBVEvalSumPackedArrayPrime(std::vector<usint> &clearVector) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = std::move(clearVector);
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	Plaintext intArray = cc->MakePackedPlaintext(clearVector);
 
 	cc->EvalSumKeyGen(kp.secretKey);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
-	auto ciphertext1 = cc->EvalSum(ciphertext[0], batchSize);
+	auto ciphertextSum = cc->EvalSum(ciphertext, batchSize);
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextSum;
+	Plaintext intArrayNew;
 
-	ciphertextSum.push_back(ciphertext1);
+	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew, false);
-
-	return intArrayNew[0];
+	return intArrayNew->GetPackedValue()[0];
 }
 
-
-
-usint ArbFVEvalSumPackedArray(std::vector<usint> &clearVector) {
+usint ArbBFVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 22;
-	usint p = 89;
 	BigInteger modulusP(p);
 
 	BigInteger modulusQ("955263939794561");
@@ -338,9 +294,9 @@ usint ArbFVEvalSumPackedArray(std::vector<usint> &clearVector) {
 	BigInteger bigroot("77936753846653065954043047918387");
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedIntPlaintextEncoding::SetParams(modulusP, m);
+	PackedEncoding::SetParams(m, p);
 
 	float stdDev = 4;
 
@@ -348,11 +304,11 @@ usint ArbFVEvalSumPackedArray(std::vector<usint> &clearVector) {
 
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
-	shared_ptr<EncodingParams> encodingParams(new EncodingParams(modulusP, PackedIntPlaintextEncoding::GetAutomorphismGenerator(modulusP), batchSize));
+	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
 	BigInteger delta(modulusQ.DividedBy(modulusP));
 
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextFactory<Poly>::genCryptoContextFV(params, encodingParams, 8, stdDev, delta.ToString());
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(params, encodingParams, 8, stdDev, delta.ToString());
 
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
@@ -360,25 +316,21 @@ usint ArbFVEvalSumPackedArray(std::vector<usint> &clearVector) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
-	std::vector<usint> vectorOfInts = std::move(clearVector);
-	PackedIntPlaintextEncoding intArray(vectorOfInts);
+	std::vector<uint64_t> vectorOfInts = std::move(clearVector);
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	cc->EvalSumKeyGen(kp.secretKey);
 
-	ciphertext = cc->Encrypt(kp.publicKey, intArray, false);
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
 
-	auto ciphertext1 = cc->EvalSum(ciphertext[0], batchSize);
+	auto ciphertextSum = cc->EvalSum(ciphertext, batchSize);
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextSum;
+	Plaintext intArrayNew;
 
-	ciphertextSum.push_back(ciphertext1);
+	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew);
 
-	PackedIntPlaintextEncoding intArrayNew;
-
-	cc->Decrypt(kp.secretKey, ciphertextSum, &intArrayNew, false);
-
-	return intArrayNew[0];
+	return intArrayNew->GetPackedValue()[0];
 
 }

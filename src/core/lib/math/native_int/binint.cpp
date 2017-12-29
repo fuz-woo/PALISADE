@@ -1,8 +1,5 @@
 /**
- * @file binint.cpp This file contains the main class for big integers: BigInteger. Big integers are represented
- * as arrays of native usigned integers. The native integer type is supplied as a template parameter.
- * Currently implementations based on uint8_t, uint16_t, and uint32_t are supported. The second template parameter
- * is the maximum bitwidth for the big integer.
+ * @file binint.cpp This file contains the main class for native integers.
  * @author  TPOC: palisade@njit.edu
  *
  * @copyright Copyright (c) 2017, New Jersey Institute of Technology (NJIT)
@@ -26,16 +23,30 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
- #include "../native_int/binint.h"
+#include "../native_int/binint.h"
 
-#ifdef _MSC_VER
-namespace native_int {
+namespace native_int
+{
+template class NativeInteger<uint64_t>;
 
-UsageMessage::UsageMessage() {
-	std::cout << "Warning: Operations on native_int integers may overflow and not be detected in this version of Visual Studio" << std::endl;
+template<> unique_ptr<NativeInteger<uint64_t>> NativeInteger<uint64_t>::Allocator() {
+	return lbcrypto::make_unique<NativeInteger<uint64_t>>();
+};
+
+//helper template to stream vector contents provided T has an stream operator<< 
+template < typename T >
+std::ostream& operator << (std::ostream& os, const std::vector<T>& v)
+{
+	os << "[";
+	//for (const auto itr : v){
+	for (auto i = v.begin(); i!= v.end(); ++i){
+		os << " " << *i;
+	}
+	os << " ]";
+	return os;
+};
+
+//to stream internal representation
+template std::ostream& operator<< <uint64_t>(std::ostream& os, const std::vector<uint64_t>& v);
+
 }
-
-static UsageMessage PrintUsageMessageAtStart;
-
-}
-#endif

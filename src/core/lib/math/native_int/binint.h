@@ -1,8 +1,5 @@
 /**
- * @file binint.h This file contains the main class for big integers: BigInteger. Big integers are represented
- * as arrays of native usigned integers. The native integer type is supplied as a template parameter.
- * Currently implementations based on uint8_t, uint16_t, and uint32_t are supported. The second template parameter
- * is the maximum bitwidth for the big integer.
+ * @file binint.h This file contains the main class for native integers.
  * @author  TPOC: palisade@njit.edu
  *
  * @copyright Copyright (c) 2017, New Jersey Institute of Technology (NJIT)
@@ -27,10 +24,8 @@
  *
  */
  /*
- * This file contains the main class for big integers: NativeInteger. Big integers are represented
- * as arrays of native usigned integers. The native integer type is supplied as a template parameter.
- * Currently implementations based on uint8_t, uint16_t, and uint32_t are supported. The second template parameter
- * is the maximum bitwidth for the big integer.
+ * This file contains the main class for native integers.
+ * It implements the same methods as other mathematical backends.
  */
 
 #ifndef LBCRYPTO_MATH_NATIVE_BININT_H
@@ -49,9 +44,12 @@
 #include <functional>
 #include <cstdlib>
 #include <memory>
+#include "../interface.h"
 #include "../../utils/inttypes.h"
+#include "../../utils/serializable.h"
 #include "../../utils/memory.h"
 #include "../../utils/palisadebase64.h"
+#include "../../utils/exception.h"
 #include "../nbtheory.h"
 
 namespace native_int {
@@ -59,17 +57,6 @@ namespace native_int {
 /**The following structs are needed for initialization of NativeInteger at the preprocessing stage.
  *The structs compute certain values using template metaprogramming approach and mostly follow recursion to calculate value(s).
  */
-
-#ifdef _MSC_VER
-	// NOTE large 64 bit numbers will overflow in Visual Studio until they implement an __int128
-	// generate a runtime message that only gets printed one time
-#pragma message ("Operations on native_int integers may overflow and not be detected in this version of Visual Studio")
-
-class UsageMessage {
-public:
-	UsageMessage();
-};
-#endif
 
 /**
  * @brief  Struct to find log value of N.
@@ -140,12 +127,7 @@ struct DoubleDataType<uint32_t>{
 */
 template<>
 struct DoubleDataType<uint64_t>{
-#ifdef _MSC_VER
-	// NOTE large 64 bit numbers will overflow in Visual Studio until they implement an __int128
-	typedef uint64_t T;
-#else
 	typedef unsigned __int128 T;
-#endif
 };
 
 const double LOG2_10 = 3.32192809;	//!< @brief A pre-computed constant of Log base 2 of 10.
@@ -158,7 +140,7 @@ const usint BARRETT_LEVELS = 8;		//!< @brief The number of levels (precomputed v
  * @tparam BITLENGTH maximum bitdwidth supported for big integers
  */
 template<typename uint_type>
-class NativeInteger
+class NativeInteger : public lbcrypto::BigIntegerInterface<NativeInteger<uint_type>>
 {
 
 public:
@@ -188,7 +170,7 @@ public:
 	 *
 	 * @param bigInteger is the integer to be copied.
 	 */
-	NativeInteger(const NativeInteger& bigInteger) : m_value(bigInteger.m_value) {}
+	NativeInteger(const NativeInteger& nInteger) : m_value(nInteger.m_value) {}
 
 	/**
 	 * Assignment operator
@@ -204,7 +186,7 @@ public:
 	/**
 	 * Assignment operator
 	 *
-	 * @param &rhs is the big binary integer to be assigned from.
+	 * @param &rhs is the integer to be assigned from.
 	 * @return assigned BigInteger ref.
 	 */
 	const NativeInteger&  operator=(const NativeInteger &&rhs) {
@@ -223,76 +205,23 @@ public:
 		return *this;
 	}
 
-	//Shift Operators
-
-	/**
-	 * Left shift operator of big binary integer
-	 * @param shift is the amount to shift of type usshort.
-	 * @return the object of type NativeInteger
-	 */
-	NativeInteger  operator<<(usshort shift) const {
-		return NativeInteger( m_value << shift );
+	vector<NativeInteger> GetInternalRepresentation() {
+	  vector<NativeInteger> ret;
+	  ret.push_back(m_value);
+	  return ret;
 	}
 
 	/**
-	 * Left shift operator uses in-place algorithm and operates on the same variable.
+	 * Basic set method for setting the value of an integer
 	 *
-	 * @param shift is the amount to shift of type usshort.
-	 * @return the object of type NativeInteger
-	 */
-	const NativeInteger&  operator<<=(usshort shift) {
-		m_value <<= shift;
-		return *this;
-	}
-
-	/**
-	 * Right shift operator of big binary integer
-	 * @param shift is the amount to shift of type usshort.
-	 * @return the object of type NativeInteger
-	 */
-	NativeInteger  operator>>(usshort shift) const {
-		return NativeInteger( m_value >> shift );
-	}
-
-	/**
-	 * Right shift operator uses in-place algorithm and operates on the same variable.
-	 *
-	 * @param shift is the amount to shift of type usshort.
-	 * @return the object of type NativeInteger
-	 */
-	NativeInteger&  operator>>=(usshort shift) {
-		m_value >>= shift;
-		return *this;
-	}
-
-    /**
-    * Prints the value of the internal limb storage
-    * in hexadecimal format. Used primarily for debugging
-    */
-    void PrintLimbsInHex() const {
-    	std::cout << std::hex << m_value << std::endl;
-    }
-
-	//Auxillary Functions
-
-	/**
-	 * Prints the value to console
-	 */
-	void PrintValueInDec() const {
-		std::cout << std::dec << m_value << std::endl;
-	}
-
-	/**
-	 * Basic set method for setting the value of a big binary integer
-	 *
-	 * @param str is the string representation of the big binary integer to be copied.
+	 * @param str is the string representation of the integer to be copied.
 	 */
 	void SetValue(const std::string& str) {
 		AssignVal(str);
 	}
 
 	/**
-	 * Basic set method for setting the value of a big binary integer
+	 * Basic set method for setting the value of an integer
 	 *
 	 * @param a is the big binary integer representation of the big binary integer to be assigned.
 	 */
@@ -306,7 +235,7 @@ public:
 	 *
 	 * @return the index of the most significant bit.
 	 */
-	usshort GetMSB() const { return lbcrypto::GetMSB64(this->m_value); }
+	usint GetMSB() const { return lbcrypto::GetMSB64(this->m_value); }
 
 	/**
 	 * Converts the value to an int.
@@ -326,7 +255,7 @@ public:
 		return m_value;
 	}
 
-	//Arithemetic Operations
+	//Arithmetic Operations
 
 	/**
 	 * Addition operation.
@@ -337,39 +266,23 @@ public:
 	NativeInteger Plus(const NativeInteger& b) const {
 		uint_type newv = m_value + b.m_value;
 		if( newv < m_value || newv < b.m_value ) {
-			throw std::logic_error("Overflow");
+			PALISADE_THROW( lbcrypto::math_error, "Overflow");
 		}
 		return newv;
 	}
 
-
 	/**
-	 * Addition accumulator.
+	 * Addition operation.
 	 *
-	 * @param &b is the value to add of type BigInteger.
+	 * @param b is the value to add of type BigInteger.
 	 * @return result of the addition operation of type BigInteger.
 	 */
-	const NativeInteger& operator+=(const NativeInteger &b) {
+	const NativeInteger& PlusEq(const NativeInteger& b) {
 		uint_type oldv = m_value;
 		m_value += b.m_value;
 		if( m_value < oldv ) {
-			throw std::logic_error("Overflow");
+			PALISADE_THROW( lbcrypto::math_error, "Overflow");
 		}
-		return *this;
-	}
-
-
-	/**
-	 * Subtraction accumulator.
-	 *
-	 * @param &b is the value to subtract of type BigInteger.
-	 * @return result of the subtraction operation of type BigInteger.
-	 */
-	const NativeInteger& operator-=(const NativeInteger &b) {
-		if( m_value <= b.m_value )
-			m_value = 0;
-		else
-			m_value -= b.m_value;
 		return *this;
 	}
 
@@ -382,18 +295,18 @@ public:
 	NativeInteger Minus(const NativeInteger& b) const {
 		return m_value <= b.m_value ? 0 : m_value - b.m_value;
 	}
-#if 0 //dbc not sure we need this
+
 	/**
-	 * Multiplication accumulator.
+	 * Subtraction operation.
 	 *
-	 * @param &b is the value to multiply of type BigInteger.
-	 * @return result of the muliplyaccumulate operation of type BigInteger.
+	 * @param b is the value to subtract of type BigInteger.
+	 * @return result of the subtraction operation of type BigInteger.
 	 */
-	const NativeInteger& operator*=(const NativeInteger &b) {
-	        m_value *= b.m_value;
+	const NativeInteger& MinusEq(const NativeInteger& b) {
+		m_value -= m_value <= b.m_value ? m_value : b.m_value;
 		return *this;
 	}
-#endif
+
 	/**
 	 * Multiplication operation.
 	 *
@@ -403,8 +316,22 @@ public:
 	NativeInteger Times(const NativeInteger& b) const {
 		uint_type prod = m_value * b.m_value;
 		if( prod > 0 && (prod < m_value || prod < b.m_value) )
-			throw std::logic_error("native_int overflow in multiply");
+			PALISADE_THROW( lbcrypto::math_error, "Overflow");
 		return prod;
+	}
+
+	/**
+	 * Multiplication operation.
+	 *
+	 * @param b of type BigInteger is the value to multiply with.
+	 * @return result of the multiplication operation.
+	 */
+	const NativeInteger& TimesEq(const NativeInteger& b) {
+		uint_type oldval = m_value;
+		m_value *= b.m_value;
+		if( m_value < oldval )
+			PALISADE_THROW( lbcrypto::math_error, "Overflow");
+		return *this;
 	}
 
 	/**
@@ -415,26 +342,29 @@ public:
 	 */
 	NativeInteger DividedBy(const NativeInteger& b) const {
 		if( b.m_value == 0 )
-			throw std::logic_error("Native64 integer divide by zero");
+			PALISADE_THROW( lbcrypto::math_error, "Divide by zero");
 		return this->m_value / b.m_value;
 	}
+
 	/**
-	 * Division accumulator.
+	 * Division operation.
 	 *
-	 * @param &b is the value of divisor of type BigInteger.
-	 * @return result of the divide accumulate operation of type BigInteger.
+	 * @param b of type NativeInteger is the value to divide by.
+	 * @return result of the division operation.
 	 */
-	const NativeInteger& operator/=(const NativeInteger &b) {
-	  m_value /= b.m_value;
+	const NativeInteger& DividedByEq(const NativeInteger& b) {
+		if( b.m_value == 0 )
+			PALISADE_THROW( lbcrypto::math_error, "Divide by zero");
+		this->m_value /= b.m_value;
 		return *this;
 	}
 
 	//modular arithmetic operations
 
 	/**
-	 * returns the modulus with respect to the input value. Classical modular reduction algorithm is used.
+	 * returns the modulus with respect to the input value
 	 *
-	 * @param modulus is value of the modulus to perform. Its of type NativeInteger.
+	 * @param modulus is value of the modulus to perform
 	 * @return NativeInteger that is the result of the modulus operation.
 	 */
 	NativeInteger Mod(const NativeInteger& modulus) const {
@@ -442,9 +372,19 @@ public:
 	}
 
 	/**
+	 * performs %=
+	 *
+	 * @param modulus is value of the modulus to perform
+	 * @return NativeInteger that is the result of the modulus operation.
+	 */
+	const NativeInteger& ModEq(const NativeInteger& modulus) {
+		m_value %= modulus.m_value;
+		return *this;
+	}
+
+	/**
 	 * returns the modulus with respect to the input value.
-	 * Implements generalized Barrett modular reduction algorithm. Uses one precomputed value of mu.
-	 * See the cpp file for details of the implementation.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param modulus is the modulus to perform.
 	 * @param mu is the Barrett value.
@@ -456,8 +396,7 @@ public:
 
 	/**
 	* returns the modulus with respect to the input value - In place version.
-	* Implements generalized Barrett modular reduction algorithm. Uses one precomputed value of mu.
-	* See the cpp file for details of the implementation.
+	* Included here for compatibility with backend 2.
 	*
 	* @param modulus is the modulus to perform.
 	* @param mu is the Barrett value.
@@ -470,8 +409,7 @@ public:
 
 	/**
 	 * returns the modulus with respect to the input value.
-	 * Implements generalized Barrett modular reduction algorithm. Uses an array of precomputed values \mu.
-	 * See the cpp file for details of the implementation.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param modulus is the modulus to perform operations with.
 	 * @param mu_arr is an array of the Barrett values of length BARRETT_LEVELS.
@@ -536,7 +474,7 @@ public:
 		second = mods[1];
 
 		//SOUTH ALGORITHM
-		for(sint i=quotient.size()-1;i>=0;i--){
+		for(int i=quotient.size()-1;i>=0;i--){
 			mods.push_back(quotient[i]*second + first);
 			first = second;
 			second = mods.back();
@@ -567,20 +505,41 @@ public:
 		return (uint_type)modsum;
 	}
 
+	/**
+	 * Scalar modular addition.
+	 *
+	 * @param &b is the scalar to add.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus addition operation.
+	 */
+	const NativeInteger& ModAddEq(const NativeInteger& b, const NativeInteger& modulus) {
+		Duint_type modsum = (Duint_type)m_value;
+		modsum += b.m_value;
+		modsum %= modulus.m_value;
+		this->m_value = (uint_type)modsum;
+		return *this;
+	}
 
+	/**
+	 * Fast scalar modular addition. Minimizes the number of modulo reduction operations.
+	 *
+	 * @param &b is the scalar to add.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus addition operation.
+	 */
 	inline NativeInteger ModAddFast(const NativeInteger& b, const NativeInteger& modulus) const {
 		Duint_type modsum = (Duint_type)m_value;
 		modsum += b.m_value;
 		modsum %= modulus.m_value;
 		if( modsum > m_uintMax )
-			throw std::logic_error("Overflow in ModAddFast");
+			PALISADE_THROW( lbcrypto::math_error, "Overflow");
 		return (uint_type)modsum;
 	}
 
-	
 
 	/**
 	 * Modular addition where Barrett modulo reduction is used.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param &b is the scalar to add.
 	 * @param modulus is the modulus to perform operations with.
@@ -593,6 +552,7 @@ public:
 
 	/**
 	 * Modular addition where Barrett modulo reduction is used.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param &b is the scalar to add.
 	 * @param modulus is the modulus to perform operations with.
@@ -625,13 +585,50 @@ public:
 		}
 
 		if(av >= bv){
-			return (av-bv)%mod;
+			return (av - bv) % mod;
 		}
 		else{
 			return (av + mod) - bv;
 		}
 	}
-	//ModSubFast assumes b < modulus
+
+	/**
+	 * Scalar modular subtraction.
+	 *
+	 * @param &b is the scalar to subtract.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus subtraction operation.
+	 */
+	const NativeInteger& ModSubEq(const NativeInteger& b, const NativeInteger& modulus) {
+		uint_type bv = b.m_value;
+		uint_type mod = modulus.m_value;
+
+		//reduce this to a value lower than modulus
+		if(m_value > mod) {
+			m_value %= mod;
+		}
+		//reduce b to a value lower than modulus
+		if(bv > mod){
+			bv %= mod;
+		}
+
+		if(m_value >= bv){
+			m_value = (m_value - bv) % mod;
+		}
+		else{
+			m_value = (m_value + mod) - bv;
+		}
+
+		return *this;
+	}
+
+	/**
+	 * Fast scalar modular subtraction. ModSubFast assumes b < modulus.
+	 *
+	 * @param &b is the scalar to subtract.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus subtraction operation.
+	 */
 	inline NativeInteger ModSubFast(const NativeInteger& b, const NativeInteger& modulus) const {
 		uint_type av = m_value;
 		uint_type bv = b.m_value;
@@ -649,6 +646,7 @@ public:
 
 	/**
 	 * Scalar modular subtraction where Barrett modular reduction is used.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param &b is the scalar to subtract.
 	 * @param modulus is the modulus to perform operations with.
@@ -661,6 +659,7 @@ public:
 
 	/**
 	 * Scalar modular subtraction where Barrett modular reduction is used.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param b is the scalar to subtract.
 	 * @param modulus is the modulus to perform operations with.
@@ -689,6 +688,24 @@ public:
 	}
 
 	/**
+	 * Scalar modulus multiplication.
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	const NativeInteger& ModMulEq(const NativeInteger& b, const NativeInteger& modulus) {
+		Duint_type bv = b.m_value;
+
+		if( this->m_value > modulus.m_value ) this->m_value %= modulus.m_value;
+		if( bv > modulus.m_value ) bv = bv%modulus.m_value;
+
+		(this->m_value *= bv) %= modulus.m_value;
+
+		return *this;
+	}
+
+	/**
 	 * Scalar modulus multiplication. Fast version, assumes inputs are
 	 * already < modulus. 
 	 *
@@ -704,9 +721,7 @@ public:
 
 	/**
 	 * Scalar modular multiplication where Barrett modular reduction is used.
-	 * Implements generalized Barrett modular reduction algorithm (no interleaving between multiplication and modulo).
-	 * Uses one precomputed value \mu.
-	 * See the cpp file for details of the implementation.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param b is the scalar to multiply.
 	 * @param modulus is the modulus to perform operations with.
@@ -719,9 +734,7 @@ public:
 
 	/**
 	* Scalar modular multiplication where Barrett modular reduction is used - In-place version
-	* Implements generalized Barrett modular reduction algorithm (no interleaving between multiplication and modulo).
-	* Uses one precomputed value \mu.
-	* See the cpp file for details of the implementation.
+	* Included here for compatibility with backend 2.
 	*
 	* @param b is the scalar to multiply.
 	* @param modulus is the modulus to perform operations with.
@@ -729,12 +742,13 @@ public:
 	* @return is the result of the modulus multiplication operation.
 	*/
 	void ModBarrettMulInPlace(const NativeInteger& b, const NativeInteger& modulus, const NativeInteger& mu) {
-		*this = this->ModMul(b,modulus);
+		*this = this->ModMulFast(b,modulus);
 		return;
 	}
 
 	/**
 	 * Scalar modular multiplication where Barrett modular reduction is used.
+	 * Included here for compatibility with backend 2.
 	 *
 	 * @param &b is the scalar to multiply.
 	 * @param modulus is the modulus to perform operations with.
@@ -780,19 +794,62 @@ public:
 		return (uint_type)product;
 	}
 
+	//Shift Operators
+
+	/**
+	 * Left shift operator
+	 * @param shift is the amount to shift of type usshort.
+	 * @return the object of type NativeInteger
+	 */
+	NativeInteger  LShift(usshort shift) const {
+		return m_value << shift;
+	}
+
+	/**
+	 * Left shift operator uses in-place algorithm and operates on the same variable.
+	 *
+	 * @param shift is the amount to shift of type usshort.
+	 * @return the object of type NativeInteger
+	 */
+	const NativeInteger&  LShiftEq(usshort shift) {
+		m_value <<= shift;
+		return *this;
+	}
+
+	/**
+	 * Right shift operator
+	 * @param shift is the amount to shift of type usshort.
+	 * @return the object of type NativeInteger
+	 */
+	NativeInteger  RShift(usshort shift) const {
+		return m_value >> shift;
+	}
+
+	/**
+	 * Right shift operator uses in-place algorithm and operates on the same variable.
+	 *
+	 * @param shift is the amount to shift of type usshort.
+	 * @return the object of type NativeInteger
+	 */
+	const NativeInteger&  RShiftEq(usshort shift) {
+		m_value >>= shift;
+		return *this;
+	}
+
 	/**
 	 * Stores the based 10 equivalent/Decimal value of the NativeInteger in a string object and returns it.
 	 *
 	 * @return value of this NativeInteger in base 10 represented as a string.
 	 */
 	const std::string ToString() const {
-		std::stringstream ss;
-		ss << m_value;
-		return ss.str();
+		return std::to_string(m_value);
 	}
 
-	// Serialize using the modulus; convert value to signed, then serialize
-	const std::string Serialize(const NativeInteger& modulus = 0) const {
+	// note that for efficiency, we use [De]Serialize[To|From]String when serializing
+	// BigVectors, and [De]Serialize otherwise (to work the same as all
+	// other serialized objects.
+	// Serialize using the modulus; convert value to signed, then serialize to string
+	const std::string SerializeToString(const NativeInteger& modulus = 0) const {
 		// numbers go from high to low -1, -2, ... +modulus/2, modulus/2 - 1, ... ,1, 0
 		bool isneg = false;
 		NativeInteger signedVal;
@@ -812,7 +869,8 @@ public:
 		return ser;
 	}
 
-	const char * Deserialize(const char * str, const NativeInteger& modulus = 0) {
+	//deserialize from string
+	const char * DeserializeFromString(const char * str, const NativeInteger& modulus = 0) {
 		bool isneg = false;
 		if( *str == '-' ) {
 			++str;
@@ -835,7 +893,52 @@ public:
 		m_value = value;
 		return str;
 	}
+	/**
+	* Serialize the object into a Serialized
+	* @param serObj is used to store the serialized result. It MUST be a rapidjson Object (SetObject());
+	* @return true if successfully serialized
+	*/
+	bool Serialize(lbcrypto::Serialized* serObj) const{
 
+	  if( !serObj->IsObject() )
+	    return false;
+	  
+	  lbcrypto::SerialItem bbiMap(rapidjson::kObjectType);
+	  
+	  bbiMap.AddMember("IntegerType", IntegerTypeName(), serObj->GetAllocator());
+	  bbiMap.AddMember("Value", this->ToString(), serObj->GetAllocator());
+	  serObj->AddMember("BigIntegerImpl", bbiMap, serObj->GetAllocator());
+	  return true;
+	  
+	};
+	
+	/**
+	* Populate the object from the deserialization of the Serialized
+	* @param serObj contains the serialized object
+	* @return true on success
+	*/
+	bool Deserialize(const lbcrypto::Serialized& serObj){
+	  //find the outer name
+	  lbcrypto::Serialized::ConstMemberIterator mIter = serObj.FindMember("BigIntegerImpl");
+	  if( mIter == serObj.MemberEnd() )//not found, so fail
+	    return false;
+	  
+	  lbcrypto::SerialItem::ConstMemberIterator vIt; //interator within name
+	  
+	  //is this the correct integer type?
+	  if( (vIt = mIter->value.FindMember("IntegerType")) == mIter->value.MemberEnd() )
+	    return false;
+	  if( IntegerTypeName() != vIt->value.GetString() )
+	    return false;
+	  
+	  //find the value
+	  if( (vIt = mIter->value.FindMember("Value")) == mIter->value.MemberEnd() )
+	    return false;
+	  //assign the value found
+	  AssignVal(vIt->value.GetString());
+	  return true;
+	};
+	
     static const std::string IntegerTypeName() { return "NativeI"; }
 
 	/**
@@ -847,22 +950,25 @@ public:
 	usint GetLengthForBase(usint base) const {return GetMSB();}
 
 	/**
-	 * Get the number of digits using a specific base - only power-of-2 bases are currently supported.
-	 *
-	 * @param index is the location to return value from in the specific base.
-	 * @param base is the base with which to determine length in.
-	 * @return the length of the representation in a specific base.
-	 */
+	* Get a specific digit at "digit" index; big integer is seen as an array of digits, where a 0 <= digit < base
+	*
+	* @param index is the "digit" index of the requested digit
+	* @param base is the base with which to determine length in.
+	* @return is the requested digit
+	*/
 	usint GetDigitAtIndexForBase(usint index, usint base) const {
 
-			usint digit = 0;
-			usint newIndex = index;
-			for (usint i = 1; i < base; i = i*2)
-			{
-				digit += GetBitAtIndex(newIndex)*i;
-				newIndex++;
-			}
-			return digit;
+		usint DigitLen = ceil(log2(base));
+
+		usint digit = 0;
+		usint newIndex = 1 + (index - 1)*DigitLen;
+		for (usint i = 1; i < base; i = i * 2)
+		{
+			digit += GetBitAtIndex(newIndex)*i;
+			newIndex++;
+		}
+		return digit;
+
 	}
 
 	/**
@@ -891,10 +997,10 @@ public:
 	}
 
 	/**
-	 * Exponentiation of a BigInteger x. Returns x^p
+	 * Exponentiation. Returns x^p
 	 *
 	 * @param p the exponent.
-	 * @return the big binary integer x^p.
+	 * @return the integer x^p.
 	 */
 	NativeInteger Exp(usint p) const {
 		if (p == 0) return 1;
@@ -906,7 +1012,7 @@ public:
 	}
 
 	/**
-	 * Multiply and Rounding operation on a BigInteger x. Returns [x*p/q] where [] is the rounding operation.
+	 * Multiply and Rounding operation. Returns [x*p/q] where [] is the rounding operation.
 	 *
 	 * @param p is the numerator to be multiplied.
 	 * @param q is the denominator to be divided.
@@ -918,6 +1024,34 @@ public:
 	}
 
 	/**
+	 * Computes the quotient of x*p/q, where x,p,q are all uint_type numbers, x is the current value; uses Duint_type arithmetic
+	 *
+	 * @param p is the multiplicand
+	 * @param q is the divisor
+	 * @return the quotient
+	 */
+	NativeInteger MultiplyAndDivideQuotient(const NativeInteger &p, const NativeInteger &q) const {
+		Duint_type xD = m_value;
+		Duint_type pD = p.m_value;
+		Duint_type qD = q.m_value;
+		return (uint_type)(xD*pD/qD);
+	}
+
+	/**
+	 * Computes the remainder of x*p/q, where x,p,q are all uint_type numbers, x is the current value; uses Duint_type arithmetic
+	 *
+	 * @param p is the multiplicand
+	 * @param q is the divisor
+	 * @return the remainder
+	 */
+	NativeInteger MultiplyAndDivideRemainder(const NativeInteger &p, const NativeInteger &q) const {
+		Duint_type xD = m_value;
+		Duint_type pD = p.m_value;
+		Duint_type qD = q.m_value;
+		return (uint_type)((xD*pD)%qD);
+	}
+
+	/**
 	 * Divide and Rounding operation on a BigInteger x. Returns [x/q] where [] is the rounding operation.
 	 *
 	 * @param q is the denominator to be divided.
@@ -926,7 +1060,7 @@ public:
 	NativeInteger DivideAndRound(const NativeInteger &q) const {
 
 		if( q == 0 )
-			throw std::logic_error("native_int divide by zero");
+			PALISADE_THROW( lbcrypto::math_error, "Divide by zero");
 
 		uint_type ans = m_value/q.m_value;
 		uint_type rem = m_value%q.m_value;
@@ -939,97 +1073,8 @@ public:
 		return ans;
 	}
 
-	/**
-	 * Test equality of the inputs.
-	 *
-	 * @param a second value to test.
-	 * @return true if the inputs are equal.
-	 */
-	bool operator==(const NativeInteger& a) const { return m_value == a.m_value; }
-
-	/**
-	 * Test inequality of the inputs.
-	 *
-	 * @param a second value to test.
-	 * @return true if the inputs are inequal.
-	 */
-	bool operator!=(const NativeInteger& a) const { return m_value != a.m_value; }
-
-	/**
-	 * Test if first input is great than the second input.
-	 *
-	 * @param a second value to test.
-	 * @return true if the first inputs is greater.
-	 */
-	bool operator> (const NativeInteger& a) const { return m_value > a.m_value; }
-
-	/**
-	 * Test if first input is great than or equal to the second input.
-	 *
-	 * @param a second value to test.
-	 * @return true if the first inputs is greater than or equal to the second input.
-	 */
-	bool operator>=(const NativeInteger& a) const { return m_value >= a.m_value; }
-
-	/**
-	 * Test if first input is less than the second input.
-	 *
-	 * @param a second value to test.
-	 * @return true if the first inputs is lesser.
-	 */
-	bool operator< (const NativeInteger& a) const { return m_value < a.m_value; }
-
-	/**
-	 * Test if first input is less than or equal to the second input.
-	 *
-	 * @param a second value to test.
-	 * @return true if the first inputs is less than or equal to the second input.
-	 */
-	bool operator<=(const NativeInteger& a) const { return m_value <= a.m_value; }
-
 	//overloaded binary operators based on integer arithmetic and comparison functions
 	NativeInteger operator-() const { return NativeInteger(0).Minus(*this); }
-
-	/**
-	 * Addition operation.
-	 *
-	 * @param a is the value to add.
-	 * @return is the result of the addition operation.
-	 */
-	NativeInteger operator+(const NativeInteger &a) const {return this->Plus(a);}
-
-	/**
-	 * Subtraction operation.
-	 *
-	 * @param a is the value to subtract.
-	 * @return is the result of the subtraction operation.
-	 */
-	NativeInteger operator-(const NativeInteger &a) const {return this->Minus(a);}
-
-	/**
-	 * Multiplication operation.
-	 *
-	 * @param a is the value to multiply with.
-	 * @return is the result of the multiplication operation.
-	 */
-	inline NativeInteger operator*(const NativeInteger &a) const {return this->Times(a);}
-
-	/**
-	 * Modulo operation. Classical modular reduction algorithm is used.
-	 *
-	 * @param a is the value to Mod.
-	 * @return is the result of the modulus operation.
-	 */
-	inline NativeInteger operator%(const NativeInteger &a) const {return this->Mod(a);}
-
-	/**
-	 * Division operation.
-	 *
-	 * @param a is the value to divide.
-	 * @param b is the value to divide by.
-	 * @return is the result of the integral part after division operation.
-	 */
-	inline NativeInteger operator/ (const NativeInteger &a) const {return this->DividedBy(a);}
 
 	/**
 	 * Console output operation.
@@ -1043,8 +1088,6 @@ public:
 		os << ptr_obj.m_value;
 		return os;
 	}
-
-	void PrintValues() const { std::cout << this->m_value; }
 
 	/**
 	 * Gets the bit at the specified index.
@@ -1070,46 +1113,13 @@ public:
 		return lbcrypto::get_6bits_atoffset(m_value, index);
 	}
 
-
-	//constant definations
-
-	/**
-	 * Constant zero.
-	 */
-	static const NativeInteger ZERO;
-
-	/**
-	 * Constant one.
-	 */
-	static const NativeInteger ONE;
-
-	/**
-	 * Constant two.
-	 */
-	static const NativeInteger TWO;
-
-	/**
-	 * Constant three.
-	 */
-	static const NativeInteger THREE;
-
-	/**
-	 * Constant four.
-	 */
-	static const NativeInteger FOUR;
-
-	/**
-	 * Constant five.
-	 */
-	static const NativeInteger FIVE;
-
 	/**
 	 * Compares the current NativeInteger to NativeInteger a.
 	 *
 	 * @param a is the NativeInteger to be compared with.
 	 * @return  -1 for strictly less than, 0 for equal to and 1 for strictly greater than conditons.
 	 */
-	sint Compare(const NativeInteger& a) const {
+	int Compare(const NativeInteger& a) const {
 		if( this->m_value < a.m_value )
 			return -1;
 		else if( this->m_value > a.m_value )
@@ -1164,26 +1174,6 @@ private:
 
 	//variable to store the maximum value of the integral data type.
 	static const uint_type m_uintMax = std::numeric_limits<uint_type>::max();
-
-	//variable to store the log(base 2) of the number of bits in the integral data type.
-	static const uschar m_logUintBitLength = LogDtype<uint_type>::value;
-
-	/**
-	 * function to return the ceiling of the number divided by the number of bits in the integral data type.
-	 * @param Number is the number to be divided.
-	 * @return the ceiling of Number/(bits in the integral data type)
-	 */
-	static uint_type ceilIntByUInt(const uint_type Number) {
-		//mask to perform bitwise AND
-		static uint_type mask = m_uintBitLength-1;
-
-		if((Number&mask)!=0)
-			return (Number>>m_logUintBitLength)+1;
-		else if(!Number)
-			return 1;
-		else
-			return Number>>m_logUintBitLength;
-	}
 
 	// Duint_type has double the bits in the integral data type.
 	typedef typename DoubleDataType<uint_type>::T Duint_type;

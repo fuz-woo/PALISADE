@@ -44,7 +44,7 @@ public:
 		for( auto p : lbcrypto::CryptoContextParameterSets )
 			parms.push_back(p.first);
 
-		if( parms.size() != 20 )
+		if( parms.size() != 25 )
 			cout << "WARNING: fix macros in EncryptHelper.h, size should be " << parms.size() << endl;
 	}
 };
@@ -71,7 +71,12 @@ BENCHMARK(X)->ArgName(parms[15])->Arg(15); \
 BENCHMARK(X)->ArgName(parms[16])->Arg(16); \
 BENCHMARK(X)->ArgName(parms[17])->Arg(17); \
 BENCHMARK(X)->ArgName(parms[18])->Arg(18); \
-BENCHMARK(X)->ArgName(parms[19])->Arg(19);
+BENCHMARK(X)->ArgName(parms[19])->Arg(19); \
+BENCHMARK(X)->ArgName(parms[20])->Arg(20); \
+BENCHMARK(X)->ArgName(parms[21])->Arg(21); \
+BENCHMARK(X)->ArgName(parms[22])->Arg(22); \
+BENCHMARK(X)->ArgName(parms[23])->Arg(23); \
+BENCHMARK(X)->ArgName(parms[24])->Arg(24); 
 
 #define BENCHMARK_PARMS_TEMPLATE(X,Y) \
 		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[0])->Arg(0); \
@@ -93,7 +98,12 @@ BENCHMARK(X)->ArgName(parms[19])->Arg(19);
 		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[16])->Arg(16); \
 		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[17])->Arg(17); \
 		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[18])->Arg(18); \
-		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[19])->Arg(19);
+		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[19])->Arg(19); \
+		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[20])->Arg(20); \
+		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[21])->Arg(21); \
+		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[22])->Arg(22); \
+		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[23])->Arg(23); \
+		BENCHMARK_TEMPLATE(X,Y)->ArgName(parms[24])->Arg(24);
 
 
 #endif /* BENCHMARK_SRC_ENCRYPTHELPER_H_ */

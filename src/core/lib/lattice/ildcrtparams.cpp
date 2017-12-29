@@ -37,23 +37,23 @@ ILDCRTParams<IntType>::ILDCRTParams(usint order, usint depth, usint bits) : Elem
 		return;
 	if( depth == 0 )
 		throw std::logic_error("Invalid depth for ILDCRTParams");
-	if( bits == 0 )
+	if( bits == 0 || bits > 64 )
 		throw std::logic_error("Invalid bits for ILDCRTParams");
 
 	m_parms.resize(depth);
 	this->ciphertextModulus = BigInteger(0);
 
-	native_int::BigInteger q = FirstPrime<native_int::BigInteger>(bits, order);
+	NativeInteger q = FirstPrime<NativeInteger>(bits, order);
 
 	for(size_t j = 0; ;) {
-		native_int::BigInteger root = RootOfUnity<native_int::BigInteger>(order, q);
-		std::shared_ptr<native_int::ILParams> p( new native_int::ILParams(order, q, root) );
+		NativeInteger root = RootOfUnity<NativeInteger>(order, q);
+		std::shared_ptr<ILNativeParams> p( new ILNativeParams(order, q, root) );
 		m_parms[j] = p;
 
 		if( ++j >= depth )
 			break;
 
-		q = NextPrime<native_int::BigInteger>(q, order);
+		q = NextPrime<NativeInteger>(q, order);
 	}
 
 	RecalculateModulus();
@@ -68,7 +68,7 @@ ILDCRTParams<IntType>::Serialize(Serialized* serObj) const
 
 	Serialized ser(rapidjson::kObjectType, &serObj->GetAllocator());
 
-	SerializeVectorOfPointers<native_int::ILParams>("Params", "ILParams", m_parms, &ser);
+	SerializeVectorOfPointers<ILNativeParams>("Params", "ILParams", m_parms, &ser);
 
 	serObj->AddMember("ILDCRTParams", ser, serObj->GetAllocator());
 
@@ -90,7 +90,7 @@ ILDCRTParams<IntType>::Deserialize(const Serialized& serObj)
 		return false;
 	}
 
-	if( DeserializeVectorOfPointers<native_int::ILParams>("Params", "ILParams", it, &this->m_parms) == false )
+	if( DeserializeVectorOfPointers<ILNativeParams>("Params", "ILParams", it, &this->m_parms) == false )
 		return false;
 
 	this->cyclotomicOrder = this->m_parms[0]->GetCyclotomicOrder();

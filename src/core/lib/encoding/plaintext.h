@@ -23,12 +23,14 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 #ifndef LBCRYPTO_UTILS_PLAINTEXT_H
 #define LBCRYPTO_UTILS_PLAINTEXT_H
 
 #include <vector>
 #include <initializer_list>
 #include <iostream>
+#include "encodingparams.h"
 #include "../utils/inttypes.h"
 #include "../math/backend.h"
 #include "../lattice/elemparams.h"
@@ -39,54 +41,150 @@
 
 namespace lbcrypto
 {
+
+enum PlaintextEncodings {
+	Unknown,
+	Scalar,
+	Integer,
+	CoefPacked,
+	Packed,
+	String,
+};
+
+class PlaintextImpl;
+typedef shared_ptr<PlaintextImpl> Plaintext;
+
 /**
- * @class Plaintext
+ * @class PlaintextImpl
  * @brief This class represents plaintext in the Palisade library.
  *
- * Plaintext is primarily intended to be
+ * PlaintextImpl is primarily intended to be
  * used as a container and in conjunction with specific encodings which inherit from this class
  * which depend on the application the plaintext is used with.  It provides virtual methods for encoding
  * and decoding of data.
  */
-class Plaintext
+
+enum PtxtPolyType { IsPoly, IsDCRTPoly, IsNativePoly };
+
+class PlaintextImpl
 {
+protected:
+	bool						isEncoded;
+	PtxtPolyType				typeFlag;
+	EncodingParams			encodingParams;
+	Poly						encodedVector;
+	NativePoly				encodedNativeVector;
+	DCRTPoly					encodedVectorDCRT;
+
 public:
-	virtual ~Plaintext() {}
+	PlaintextImpl(shared_ptr<Poly::Params> vp, EncodingParams ep, bool isEncoded = false) :
+		isEncoded(isEncoded), typeFlag(IsPoly), encodingParams(ep), encodedVector(vp,COEFFICIENT) {}
+
+	PlaintextImpl(shared_ptr<NativePoly::Params> vp, EncodingParams ep, bool isEncoded = false) :
+		isEncoded(isEncoded), typeFlag(IsNativePoly), encodingParams(ep), encodedNativeVector(vp,COEFFICIENT) {}
+
+	PlaintextImpl(shared_ptr<DCRTPoly::Params> vp, EncodingParams ep, bool isEncoded = false) :
+		isEncoded(isEncoded), typeFlag(IsDCRTPoly), encodingParams(ep), encodedVector(vp,COEFFICIENT), encodedVectorDCRT(vp,COEFFICIENT) {}
+
+	virtual ~PlaintextImpl() {}
 
 	/**
-	 * Interface for the operation of converting from current plaintext encoding to Poly.
-	 *
-	 * @param  modulus - used for encoding.
-	 * @param  *ilVector encoded plaintext - output argument.
-	 * @param  start_from - location to start from.  Defaults to 0.
-	 * @param  length - length of data to encode.  Defaults to 0.
+	 * GetEncodingType
+	 * @return Encoding type used by this plaintext
 	 */
-	virtual void Encode(const BigInteger &modulus, Poly *ilVector, size_t start_from=0, size_t length=0) const = 0;
+	virtual PlaintextEncodings GetEncodingType() const = 0;
 
 	/**
-	 * Interface for the operation of converting from Poly to current plaintext encoding.
-	 *
-	 * @param  modulus - used for encoding.
-	 * @param  *ilVector encoded plaintext - input argument.
+	 * IsEncoded
+	 * @return true when encoding is done
 	 */
-	virtual void Decode(const BigInteger &modulus, Poly *ilVector) = 0;
+	bool IsEncoded() const { return isEncoded; }
 
 	/**
-	 * Interface for the operation of stripping away unneeded trailing zeros to pad out a short plaintext until one with entries
-	 * for all dimensions.
-	 *
-	 * @param  &modulus - used for encoding.
+	 * GetEncodingParams
+	 * @return Encoding params used with this plaintext
 	 */
-	virtual void Unpad(const BigInteger &modulus) = 0;
+	const EncodingParams GetEncodingParams() const { return encodingParams; }
 
 	/**
-	 * Getter for the ChunkSize data.
-	 *
-	 * @param  ring - the ring dimension.
-	 * @param  ptm - the plaintext modulus.
-	 * @return ring - the chunk size.
+	 * Encode the plaintext into a polynomial
+	 * @return true on success
 	 */
-	virtual size_t GetChunksize(const usint ring, const BigInteger& ptm) const = 0;
+	virtual bool Encode() = 0;
+
+	/**
+	 * Decode the polynomial into the plaintext
+	 * @return
+	 */
+	virtual bool Decode() = 0;
+
+	/**
+	 * Calculate and return lower bound that can be encoded with the plaintext modulus
+	 * the number to encode MUST be greater than this value
+	 * @return floor(-p/2)
+	 */
+	int64_t LowBound() const {
+		uint64_t half = GetEncodingParams()->GetPlaintextModulus() >> 1;
+		bool odd = (GetEncodingParams()->GetPlaintextModulus() & 0x1) == 1;
+		int64_t bound = -1 * half;
+		if( odd ) bound--;
+		return bound;
+	}
+
+	/**
+	 * Calculate and return upper bound that can be encoded with the plaintext modulus
+	 * the number to encode MUST be less than or equal to this value
+	 * @return floor(p/2)
+	 */
+	int64_t HighBound() const { return GetEncodingParams()->GetPlaintextModulus() >> 1; }
+
+	/**
+	 * SetFormat - allows format to be changed for PlaintextImpl evaluations
+	 *
+	 * @param fmt
+	 */
+	void SetFormat(Format fmt) {
+		if( typeFlag == IsPoly )
+			encodedVector.SetFormat(fmt);
+		else if( typeFlag == IsNativePoly )
+			encodedNativeVector.SetFormat(fmt);
+		else
+			encodedVectorDCRT.SetFormat(fmt);
+	}
+
+	template<typename Element>
+	Element& GetEncodedElement() {
+		if( !isEncoded )
+			this->Encode();
+		return GetElement<Element>();
+	}
+
+	/**
+	 * GetElement
+	 * @return the Polynomial that the element was encoded into
+	 */
+	template <typename Element>
+	Element& GetElement();
+
+	/**
+	 * GetElementRingDimension
+	 * @return ring dimension on the underlying element
+	 */
+	const usint GetElementRingDimension() const {
+		return typeFlag == IsPoly ? encodedVector.GetRingDimension() :
+				(typeFlag == IsNativePoly ? encodedNativeVector.GetRingDimension() :
+						encodedVectorDCRT.GetRingDimension());
+	}
+
+	/**
+	 * GetElementModulus
+	 * @return modulus on the underlying elemenbt
+	 */
+	const BigInteger GetElementModulus() const {
+		return typeFlag == IsPoly ? encodedVector.GetModulus() :
+				(typeFlag == IsNativePoly ? BigInteger(encodedNativeVector.GetModulus()) :
+						encodedVectorDCRT.GetModulus());
+	}
 
 	/**
 	 * Get method to return the length of plaintext
@@ -96,41 +194,95 @@ public:
 	virtual size_t GetLength() const = 0;
 
 	/**
-	 * Method to compare two plaintext to test for equivalence.  This method does not test that the plaintext are of the same type.
+	 * resize the plaintext; only works for plaintexts that support a resizable vector (coefpacked)
+	 * @param newSize
+	 */
+	virtual void SetLength(size_t newSize) { throw std::logic_error("resize not supported"); }
+
+	virtual const std::string&		GetStringValue() const { throw std::logic_error("not a string"); }
+	virtual const int64_t			GetIntegerValue() const { throw std::logic_error("not an integer"); }
+	virtual const int64_t			GetScalarValue() const { throw std::logic_error("not a scalar"); }
+	virtual const vector<int64_t>&	GetCoefPackedValue() const { throw std::logic_error("not a packed coefficient vector"); }
+	virtual const vector<uint64_t>&	GetPackedValue() const { throw std::logic_error("not a packed coefficient vector"); }
+
+	/**
+	 * Method to compare two plaintext to test for equivalence.
+	 * This method is called by operator==
 	 *
 	 * @param other - the other plaintext to compare to.
 	 * @return whether the two plaintext are equivalent.
 	 */
-	virtual bool CompareTo(const Plaintext& other) const = 0;
+	virtual bool CompareTo(const PlaintextImpl& other) const = 0;
 
 	/**
-	 * Method to compare two plaintext to test for euality to.  This method makes sure the plaintext are of the same type.
+	 * operator== for plaintexts.  This method makes sure the plaintexts are of the same type.
 	 *
 	 * @param other - the other plaintext to compare to.
 	 * @return whether the two plaintext are the same.
 	 */
-	bool operator==(const Plaintext& other) const {
-		if( typeid(this) != typeid(&other) )
-			return false;
-
+	bool operator==(const PlaintextImpl& other) const {
 		return CompareTo(other);
 	}
 
+	bool operator!=(const PlaintextImpl& other) const { return !(*this == other); }
+
 	/**
-	 * Method to convert plaintext modulus to a native data type.
-	 *
-	 * @param ptm - the plaintext modulus.
-	 * @return the plaintext modulus in native type.
+	 * operator<< for ostream integration - calls PrintValue
+	 * @param out
+	 * @param item
+	 * @return
 	 */
-	native_int::BigInteger ConvertToNativeModulus(const BigInteger& ptm) {
-		static BigInteger largestNative( ~((uint64_t)0) );
+	friend std::ostream& operator<<(std::ostream& out, const PlaintextImpl& item);
 
-		if( ptm > largestNative )
-			throw std::logic_error("plaintext modulus of " + ptm.ToString() + " is too big to convert to a native_int integer");
-
-		return native_int::BigInteger( ptm.ConvertToInt() );
-	}
+	/**
+	 * PrintValue is called by operator<<
+	 * @param out
+	 */
+	virtual void PrintValue(std::ostream& out) const = 0;
 };
+
+inline std::ostream& operator<<(std::ostream& out, const PlaintextImpl& item)
+{
+	item.PrintValue(out);
+	return out;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const Plaintext item)
+{
+	item->PrintValue(out);
+	return out;
+}
+
+inline bool operator==(const Plaintext p1, const Plaintext p2) { return *p1 == *p2;}
+
+inline bool operator!=(const Plaintext p1, const Plaintext p2) { return *p1 != *p2;}
+
+/**
+ * GetElement
+ * @return the Polynomial that the element was encoded into
+ */
+template <>
+inline Poly& PlaintextImpl::GetElement<Poly>() {
+	return encodedVector;
+}
+
+/**
+ * GetElement
+ * @return the NativePolynomial that the element was encoded into
+ */
+template <>
+inline NativePoly& PlaintextImpl::GetElement<NativePoly>() {
+	return encodedNativeVector;
+}
+
+/**
+ * GetElement
+ * @return the DCRTPolynomial that the element was encoded into
+ */
+template <>
+inline DCRTPoly& PlaintextImpl::GetElement<DCRTPoly>() {
+	return encodedVectorDCRT;
+}
 
 }
 

@@ -73,24 +73,27 @@ TEST(UTTransform, CRT_polynomial_multiplication){
 	BigInteger primitiveRootOfUnity = lbcrypto::RootOfUnity(cycloOrder, primeModulus);
 
 	BigVector a(n, primeModulus);
-	a.SetValAtIndex(0, "1");
-	a.SetValAtIndex(1, "2");
-	a.SetValAtIndex(2, "4");
-	a.SetValAtIndex(3, "1");
+	a.at(0)= "1";
+	a.at(1)= "2";
+	a.at(2)= "4";
+	a.at(3)= "1";
 	BigVector b(a);
 
-	BigVector A = ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().ForwardTransform(a, primitiveRootOfUnity, cycloOrder);
-	BigVector B = ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().ForwardTransform(b, primitiveRootOfUnity, cycloOrder);
+	BigVector A(cycloOrder/2);
+	ChineseRemainderTransformFTT<BigInteger,BigVector>::ForwardTransform(a, primitiveRootOfUnity, cycloOrder, &A);
+	BigVector B(cycloOrder/2);
+	ChineseRemainderTransformFTT<BigInteger,BigVector>::ForwardTransform(b, primitiveRootOfUnity, cycloOrder, &B);
 
 	BigVector AB = A*B;
 
-	BigVector InverseFFTAB = ChineseRemainderTransformFTT<BigInteger,BigVector>::GetInstance().InverseTransform(AB, primitiveRootOfUnity, cycloOrder);
+	BigVector InverseFFTAB(cycloOrder/2);
+	ChineseRemainderTransformFTT<BigInteger,BigVector>::InverseTransform(AB, primitiveRootOfUnity, cycloOrder, &InverseFFTAB);
 
 	BigVector expectedResult(n, primeModulus);
-	expectedResult.SetValAtIndex(0, "94");
-	expectedResult.SetValAtIndex(1, "109");
-	expectedResult.SetValAtIndex(2, "11");
-	expectedResult.SetValAtIndex(3, "18");
+	expectedResult.at(0)= "94";
+	expectedResult.at(1)= "109";
+	expectedResult.at(2)= "11";
+	expectedResult.at(3)= "18";
 
 	EXPECT_EQ(expectedResult, InverseFFTAB);
 
@@ -111,35 +114,35 @@ TEST(UTTransform, CRT_polynomial_multiplication_small) {
 
 	DEBUG("m is " << m << " and n is " << n);
 	auto cycloPoly =  GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulus);
-	DEBUG("2");
+	DEBUG("2 " << cycloPoly);
 
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulus);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly,modulus);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly,modulus);
 	DEBUG("3");
 
 	BigVector a(n, modulus);
 	a = { 1,2,3,4,5,6,7,8,9,10 };
-	auto A = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(a, squareRootOfRoot, bigModulus, bigRoot, m);
-	DEBUG("4");
+	auto A = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(a, squareRootOfRoot, bigModulus, bigRoot, m);
+	DEBUG("4 " << A);
 
 	BigVector b(n, modulus);
 	b = { 5,6,7,8,9,10,11,12,13,14 };
-	auto B = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(b, squareRootOfRoot, bigModulus, bigRoot, m);
-	DEBUG("5");
+	auto B = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(b, squareRootOfRoot, bigModulus, bigRoot, m);
+	DEBUG("5 " << B);
 
 	auto C = A*B;
-	DEBUG("6");
+	DEBUG("6 " << C);
 
-	auto c = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().InverseTransform(C, squareRootOfRoot, bigModulus, bigRoot, m);
+	auto c = ChineseRemainderTransformArb<BigInteger, BigVector>::InverseTransform(C, squareRootOfRoot, bigModulus, bigRoot, m);
 
-	DEBUG("7");
+	DEBUG("7 " << c );
 	auto cCheck = PolynomialMultiplication(a, b);
 
 	DEBUG("8");
 	cCheck = PolyMod(cCheck, cycloPoly, modulus);
 
 	for (usint i = 0; i < n; i++) {
-		EXPECT_EQ(cCheck.GetValAtIndex(i), c.GetValAtIndex(i));
+		EXPECT_EQ(cCheck.at(i), c.at(i));
 	}
 
 }
@@ -148,7 +151,6 @@ TEST(UTTransform, CRT_polynomial_multiplication_small) {
 // TEST CASE TO TEST POLYNOMIAL MULTIPLICATION IN ARBITRARY CYCLOTOMIC FILED USING CHINESE REMAINDER THEOREM
 
 TEST(UTTransform, CRT_polynomial_multiplication_big_ring) {
-
 	usint m = 1800;
 
 	BigInteger modulus(14401);
@@ -158,33 +160,33 @@ TEST(UTTransform, CRT_polynomial_multiplication_big_ring) {
 	usint n = GetTotient(m);
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulus);
 
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulus);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly,modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly,modulus);
 
 	BigVector a(n, modulus);
 	a = { 1,2,3,4,5,6,7,8,9,10 };
-	auto A = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(a, squareRootOfRoot,bigModulus,bigRoot, m);
+	auto A = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(a, squareRootOfRoot,bigModulus,bigRoot, m);
 
 	BigVector b(n, modulus);
 	b = { 5,6,7,8,9,10,11,12,13,14 };
-	auto B = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(b, squareRootOfRoot,bigModulus,bigRoot, m);
+	auto B = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(b, squareRootOfRoot,bigModulus,bigRoot, m);
 
 	auto C = A*B;
 
-	auto c = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().InverseTransform(C, squareRootOfRoot,bigModulus,bigRoot, m);
+	auto c = ChineseRemainderTransformArb<BigInteger, BigVector>::InverseTransform(C, squareRootOfRoot,bigModulus,bigRoot, m);
 
 	auto cCheck = PolynomialMultiplication(a, b);
 
 	cCheck = PolyMod(cCheck, cycloPoly, modulus);
 
 	for (usint i = 0; i < n; i++) {
-		EXPECT_EQ(cCheck.GetValAtIndex(i), c.GetValAtIndex(i));
+		EXPECT_EQ(cCheck.at(i), c.at(i));
 	}
 
 }
 
 TEST(UTTransform, CRT_polynomial_multiplication_big_ring_prime_cyclotomics) {
-
+        bool dbg_flag = false;
 
 	//usint m = 1733;
 	//usint p = 2 * m + 1;
@@ -205,29 +207,27 @@ TEST(UTTransform, CRT_polynomial_multiplication_big_ring_prime_cyclotomics) {
 	usint n = GetTotient(m);
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulus);
 
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulus);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulus);
 
 	BigVector a(n, modulus);
 	a = { 1,2,3,4,5,6,7,8,9,10 };
-	auto A = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(a, squareRootOfRoot, bigModulus, bigRoot, m);
+	auto A = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(a, squareRootOfRoot, bigModulus, bigRoot, m);
 
 	BigVector b(n, modulus);
 	b = { 5,6,7,8,9,10,11,12,13,14 };
-	auto B = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(b, squareRootOfRoot, bigModulus, bigRoot, m);
+	auto B = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(b, squareRootOfRoot, bigModulus, bigRoot, m);
 
 	auto C = A*B;
 
-	auto c = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().InverseTransform(C, squareRootOfRoot, bigModulus, bigRoot, m);
+	auto c = ChineseRemainderTransformArb<BigInteger, BigVector>::InverseTransform(C, squareRootOfRoot, bigModulus, bigRoot, m);
 
 	auto cCheck = PolynomialMultiplication(a, b);
 
 	cCheck = PolyMod(cCheck, cycloPoly, modulus);
-
-	for (usint i = 0; i < n; i++) {
-		EXPECT_EQ(cCheck.GetValAtIndex(i), c.GetValAtIndex(i));
-	}
-
+	DEBUG("c "<<c);
+	DEBUG("cCheck "<<cCheck);
+	EXPECT_EQ(cCheck, c);
 }
 
 
@@ -245,18 +245,18 @@ TEST(UTTransform, CRT_CHECK_small_ring) {
 
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulus);
 
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulus);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly,modulus);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly,modulus);
 
 	BigVector input(n, modulus);
 	input = { 1,2,3,4,5,6,7,8,9,10 };
-	auto INPUT = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(input, squareRootOfRoot,bigModulus,bigRoot, m);
+	auto INPUT = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(input, squareRootOfRoot,bigModulus,bigRoot, m);
 
 
-	auto inputCheck = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().InverseTransform(INPUT, squareRootOfRoot,bigModulus,bigRoot, m);
+	auto inputCheck = ChineseRemainderTransformArb<BigInteger, BigVector>::InverseTransform(INPUT, squareRootOfRoot,bigModulus,bigRoot, m);
 
 	for (usint i = 0; i < n; i++) {
-		EXPECT_EQ(input.GetValAtIndex(i), inputCheck.GetValAtIndex(i));
+		EXPECT_EQ(input.at(i), inputCheck.at(i));
 	}
 
 }
@@ -275,8 +275,8 @@ TEST(UTTransform, CRT_CHECK_big_ring) {
 	usint n = GetTotient(m);
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulus);
 
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulus);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly,modulus);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly,modulus);
 
 
 	BigVector input(n, modulus);
@@ -284,15 +284,15 @@ TEST(UTTransform, CRT_CHECK_big_ring) {
 	std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
 	std::uniform_int_distribution<> dis(0, 100); //generates a number in [0,100]
 	for (usint i = 0; i < n; i++) {
-		input.SetValAtIndex(i, BigInteger(dis(gen)));
+	  input.at(i)= BigInteger(dis(gen));
 	}
 	
-	auto output = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(input, squareRootOfRoot,bigModulus,bigRoot, m);
+	auto output = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(input, squareRootOfRoot,bigModulus,bigRoot, m);
 
-	auto recOut = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().InverseTransform(output, squareRootOfRoot,bigModulus,bigRoot, m);
+	auto recOut = ChineseRemainderTransformArb<BigInteger, BigVector>::InverseTransform(output, squareRootOfRoot,bigModulus,bigRoot, m);
 
 	for (usint i = 0; i < n; i++) {
-		EXPECT_EQ(input.GetValAtIndex(i), recOut.GetValAtIndex(i));
+		EXPECT_EQ(input.at(i), recOut.at(i));
 	}
 
 }
@@ -308,19 +308,19 @@ TEST(UTTransform, CRT_CHECK_small_ring_precomputed) {
 	BigInteger nttmodulus("32043581647489");
 	BigInteger nttroot("31971887649898");
 
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulus);
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetPreComputedNTTModulus(m, modulus, nttmodulus, nttroot);
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulus);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulus);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::SetPreComputedNTTModulus(m, modulus, nttmodulus, nttroot);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulus);
 
 	BigVector input(n, modulus);
 	input = { 1,2,3,4,5,6,7,8,9,10 };
 
-	auto INPUT = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(input, squareRootOfRoot,nttmodulus,nttroot, m);
+	auto INPUT = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(input, squareRootOfRoot,nttmodulus,nttroot, m);
 
-	auto inputCheck = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().InverseTransform(INPUT, squareRootOfRoot, nttmodulus,nttroot, m);
+	auto inputCheck = ChineseRemainderTransformArb<BigInteger, BigVector>::InverseTransform(INPUT, squareRootOfRoot, nttmodulus,nttroot, m);
 
 	for (usint i = 0; i < n; i++) {
-		EXPECT_EQ(input.GetValAtIndex(i), inputCheck.GetValAtIndex(i));
+		EXPECT_EQ(input.at(i), inputCheck.at(i));
 	}
 
 }
@@ -338,20 +338,20 @@ TEST(UTTransform, CRT_CHECK_very_big_ring_precomputed) {
 	BigInteger nttmodulus("1852673427797059126777135760139006525652319754650249024631321344126610076631041");
 	BigInteger nttroot("1011857408422309039039556907195908859561535234649870814154019834362746408101010");
 
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().PreCompute(m, modulus);
-	//ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetPreComputedNTTModulus(m, modulus, nttmodulus, nttroot);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::PreCompute(m, modulus);
+	//ChineseRemainderTransformArb<BigInteger, BigVector>::SetPreComputedNTTModulus(m, modulus, nttmodulus, nttroot);
 	DEBUG("2");
-	ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().SetCylotomicPolynomial(cycloPoly, modulus);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulus);
 	DEBUG("3");
 	BigVector input(n, modulus);
 	input = { 1,2,3,4,5,6,7,8,9,10 };
 	DEBUG("4");
-	auto INPUT = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().ForwardTransform(input, squareRootOfRoot, nttmodulus, nttroot, m);
+	auto INPUT = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(input, squareRootOfRoot, nttmodulus, nttroot, m);
 	DEBUG("5");
-	auto inputCheck = ChineseRemainderTransformArb<BigInteger, BigVector>::GetInstance().InverseTransform(INPUT, squareRootOfRoot, nttmodulus, nttroot, m);
+	auto inputCheck = ChineseRemainderTransformArb<BigInteger, BigVector>::InverseTransform(INPUT, squareRootOfRoot, nttmodulus, nttroot, m);
 	DEBUG("6");
 	for (usint i = 0; i < n; i++) {
-		EXPECT_EQ(input.GetValAtIndex(i), inputCheck.GetValAtIndex(i));
+		EXPECT_EQ(input.at(i), inputCheck.at(i));
 	}
 
 }

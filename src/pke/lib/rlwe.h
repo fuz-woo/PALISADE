@@ -52,6 +52,8 @@ public:
 		m_relinWindow = 1;
 		m_dgg.SetStd(m_distributionParameter);
 		m_depth = 0;
+		m_maxDepth = 1;
+		m_mode = RLWE;
 	}
 
 	/**
@@ -65,35 +67,9 @@ public:
 		m_relinWindow = rhs.m_relinWindow;
 		m_dgg.SetStd(m_distributionParameter);
 		m_depth = rhs.m_depth;
+		m_maxDepth = rhs.m_maxDepth;
+		m_mode = rhs.m_mode;
 	}
-
-	/**
-	 * Constructor that initializes values.
-	 *
-	 * @param &params element parameters.
-	 * @param &plaintextModulus plaintext modulus.
-	 * @param distributionParameter noise distribution parameter.
-	 * @param assuranceMeasure assurance level.
-	 * @param securityLevel security level.
-	 * @param relinWindow the size of the relinearization window.
-	 * @param depth depth which defaults to 1.
-	 */
-	LPCryptoParametersRLWE(
-			shared_ptr<typename Element::Params> params,
-			const BigInteger &plaintextModulus,
-			float distributionParameter,
-			float assuranceMeasure,
-			float securityLevel,
-			usint relinWindow,
-			int depth = 1) : LPCryptoParameters<Element>(params, plaintextModulus)
-					{
-		m_distributionParameter = distributionParameter;
-		m_assuranceMeasure = assuranceMeasure;
-		m_securityLevel = securityLevel;
-		m_relinWindow = relinWindow;
-		m_dgg.SetStd(m_distributionParameter);
-		m_depth = depth;
-					}
 
 	/**
 	* Constructor that initializes values.
@@ -105,15 +81,18 @@ public:
 	* @param securityLevel security level.
 	* @param relinWindow the size of the relinearization window.
 	* @param depth depth which defaults to 1.
+	* @param mode mode for secret polynomial, defaults to RLWE.
 	*/
 	LPCryptoParametersRLWE(
 		shared_ptr<typename Element::Params> params,
-		shared_ptr<EncodingParams> encodingParams,
+		EncodingParams encodingParams,
 		float distributionParameter,
 		float assuranceMeasure,
 		float securityLevel,
 		usint relinWindow,
-		int depth = 1) : LPCryptoParameters<Element>(params, encodingParams)
+		int depth = 1,
+		int maxDepth = 1,
+		MODE mode = RLWE) : LPCryptoParameters<Element>(params, encodingParams)
 	{
 		m_distributionParameter = distributionParameter;
 		m_assuranceMeasure = assuranceMeasure;
@@ -121,6 +100,8 @@ public:
 		m_relinWindow = relinWindow;
 		m_dgg.SetStd(m_distributionParameter);
 		m_depth = depth;
+		m_maxDepth = maxDepth;
+		m_mode = mode;
 	}
 
 	/**
@@ -162,6 +143,20 @@ public:
 	 * @return the computation depth supported d.
 	 */
 	int GetDepth() const {return m_depth;}
+
+	/**
+	 * Returns the value of computation depth d
+	 *
+	 * @return the computation depth supported d.
+	 */
+	size_t GetMaxDepth() const {return m_maxDepth;}
+
+	/**
+	* Gets the mode setting: RLWE or OPTIMIZED.
+	*
+	* @return the mode setting.
+	*/
+	MODE GetMode() const { return m_mode; }
 
 	/**
 	 * Returns reference to Discrete Gaussian Generator
@@ -206,6 +201,18 @@ public:
 	void SetDepth(int depth) {m_depth = depth;}
 
 	/**
+	 * Sets the value of supported computation depth d
+	 * @param depth
+	 */
+	void SetMaxDepth(size_t maxDepth) {m_maxDepth = maxDepth;}
+
+	/**
+	* Configures the mode for generating the secret key polynomial
+	* @param mode is RLWE or OPTIMIZED.
+	*/
+	void SetMode(MODE mode) { m_mode = mode; }
+
+	/**
 	 * == operator to compare to this instance of LPCryptoParametersLTV object.
 	 *
 	 * @param &rhs LPCryptoParameters to check equality against.
@@ -221,7 +228,8 @@ public:
 				m_distributionParameter == el->GetDistributionParameter() &&
 				m_assuranceMeasure == el->GetAssuranceMeasure() &&
 				m_securityLevel == el->GetSecurityLevel() &&
-				m_relinWindow == el->GetRelinWindow();
+				m_relinWindow == el->GetRelinWindow() &&
+				m_mode == el->GetMode();
 	}
 
 	void PrintParameters(std::ostream& os) const {
@@ -231,7 +239,9 @@ public:
 				", Assurance measure " << GetAssuranceMeasure() <<
 				", Security level " << GetSecurityLevel() <<
 				", Relin window " << GetRelinWindow() <<
-				", Depth " << GetDepth() << std::endl;
+				", Depth " << GetDepth() <<
+				", Mode " << GetMode() <<
+				std::endl;
 	}
 
 protected:
@@ -245,6 +255,11 @@ protected:
 	usint m_relinWindow;
 	//depth of computations; used for FHE
 	int m_depth;
+	//maximum depth support of a ciphertext without keyswitching
+	size_t m_maxDepth;
+	// specifies whether the secret polynomials are generated from discrete
+	// Gaussian distribution or ternary distribution with the norm of unity
+	MODE m_mode;
 
 	typename Element::DggType m_dgg;
 
@@ -267,7 +282,8 @@ protected:
 		cryptoParamsMap.AddMember("SecurityLevel", std::to_string(this->GetSecurityLevel()), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("RelinWindow", std::to_string(this->GetRelinWindow()), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("Depth", std::to_string(this->GetDepth()), serObj->GetAllocator());
-		cryptoParamsMap.AddMember("PlaintextModulus", this->GetPlaintextModulus().ToString(), serObj->GetAllocator());
+		cryptoParamsMap.AddMember("Mode", std::to_string(m_mode), serObj->GetAllocator());
+		cryptoParamsMap.AddMember("PlaintextModulus", std::to_string(this->GetPlaintextModulus()), serObj->GetAllocator());
 
 		return true;
 	}
@@ -302,19 +318,19 @@ protected:
 		SerialItem valE(epIt->value.MemberBegin()->value, oneItemE.GetAllocator());
 		oneItemE.AddMember(keyE, valE, oneItemE.GetAllocator());
 
-		EncodingParams *json_encodingParams = new EncodingParams();
+		EncodingParamsImpl *json_encodingParams = new EncodingParamsImpl();
 
 		if (!json_encodingParams->Deserialize(oneItemE)) {
 			delete json_encodingParams;
 			return false;
 		}
 
-		shared_ptr<EncodingParams> encodingParams(json_encodingParams);
+		EncodingParams encodingParams(json_encodingParams);
 		this->SetEncodingParams(encodingParams);
 
 		if( (pIt = mIter->value.FindMember("PlaintextModulus")) == mIter->value.MemberEnd() )
 			return false;
-		BigInteger bbiPlaintextModulus(pIt->value.GetString());
+		PlaintextModulus bbiPlaintextModulus = atoi(pIt->value.GetString());
 
 		if( (pIt = mIter->value.FindMember("DistributionParameter")) == mIter->value.MemberEnd() )
 			return false;
@@ -336,12 +352,17 @@ protected:
 			return false;
 		int depth = atoi(pIt->value.GetString());
 
+		if ((pIt = mIter->value.FindMember("Mode")) == mIter->value.MemberEnd())
+			return false;
+		MODE mode = (MODE)atoi(pIt->value.GetString());
+
 		this->SetPlaintextModulus(bbiPlaintextModulus);
 		this->SetDistributionParameter(distributionParameter);
 		this->SetAssuranceMeasure(assuranceMeasure);
 		this->SetSecurityLevel(securityLevel);
 		this->SetRelinWindow(relinWindow);
 		this->SetDepth(depth);
+		this->SetMode(mode);
 
 		return true;
 	}

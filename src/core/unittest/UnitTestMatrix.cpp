@@ -223,12 +223,15 @@ inline void expect_close(double a, double b) {
 }
 
 TEST(UTMatrix, cholesky) {
-	Matrix<int32_t> m([]() { return make_unique<int32_t>(); }, 2, 2);
+        bool dbg_flag = false;
+        Matrix<int32_t> m([]() { return make_unique<int32_t>(); }, 2, 2);
 	m(0, 0) = 20;
 	m(0, 1) = 4;
 	m(1, 0) = 4;
 	m(1, 1) = 10;
+
 	auto c = Cholesky(m);
+	DEBUGEXP(c);
 	EXPECT_LE(fabs(4.47213595 - c(0, 0)), 1e-8);
 	EXPECT_LE(fabs(0 - c(0, 1)), 1e-8);
 	EXPECT_LE(fabs(.89442719 - c(1, 0)), 1e-8);
@@ -238,6 +241,7 @@ TEST(UTMatrix, cholesky) {
 	EXPECT_LE(fabs(m(0, 1) - cc(0, 1)), 1e-8);
 	EXPECT_LE(fabs(m(1, 0) - cc(1, 0)), 1e-8);
 	EXPECT_LE(fabs(m(1, 1) - cc(1, 1)), 1e-8);
+	DEBUGEXP(cc);
 }
 
 TEST(UTMatrix, gadget_vector) {
@@ -257,13 +261,13 @@ TEST(UTMatrix, rotate_vec_result) {
     Matrix<Poly> n = Matrix<Poly>(fastIL2nAlloc(), 1, 2).Ones();
     const Poly::Integer& modulus = n(0,0).GetModulus();
     n.SetFormat(COEFFICIENT);
-	n(0,0).SetValAtIndex(2, Poly::Integer::ONE);
+    n(0,0).at(2)= 1;
     Matrix<Poly::Vector> R = RotateVecResult(n);
 	EXPECT_EQ(8U, R.GetRows());
 	EXPECT_EQ(16U, R.GetCols());
-	EXPECT_EQ(Poly::Vector::Single(Poly::Integer::ONE, modulus), R(0,0));
+	EXPECT_EQ(Poly::Vector::Single(1, modulus), R(0,0));
 
-	Poly::Integer negOne = n(0,0).GetModulus() - Poly::Integer::ONE;
+	Poly::Integer negOne = n(0,0).GetModulus() - 1;
 	Poly::Vector negOneVec = Poly::Vector::Single(negOne, modulus);
 	EXPECT_EQ(negOneVec, R(0,6));
 	EXPECT_EQ(negOneVec, R(1,7));
@@ -278,18 +282,18 @@ TEST(UTMatrix, rotate) {
     Matrix<Poly> n = Matrix<Poly>(fastIL2nAlloc(), 1, 2).Ones();
 
     n.SetFormat(COEFFICIENT);
-	n(0,0).SetValAtIndex(2, Poly::Integer::ONE);
+    n(0,0).at(2)= 1;
     Matrix<Poly::Integer> R = Rotate(n);
 	EXPECT_EQ(8U, R.GetRows());
 	EXPECT_EQ(16U, R.GetCols());
-	EXPECT_EQ(Poly::Integer::ONE, R(0,0));
+	EXPECT_EQ(BigInteger(1), R(0,0));
 
-	Poly::Integer negOne = n(0,0).GetModulus() - Poly::Integer::ONE;
+	Poly::Integer negOne = n(0,0).GetModulus() - 1;
 	EXPECT_EQ(negOne, R(0,6));
 	EXPECT_EQ(negOne, R(1,7));
 
-	EXPECT_EQ(BigInteger::ZERO, R(0,6 + 8));
-	EXPECT_EQ(BigInteger::ZERO, R(1,7 + 8));
+	EXPECT_EQ(BigInteger(0), R(0,6 + 8));
+	EXPECT_EQ(BigInteger(0), R(1,7 + 8));
 
 }
 

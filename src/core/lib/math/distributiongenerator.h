@@ -40,6 +40,8 @@
 #include <thread>
 #include "backend.h"
 
+//#define FIXED_SEED // if defined, then uses a fixed seed number for reproducable results during debug. Use only one OMP thread to ensure reproducability 
+
 namespace lbcrypto {
 
 /**
@@ -55,7 +57,19 @@ public:
 	static std::mt19937 &GetPRNG () {
 		std::call_once(m_flag, [] () {
 			std::random_device rd;
-			m_prng.reset(new std::mt19937(rd()));
+#if defined(FIXED_SEED)
+			//TP: Need reproducibility to debug NTL.
+			std::cerr << "**FOR DEBUGGING ONLY!!!!  Using fixed initializer for PRNG. Use a single thread only!" << std::endl;
+			std::mt19937 *gen;
+			gen = new std::mt19937(1);
+			gen->seed(1);
+			m_prng.reset(gen);
+
+#else			
+			//m_prng.reset(new std::mt19937(rd()));
+			m_prng.reset(new std::mt19937(time(0)));
+#endif		
+
 		});
 
 		return *m_prng;
@@ -63,7 +77,15 @@ public:
 
 private:
 	static std::once_flag 					m_flag;
+#if !defined(FIXED_SEED)
+	// avoid contention on m_flag 
+	#pragma omp threadprivate(m_flag)
+#endif
 	static std::shared_ptr<std::mt19937> 	m_prng;
+#if !defined(FIXED_SEED)
+	// avoid contention on m_prng 
+        #pragma omp threadprivate(m_prng)
+#endif
 };
 
 // Base class for Distribution Generator by type

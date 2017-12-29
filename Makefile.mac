@@ -1,6 +1,13 @@
 ## for mac OSx
 
+TAR := gnutar
+
 OMPINCLUDE := -I /opt/local/include/libomp -fopenmp
+
+ifneq ($(wildcard third-party/include), )
+  NTLLIB := third-party/lib/libntl.dylib
+  GMPLIB := third-party/lib/libgmp.dylib
+endif
 
 CPPSTD := -std=c++11 -stdlib=libc++ -fPIC
 CC := /opt/local/bin/clang++ $(CPPSTD)
@@ -8,7 +15,7 @@ BISON := /opt/local/bin/bison
 FLEX := /opt/local/bin/flex
 
 LIBSUFFIX := .dylib
-LIBCMD := -dynamiclib -undefined suppress -flat_namespace -fopenmp
+LIBCMD := $(CC) -dynamiclib -undefined suppress -flat_namespace -fopenmp -o #libname to follow
 
 RDYNAMIC := 
 

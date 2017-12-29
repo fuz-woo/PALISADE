@@ -57,7 +57,14 @@ public:
 	* @param modulus the modulus applied to all values of the vector.
 	* @return A vector of random values within the Ternary Uniform Distribution.
 	*/
-	VecType GenerateVector  (const usint size, const IntType &modulus) const;
+	VecType GenerateVector  (usint size, const IntType &modulus) const;
+
+	/**
+	* @brief      Returns a generated vector of integers.
+	* @param size The number of values to return.
+	* @return     A pointer to an array of integer values generated with the distribution.
+	*/
+	std::shared_ptr<int32_t> GenerateIntVector (usint size) const;
 
     virtual ~TernaryUniformGeneratorImpl() {}
 private:

@@ -28,7 +28,6 @@
 #include <vector>
 
 #include "palisade.h"
-#include "cryptolayertests.h"
 #include "cryptocontexthelper.h"
 #include "cryptocontextgen.h"
 
@@ -37,9 +36,12 @@ using namespace lbcrypto;
 
 class UTMultiparty : public ::testing::Test {
 protected:
-	virtual void SetUp() {}
+	void SetUp() {}
 
-	virtual void TearDown() {}
+	void TearDown() {
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+		CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+	}
 
 public:
 };
@@ -50,63 +52,44 @@ public:
 //static const usint TOWERS = 3;
 
 template <class Element>
-void
-UnitTestMultiparty(shared_ptr<CryptoContext<Element>> cc, bool publicVersion) {
+void UnitTestMultiparty(CryptoContext<Element> cc, bool publicVersion) {
 	
 	// Initialize Public Key Containers
-	LPKeyPair<Poly> kp1;
-	LPKeyPair<Poly> kp2;
-	LPKeyPair<Poly> kp3;
+	LPKeyPair<Element> kp1;
+	LPKeyPair<Element> kp2;
+	LPKeyPair<Element> kp3;
 
-	LPKeyPair<Poly> kpMultiparty;
+	LPKeyPair<Element> kpMultiparty;
 
-	shared_ptr<LPEvalKey<Poly>> evalKey1;
-	shared_ptr<LPEvalKey<Poly>> evalKey2;
-	shared_ptr<LPEvalKey<Poly>> evalKey3;
+	LPEvalKey<Element> evalKey1;
+	LPEvalKey<Element> evalKey2;
+	LPEvalKey<Element> evalKey3;
 	
 	////////////////////////////////////////////////////////////
 	// Perform Key Generation Operation
 	////////////////////////////////////////////////////////////
 
 	kp1 = cc->KeyGen();
-	kp2 = cc->MultipartyKeyGen(kp1.publicKey);
-	kp3 = cc->MultipartyKeyGen(kp1.publicKey);
+	kp2 = cc->MultipartyKeyGen(kp1.publicKey,false,true);
+	kp3 = cc->MultipartyKeyGen(kp1.publicKey,false,true);
 
-	if( !kp1.good() ) {
-		std::cout << "Key generation failed!" << std::endl;
-		exit(1);
-	}
-	if( !kp2.good() ) {
-		std::cout << "Key generation failed!" << std::endl;
-		exit(1);
-	}
-	if( !kp3.good() ) {
-		std::cout << "Key generation failed!" << std::endl;
-		exit(1);
-	}
-
-	//std::cout << "Press any key to continue." << std::endl;
-	//std::cin.get();
+	ASSERT_TRUE(kp1.good()) << "Key generation failed!";
+	ASSERT_TRUE(kp2.good()) << "Key generation failed!";
+	ASSERT_TRUE(kp3.good()) << "Key generation failed!";
 
 	////////////////////////////////////////////////////////////
 	//Perform the second key generation operation.
 	// This generates the keys which should be able to decrypt the ciphertext after the re-encryption operation.
 	////////////////////////////////////////////////////////////
 
-	vector<shared_ptr<LPPrivateKey<Poly>>> secretKeys;
+	vector<LPPrivateKey<Element>> secretKeys;
 	secretKeys.push_back(kp1.secretKey);
 	secretKeys.push_back(kp2.secretKey);
 	secretKeys.push_back(kp3.secretKey);
 
 	kpMultiparty = cc->MultipartyKeyGen(secretKeys);	// This is the same core key generation operation.
 
-	if( !kpMultiparty.good() ) {
-		std::cout << "Key generation failed!" << std::endl;
-		exit(1);
-	}
-
-	//std::cout << "Press any key to continue." << std::endl;
-	//std::cin.get();	
+	ASSERT_TRUE(kpMultiparty.good()) << "Key generation failed!";
 
 	////////////////////////////////////////////////////////////
 	//Perform the proxy re-encryption key generation operation.
@@ -117,47 +100,46 @@ UnitTestMultiparty(shared_ptr<CryptoContext<Element>> cc, bool publicVersion) {
 	evalKey2 = cc->ReKeyGen(kpMultiparty.secretKey, kp2.secretKey);
 	evalKey3 = cc->ReKeyGen(kpMultiparty.secretKey, kp3.secretKey);
 
-	//std::cout << "Press any key to continue." << std::endl;
-	//std::cin.get();	
-
-
 	////////////////////////////////////////////////////////////
 	// Encode source data
 	////////////////////////////////////////////////////////////
-/*
-	std::vector<uint32_t> vectorOfInts1 = {2,2,2,2,2,2,0,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts2 = {3,3,3,3,3,0,0,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts3 = {1,1,1,1,0,0,0,0,0,0,0,0};
-*/
-	std::vector<uint32_t> vectorOfInts1 = {1,1,1,1,1,1,1,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts2 = {1,0,0,1,1,0,0,0,0,0,0,0};
-	std::vector<uint32_t> vectorOfInts3 = {1,1,1,1,0,0,0,0,0,0,0,0};
-	IntPlaintextEncoding plaintext1(vectorOfInts1);
-	IntPlaintextEncoding plaintext2(vectorOfInts2);
-	IntPlaintextEncoding plaintext3(vectorOfInts3);
+	std::vector<int64_t> vectorOfInts1 = {1,1,1,1,1,1,1,0,0,0,0,0};
+	std::vector<int64_t> vectorOfInts2 = {1,0,0,1,1,0,0,0,0,0,0,0};
+	std::vector<int64_t> vectorOfInts3 = {1,1,1,1,0,0,0,0,0,0,0,0};
+	Plaintext plaintext1 = cc->MakeCoefPackedPlaintext(vectorOfInts1);
+	Plaintext plaintext2 = cc->MakeCoefPackedPlaintext(vectorOfInts2);
+	Plaintext plaintext3 = cc->MakeCoefPackedPlaintext(vectorOfInts3);
 
-	//std::vector<uint32_t> vectorOfIntsAdd = { 2, 1, 1, 3, 0, 0, 0, 0, 3, 0, 3, 3, 3, 3 };
-	//IntPlaintextEncoding plaintextAdd(vectorOfIntsAdd);
+	std::vector<int64_t> vectorOfIntsSum(vectorOfInts1.size());
+
+	int64_t half(cc->GetCryptoParameters()->GetPlaintextModulus()>>1);
+
+	for (size_t i=0; i<vectorOfInts1.size(); i++){
+		int64_t value = (vectorOfInts1[i] + vectorOfInts2[i]+ vectorOfInts3[i])%cc->GetCryptoParameters()->GetPlaintextModulus();
+		if (value > half)
+			value = value - cc->GetCryptoParameters()->GetPlaintextModulus();
+		vectorOfIntsSum[i] = value;
+	}
 
 	////////////////////////////////////////////////////////////
 	// Encryption
 	////////////////////////////////////////////////////////////
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext1;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext2;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext3;
+	Ciphertext<Element> ciphertext1;
+	Ciphertext<Element> ciphertext2;
+	Ciphertext<Element> ciphertext3;
 
-	ciphertext1 = cc->Encrypt(kp1.publicKey, plaintext1, true);
-	ciphertext2 = cc->Encrypt(kp2.publicKey, plaintext2, true);
-	ciphertext3 = cc->Encrypt(kp3.publicKey, plaintext3, true);
+	ciphertext1 = cc->Encrypt(kp1.publicKey, plaintext1);
+	ciphertext2 = cc->Encrypt(kp2.publicKey, plaintext2);
+	ciphertext3 = cc->Encrypt(kp3.publicKey, plaintext3);
 	
 	////////////////////////////////////////////////////////////
 	// Re-Encryption
 	////////////////////////////////////////////////////////////
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext1New;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext2New;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext3New;
+	Ciphertext<Element> ciphertext1New;
+	Ciphertext<Element> ciphertext2New;
+	Ciphertext<Element> ciphertext3New;
 
 	ciphertext1New = cc->ReEncrypt(evalKey1, ciphertext1);
 	ciphertext2New = cc->ReEncrypt(evalKey2, ciphertext2);
@@ -167,98 +149,79 @@ UnitTestMultiparty(shared_ptr<CryptoContext<Element>> cc, bool publicVersion) {
 	// EvalAdd Operation on Re-Encrypted Data
 	////////////////////////////////////////////////////////////
 
-	shared_ptr<Ciphertext<Poly>> ciphertextAddNew12;
-	shared_ptr<Ciphertext<Poly>> ciphertextAddNew123;
+	Ciphertext<Element> ciphertextAddNew12;
+	Ciphertext<Element> ciphertextAddNew;
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextAddVectNew;
-
-	ciphertextAddNew12 = cc->EvalAdd(ciphertext1New[0],ciphertext2New[0]);
-	ciphertextAddNew123 = cc->EvalAdd(ciphertextAddNew12,ciphertext3New[0]);
-
-	ciphertextAddVectNew.push_back(ciphertextAddNew123);
-
-	//std::cout << "Press any key to continue." << std::endl;
-	//std::cin.get();
+	ciphertextAddNew12 = cc->EvalAdd(ciphertext1New,ciphertext2New);
+	ciphertextAddNew = cc->EvalAdd(ciphertextAddNew12,ciphertext3New);
 
 	////////////////////////////////////////////////////////////
 	//Decryption after Accumulation Operation on Re-Encrypted Data
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding plaintextAddNew;
+	Plaintext plaintextAddNew;
 
-	cc->Decrypt(kpMultiparty.secretKey, ciphertextAddVectNew, &plaintextAddNew, true);
+	cc->Decrypt(kpMultiparty.secretKey, ciphertextAddNew, &plaintextAddNew);
 
-	//std::cin.get();
-
-	plaintextAddNew.resize(plaintext1.size());
-
-//	cout << "\n Resulting Added Plaintext with Re-Encryption: \n";
-//	cout << plaintextAddNew << endl;
+	plaintextAddNew->SetLength(plaintext1->GetLength());
 
 	////////////////////////////////////////////////////////////
 	//Decryption after Accumulation Operation on Re-Encrypted Data with Multiparty
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding plaintextAddNew1;
-	IntPlaintextEncoding plaintextAddNew2;
-	IntPlaintextEncoding plaintextAddNew3;
+	Plaintext plaintextAddNew1;
+	Plaintext plaintextAddNew2;
+	Plaintext plaintextAddNew3;
 
-	Poly partialPlaintext1;
-	Poly partialPlaintext2;
-	Poly partialPlaintext3;
-	//IntPlaintextEncoding plaintextAddNewFinal;
+	Element partialPlaintext1;
+	Element partialPlaintext2;
+	Element partialPlaintext3;
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextPartial1;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextPartial2;
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertextPartial3;
+	Plaintext plaintextMultipartyNew;
 
-	IntPlaintextEncoding plaintextMultipartyNew;
+	const shared_ptr<LPCryptoParameters<Element>> cryptoParams = kp1.secretKey->GetCryptoParameters();
+	const shared_ptr<typename Element::Params> elementParams = cryptoParams->GetElementParams();
 
-	const shared_ptr<LPCryptoParameters<Poly>> cryptoParams = kp1.secretKey->GetCryptoParameters();
-	const shared_ptr<typename Poly::Params> elementParams = cryptoParams->GetElementParams();
+	auto ciphertextPartial1 = cc->MultipartyDecryptLead(kp1.secretKey, {ciphertextAddNew});
+	auto ciphertextPartial2 = cc->MultipartyDecryptMain(kp2.secretKey, {ciphertextAddNew});
+	auto ciphertextPartial3 = cc->MultipartyDecryptMain(kp3.secretKey, {ciphertextAddNew});
 
-	ciphertextPartial1 = cc->MultipartyDecryptLead(kp1.secretKey, ciphertextAddVectNew);
-	ciphertextPartial2 = cc->MultipartyDecryptMain(kp2.secretKey, ciphertextAddVectNew);
-	ciphertextPartial3 = cc->MultipartyDecryptMain(kp3.secretKey, ciphertextAddVectNew);
+	vector<Ciphertext<Element>> partialCiphertextVec;
+	partialCiphertextVec.push_back(ciphertextPartial1[0]);
+	partialCiphertextVec.push_back(ciphertextPartial2[0]);
+	partialCiphertextVec.push_back(ciphertextPartial3[0]);
 
-	vector<vector<shared_ptr<Ciphertext<Poly>>>> partialCiphertextVec;
-	partialCiphertextVec.push_back(ciphertextPartial1);
-	partialCiphertextVec.push_back(ciphertextPartial2);
-	partialCiphertextVec.push_back(ciphertextPartial3);
+	cc->MultipartyDecryptFusion(partialCiphertextVec, &plaintextMultipartyNew);
 
-	cc->MultipartyDecryptFusion(partialCiphertextVec, &plaintextMultipartyNew, true);
+	plaintextMultipartyNew->SetLength(plaintext1->GetLength());
 
-	plaintextMultipartyNew.resize(plaintext1.size());
-
-//	cout << "\n Resulting Fused Plaintext with Re-Encryption: \n";
-//	cout << plaintextMultipartyNew << endl;
-
-	EXPECT_EQ(plaintextAddNew, plaintextMultipartyNew) << "Multiparty integer plaintext";
+	EXPECT_EQ(vectorOfIntsSum, plaintextMultipartyNew->GetCoefPackedValue()) << "Multiparty: Does not match plaintext addition.";
+	EXPECT_EQ(plaintextAddNew->GetCoefPackedValue(), plaintextMultipartyNew->GetCoefPackedValue()) << "Multiparty: Does not match the results of direction encryption.";
 }
 
-//TEST(UTMultiparty, LTV_Poly_Multiparty_pub) {
-//	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementLTV(ORDER, PTM);
+//TEST_F(UTMultiparty, LTV_Poly_Multiparty_pub) {
+//	CryptoContext<Poly> cc = GenCryptoContextElementLTV(ORDER, PTM);
 //	UnitTestMultiparty<Poly>(cc, true);
 //}
 //
-//TEST(UTMultiparty, LTV_DCRTPoly_Multiparty_pub) {
+//TEST_F(UTMultiparty, LTV_DCRTPoly_Multiparty_pub) {
 //	CryptoContext<DCRTPoly> cc = GenCryptoContextElementArrayLTV(ORDER, TOWERS, PTM);
 //	UnitTestMultiparty<DCRTPoly>(cc, true);
 //}
 
-//TEST(UTMultiparty, StSt_Poly_Multiparty_pub) {
-//	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementStSt(ORDER, PTM);
+//TEST_F(UTMultiparty, StSt_Poly_Multiparty_pub) {
+//	CryptoContext<Poly> cc = GenCryptoContextElementStSt(ORDER, PTM);
 //	UnitTestMultiparty<Poly>(cc, true);
 //}
 //
-//TEST(UTMultiparty, StSt_DCRTPoly_Multiparty_pub) {
+//TEST_F(UTMultiparty, StSt_DCRTPoly_Multiparty_pub) {
 //	CryptoContext<DCRTPoly> cc = GenCryptoContextElementArrayStSt(ORDER, TOWERS, PTM);
 //	UnitTestMultiparty<DCRTPoly>(cc, true);
 //}
 
-//TEST(UTMultiparty, Null_Poly_Multiparty_pri) {
+//TEST_F(UTMultiparty, Null_Poly_Multiparty_pri) {
 //	string input = "NULL";
-	//shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+	//CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	//cc->Enable(ENCRYPTION);
 	//cc->Enable(SHE);
 	//cc->Enable(PRE);
@@ -266,24 +229,24 @@ UnitTestMultiparty(shared_ptr<CryptoContext<Element>> cc, bool publicVersion) {
 	//UnitTestMultiparty<Poly>(cc, true);
 //}
 
-//TEST(UTMultiparty, Null_DCRTPoly_Multiparty_pri) {
+//TEST_F(UTMultiparty, Null_DCRTPoly_Multiparty_pri) {
 //	CryptoContext<DCRTPoly> cc = GenCryptoContextElementArrayNull(ORDER, TOWERS, PTM, 30);
 //	UnitTestMultiparty<DCRTPoly>(cc, true);
 //}
 
-//TEST(UTMultiparty, BV_Poly_Multiparty_pri) {
-//	shared_ptr<CryptoContext<Poly>> cc = GenCryptoContextElementBV(ORDER, PTM);
+//TEST_F(UTMultiparty, BGV_Poly_Multiparty_pri) {
+//	CryptoContext<Poly> cc = GenCryptoContextElementBGV(ORDER, PTM);
 //	UnitTestMultiparty<Poly>(cc, false);
 //}
 
-//TEST(UTMultiparty, BV_DCRTPoly_Multiparty_pri) {
-//	CryptoContext<DCRTPoly> cc = GenCryptoContextElementArrayBV(ORDER, TOWERS, PTM);
+//TEST_F(UTMultiparty, BGV_DCRTPoly_Multiparty_pri) {
+//	CryptoContext<DCRTPoly> cc = GenCryptoContextElementArrayBGV(ORDER, TOWERS, PTM);
 //	UnitTestMultiparty<DCRTPoly>(cc, false);
 //}
 
-TEST(UTMultiparty, FV1_Poly_Multiparty_pri) {
-	string input = "FV1";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+TEST_F(UTMultiparty, BFV1_Poly_Multiparty_pri) {
+	string input = "BFV1";
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -291,9 +254,9 @@ TEST(UTMultiparty, FV1_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, FV2_Poly_Multiparty_pri) {
-	string input = "FV2";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+TEST_F(UTMultiparty, BFV2_Poly_Multiparty_pri) {
+	string input = "BFV2";
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -301,9 +264,27 @@ TEST(UTMultiparty, FV2_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, BV1_Poly_Multiparty_pri) {
-	string input = "BV1";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+TEST_F(UTMultiparty, BFVrns_RLWE_DCRTPoly_Multiparty_pri) {
+	CryptoContext<DCRTPoly> cc = GenCryptoContextBFVrns<DCRTPoly>(4, RLWE);
+	cc->Enable(ENCRYPTION);
+	cc->Enable(SHE);
+	cc->Enable(PRE);
+	cc->Enable(MULTIPARTY);
+	UnitTestMultiparty<DCRTPoly>(cc, true);
+}
+
+TEST_F(UTMultiparty, BFVrns2_OPTIMIZED_DCRTPoly_Multiparty_pri) {
+	CryptoContext<DCRTPoly> cc = GenCryptoContextBFVrns<DCRTPoly>(16, OPTIMIZED);
+	cc->Enable(ENCRYPTION);
+	cc->Enable(SHE);
+	cc->Enable(PRE);
+	cc->Enable(MULTIPARTY);
+	UnitTestMultiparty<DCRTPoly>(cc, true);
+}
+
+TEST_F(UTMultiparty, BGV1_Poly_Multiparty_pri) {
+	string input = "BGV1";
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -311,9 +292,9 @@ TEST(UTMultiparty, BV1_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, BV2_Poly_Multiparty_pri) {
-	string input = "BV2";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+TEST_F(UTMultiparty, BGV2_Poly_Multiparty_pri) {
+	string input = "BGV2";
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -321,9 +302,9 @@ TEST(UTMultiparty, BV2_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, BV3_Poly_Multiparty_pri) {
-	string input = "BV3";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+TEST_F(UTMultiparty, BGV3_Poly_Multiparty_pri) {
+	string input = "BGV3";
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -331,9 +312,9 @@ TEST(UTMultiparty, BV3_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, BV4_Poly_Multiparty_pri) {
-	string input = "BV4";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+TEST_F(UTMultiparty, BGV4_Poly_Multiparty_pri) {
+	string input = "BGV4";
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -341,9 +322,9 @@ TEST(UTMultiparty, BV4_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, BV5_Poly_Multiparty_pri) {
-	string input = "BV5";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+TEST_F(UTMultiparty, BGV5_Poly_Multiparty_pri) {
+	string input = "BGV5";
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -351,9 +332,9 @@ TEST(UTMultiparty, BV5_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, Null_Poly_Multiparty_pri) {
+TEST_F(UTMultiparty, Null_Poly_Multiparty_pri) {
 	string input = "Null";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -361,9 +342,9 @@ TEST(UTMultiparty, Null_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-TEST(UTMultiparty, Null2_Poly_Multiparty_pri) {
+TEST_F(UTMultiparty, Null2_Poly_Multiparty_pri) {
 	string input = "Null2";
-	shared_ptr<CryptoContext<Poly>> cc = CryptoContextHelper::getNewContext(input);
+	CryptoContext<Poly> cc = CryptoContextHelper::getNewContext(input);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 	cc->Enable(PRE);
@@ -371,7 +352,7 @@ TEST(UTMultiparty, Null2_Poly_Multiparty_pri) {
 	UnitTestMultiparty<Poly>(cc, true);
 }
 
-//TEST(UTMultiparty, FV_DCRTPoly_Multiparty_pri) {
-//	CryptoContext<DCRTPoly> cc = GenCryptoContextElementArrayFV(ORDER, TOWERS, PTM);
+//TEST_F(UTMultiparty, BFV_DCRTPoly_Multiparty_pri) {
+//	CryptoContext<DCRTPoly> cc = GenCryptoContextElementArrayBFV(ORDER, TOWERS, PTM);
 //	UnitTestMultiparty<DCRTPoly>(cc, false);
 //}

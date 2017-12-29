@@ -1,0 +1,86 @@
+#Makefile to build and install gmp in palisade
+
+
+
+
+
+TAR ?= tar 
+
+#note change the following directory to the correct one on your install
+
+PALISADE_DIR := $(PWD)
+GMP_VER :=6.1.2
+
+#check if the palisade directory is correct
+#ifneq ($(wildcard $(PALISADE_DIR)), )
+# $(info Makefile.gmp running)
+#else
+# $(info Makefile.gmp needs to be updated for correct PALISADE_DIR directory)
+#endif
+
+THIRD_PARTY_DIR := $(PALISADE_DIR)/third-party
+DISTROS_DIR := $(THIRD_PARTY_DIR)/distros
+GMP_DISTRO_DIR := $(DISTROS_DIR)/gmp-$(GMP_VER)
+
+
+
+
+#check if gmp has been unpacked into the correct directory
+# and installs it if not.
+ifneq ($(wildcard $(THIRD_PARTY_DIR)/distros/gmp-$(GMP_VER)), )
+ #$(info Makefile.gmp: GMP already unpacked)
+ GMP_UNPACK_NEEDED := 
+else
+ #$(info Makefile.gmp: unpacking GMP)
+ GMP_UNPACK_NEEDED := gmp_unpack
+endif
+
+#check if gmp has been installed into the correct directory
+# and installs it if not.
+ifneq ($(wildcard $(THIRD_PARTY_DIR)/lib/libgmp.a), )
+ #$(info Makefile.gmp: GMP already installed)
+ GMP_CONFIG_NEEDED := 
+ GMP_MAKE_NEEDED := 
+ GMP_CHECK_NEEDED :=
+ GMP_INSTALL_NEEDED :=
+else
+ #$(info Makefile.gmp: installing GMP)
+ GMP_CONFIG_NEEDED := gmp_config
+ GMP_MAKE_NEEDED := gmp_make
+ #GMP_CHECK_NEEDED := gmp_check
+ GMP_INSTALL_NEEDED := gmp_install
+endif
+
+$(GMPLIB): gmp_all
+
+gmp_all: $(GMP_UNPACK_NEEDED) $(GMP_CONFIG_NEEDED) $(GMP_MAKE_NEEDED) $(GMP_CHECK_NEEDED) $(GMP_INSTALL_NEEDED)
+
+gmp_unpack: 
+	@echo 'Unpacking gmp for Palisade into $(GMP_DISTRO_DIR)'
+	cd $(DISTROS_DIR);\
+	$(TAR) xf ./gmp-$(GMP_VER).tar.lz
+
+gmp_config: $(GMP_UNPACK_NEEDED)
+	@echo 'Configuring gmp for Palisade in $(GMP_DISTRO_DIR)'
+	cd $(GMP_DISTRO_DIR); \
+	./configure --prefix=$(THIRD_PARTY_DIR);
+
+gmp_make: gmp_config
+	@echo 'making gmp for Palisade in $(GMP_DISTRO_DIR)'
+	cd $(GMP_DISTRO_DIR); \
+	$(MAKE)
+
+gmp_check: $(GMP_MAKE_NEEDED)
+	@echo 'checking gmp for Palisade in $(GMP_DISTRO_DIR)'
+	cd $(GMP_DISTRO_DIR); \
+	$(MAKE) check
+gmp_install: $(GMP_CHECK_NEEDED) $(GMP_MAKE_NEEDED)
+	@echo 'installing gmp for Palisade in $(THIRD_PARTY_DIR)'
+	cd $(GMP_DISTRO_DIR); \
+	$(MAKE) install
+clean_gmp:
+	@echo 'Cleaning gmp installation'
+	cd $(DISTROS_DIR);\
+	$(RM) -rf gmp-$(GMP_VER)
+	cd $(THIRD_PARTY_DIR); \
+	$(RM) -rf include lib share

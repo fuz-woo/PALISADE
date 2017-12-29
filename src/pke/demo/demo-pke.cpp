@@ -25,7 +25,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @section DESCRIPTION
- * Demo software for FV multiparty operations.
+ * Demo software for BFV multiparty operations.
  *
  */
 
@@ -37,8 +37,6 @@
 
 #include "palisade.h"
 #include "cryptocontexthelper.h"
-#include "cryptocontextgen.h"
-#include "encoding/byteplaintextencoding.h"
 #include "utils/debug.h"
 #include "utils/serializablehelper.h"
 
@@ -55,19 +53,19 @@ int main(int argc, char *argv[]) {
 	double diff, start, finish;
 
 
-	std::cout << "\nThis code demonstrates the use of the FV, BV, StSt, Null and LTV schemes for basic public-key encryption. " << std::endl;
+	std::cout << "\nThis code demonstrates the use of the BFV, BGV, StSt, Null and LTV schemes for basic public-key encryption. " << std::endl;
 	std::cout << "This code shows how to use schemes and pre-computed parameters for those schemes can be selected during run-time. " << std::endl;
 	std::cout << "We do not generally recommend the use of the LTV scheme due to security concerns. " << std::endl;
 	
 	std::cout << "Choose parameter set: ";
-	CryptoContextHelper::printAllParmSetNames(std::cout);
+	CryptoContextHelper::printParmSetNamesByExcludeFilter(std::cout,"BFVrns");
 
 	string input;
 	std::cin >> input;
 
 	start = currentDateTime();
 
-	shared_ptr<CryptoContext<Poly>> cryptoContext = CryptoContextHelper::getNewContext(input);
+	CryptoContext<Poly> cryptoContext = CryptoContextHelper::getNewContext(input);
 	if( !cryptoContext ) {
 		cout << "Error on " << input << endl;
 		return 0;
@@ -78,8 +76,6 @@ int main(int argc, char *argv[]) {
 
 	cout << "Param generation time: " << "\t" << diff << " ms" << endl;
 
-	//cryptoContext<Poly> cryptoContext = GencryptoContextElementLTV(ORDER, PTM);
-
 	//Turn on features
 	cryptoContext->Enable(ENCRYPTION);
 
@@ -87,9 +83,6 @@ int main(int argc, char *argv[]) {
 	std::cout << "n = " << cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder() / 2 << std::endl;
 	std::cout << "log2 q = " << log2(cryptoContext->GetCryptoParameters()->GetElementParams()->GetModulus().ConvertToDouble()) << std::endl;
 
-	//std::cout << "Press any key to continue." << std::endl;
-	//std::cin.get();
-	
 	// Initialize Public Key Containers
 	LPKeyPair<Poly> keyPair;
 	
@@ -116,19 +109,19 @@ int main(int argc, char *argv[]) {
 	// Encode source data
 	////////////////////////////////////////////////////////////
 
-	std::vector<uint32_t> vectorOfInts = {1,1,1,0,1,1,0,1,0,0,0,0};
-	IntPlaintextEncoding plaintext(vectorOfInts);
+	std::vector<int64_t> vectorOfInts = {1,1,1,0,1,1,0,1,0,0,0,0};
+	Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(vectorOfInts);
 
 	////////////////////////////////////////////////////////////
 	// Encryption
 	////////////////////////////////////////////////////////////
 
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext;
+	Ciphertext<Poly> ciphertext;
 
 	start = currentDateTime();
 
-	ciphertext = cryptoContext->Encrypt(keyPair.publicKey, plaintext, true);
+	ciphertext = cryptoContext->Encrypt(keyPair.publicKey, plaintext);
 	
 	finish = currentDateTime();
 	diff = finish - start;
@@ -138,28 +131,28 @@ int main(int argc, char *argv[]) {
 	//Decryption of Ciphertext
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding plaintextDec;
+	Plaintext plaintextDec;
 
 	start = currentDateTime();
 
-	cryptoContext->Decrypt(keyPair.secretKey, ciphertext, &plaintextDec, true);
+	cryptoContext->Decrypt(keyPair.secretKey, ciphertext, &plaintextDec);
 
 	finish = currentDateTime();
 	diff = finish - start;
 	cout << "Decryption time: " << "\t" << diff << " ms" << endl;
 
-	//std::cin.get();
+	plaintextDec->SetLength(plaintext->GetLength());
 
-	plaintextDec.resize(plaintext.size());
+	if( *plaintext != *plaintextDec )
+		cout << "Decryption failed!" << endl;
 
 	cout << "\n Original Plaintext: \n";
-	cout << plaintext << endl;
+	cout << *plaintext << endl;
 
 	cout << "\n Resulting Decryption of Ciphertext: \n";
-	cout << plaintextDec << endl;
+	cout << *plaintextDec << endl;
 
 	cout << "\n";
-
 
 	////////////////////////////////////////////////////////////
 	// Done

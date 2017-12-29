@@ -96,15 +96,15 @@ int main() {
 	dftVec.at(63) = std::complex<double>(3, 0);
 	
 
-	DiscreteFourierTransform::GetInstance().PreComputeTable(128);
+	DiscreteFourierTransform::PreComputeTable(128);
 
 	double start = currentDateTime();
-	std::vector<std::complex<double>> dftVec2 = DiscreteFourierTransform::GetInstance().ForwardTransform(dftVec);
+	std::vector<std::complex<double>> dftVec2 = DiscreteFourierTransform::ForwardTransform(dftVec);
 	double end = currentDateTime();
 	std::cout << "Without table: " << end - start << " ms" << std::endl;
 
 	start = currentDateTime();
-	std::vector<std::complex<double>> dftVec3 = DiscreteFourierTransform::GetInstance().ForwardTransform(dftVec);
+	std::vector<std::complex<double>> dftVec3 = DiscreteFourierTransform::ForwardTransform(dftVec);
 	end = currentDateTime();
 	std::cout << "With table: " << end - start << " ms" << std::endl<<std::endl;
 

@@ -43,19 +43,6 @@
 
 using namespace lbcrypto;
 
-template<typename Params, typename Integer>
-inline shared_ptr<Params> GenerateTestParams(usint m, const Integer& modulus, const Integer& rootOfUnity) {
-	return shared_ptr<Params>(new Params(m, modulus, rootOfUnity));
-}
-
-
-template<typename Params, typename Integer>
-inline shared_ptr<Params> GenerateTestParams(usint m, usint nbits) {
-	Integer modulus = FirstPrime<Integer>(nbits, m);
-	Integer rootOfUnity = RootOfUnity<Integer>(m, modulus);
-	return shared_ptr<Params>(new Params(m, modulus, rootOfUnity));
-}
-
 /**
  * Generate an ILDCRTParams with a given number of parms, with cyphertext moduli of at least a given size
  * @param m - order
@@ -63,17 +50,15 @@ inline shared_ptr<Params> GenerateTestParams(usint m, usint nbits) {
  * @param pbits - number of bits in the prime, to start with
  * @return
  */
-inline shared_ptr<ILDCRTParams<BigInteger>> GenerateDCRTParams(usint m, usint ptm, usint numOfTower, usint pbits) {
+inline shared_ptr<ILDCRTParams<BigInteger>> GenerateDCRTParams(usint m, usint numOfTower, usint pbits) {
 
 	if( numOfTower == 0 )
 		throw std::logic_error("Can't make parms with numOfTower == 0 ");
 
-	std::vector<native_int::BigInteger> moduli(numOfTower);
-	std::vector<native_int::BigInteger> rootsOfUnity(numOfTower);
+	std::vector<NativeInteger> moduli(numOfTower);
+	std::vector<NativeInteger> rootsOfUnity(numOfTower);
 
-	native_int::BigInteger ptmI( ptm );
-
-	native_int::BigInteger q = FirstPrime<native_int::BigInteger>(pbits, m);
+	NativeInteger q = FirstPrime<NativeInteger>(pbits, m);
 	BigInteger modulus(1);
 
 	usint j = 0;

@@ -64,84 +64,70 @@ protected:
 /************************************************/
 /* TESTING BASIC MATH METHODS AND OPERATORS     */
 /************************************************/
-TEST(UTNative64Int,basic_math){
-	if( MATH_NATIVEBITS == 0 )
-		SUCCEED();
+TEST(UTNativeInteger,basic_math){
 
   /************************************************/
   /* TESTING METHOD PLUS FOR ALL CONDITIONS       */
   /************************************************/
   // The method "Plus" does addition on two BigIntegers a,b
   // Returns a+b, which is stored in another BigInteger
-  // calculatedResult ConvertToInt converts native_int::BigInteger
+  // calculatedResult ConvertToInt converts NativeInteger
   // calculatedResult to integer
 
-  native_int::BigInteger calculatedResult;
+  NativeInteger calculatedResult;
   uint64_t expectedResult;
-  // TEST CASE WHEN FIRST NUMBER IS GREATER THAN SECOND NUMBER AND MSB
-  // HAS NO OVERFLOW
+  // TEST CASE WHEN FIRST NUMBER IS GREATER THAN SECOND NUMBER, NO OVERFLOW
   {
-    native_int::BigInteger a("203450");
-    native_int::BigInteger b("2034");
+    NativeInteger a("203450");
+    NativeInteger b("2034");
 
     calculatedResult = a.Plus(b);
     expectedResult = 205484;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
-      << "Failure testing plus_a_greater_than_b";
+    	<< "Failure testing Plus a_>_b";
+
+    calculatedResult = a + b;
+    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    	<< "Failure testing + a_>_b";
   }
-  // TEST CASE WHEN FIRST NUMBER IS LESS THAN SECOND NUMBER AND MSB
-  // HAS NO OVERFLOW
+  // TEST CASE WHEN FIRST NUMBER IS LESS THAN SECOND NUMBER, NO OVERFLOW
   {
-    native_int::BigInteger a("2034");
-    native_int::BigInteger b("203450");
+    NativeInteger a("2034");
+    NativeInteger b("203450");
 
 
     calculatedResult = a.Plus(b);
     expectedResult = 205484;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
-      << "Failure testing plus_a_less_than_b";
+    	<< "Failure testing Plus a_<_b";
+
+    calculatedResult = a + b;
+    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    	<< "Failure testing + a_<_b";
   }
-  // TEST CASE WHEN MSB OF THE RESULT HAS BIT-OVERFLOW TO THE NEXT
-  // BYTE
+  // TEST CASE with overflow
   {
-    native_int::BigInteger a("768900");
-    native_int::BigInteger b("16523408");
+    NativeInteger a(((uint64_t)1)<<63);
+    NativeInteger b(a);
 
-    calculatedResult = a.Plus(b);
-    expectedResult = 17292308;
+    EXPECT_THROW(a.Plus(b), lbcrypto::math_error)
+    	<< "Failure testing Plus with overflow";
 
-    EXPECT_EQ(expectedResult,calculatedResult.ConvertToInt())
-      << "Failure testing overflow_to_next_byte";
-  }
-  // TEST CASE WHEN MSB OF THE RESULT HAS BIT-OVERFLOW IN THE SAME
-  // BYTE
-  {
-    native_int::BigInteger a("35");
-    native_int::BigInteger b("1015");
-
-    calculatedResult = a.Plus(b);
-    expectedResult = 1050;
-
-    EXPECT_EQ(expectedResult,calculatedResult.ConvertToInt())
-      << "Failure testing plus_no_overflow_to_next_byte";
+    EXPECT_THROW((a+b), lbcrypto::math_error)
+    	<< "Failure testing + with overflow";
   }
 
   /************************************************/
   /* TESTING OPERATOR += FOR ALL CONDITIONS       */
   /************************************************/
 
-  // The operator "+=(Plus Equals)" does addition of two Big
-  // Integers a,b Calculates a+b, and stores result in a ConvertToInt
-  // converts native_int::BigInteger a to integer
-
-
   // TEST CASE WHEN FIRST NUMBER IS GREATER THAN SECOND NUMBER AND MSB
   // HAS NO OVERFLOW
   {
-    native_int::BigInteger a("2034");
-    native_int::BigInteger b("203");
+    NativeInteger a("2034");
+    NativeInteger b("203");
 
     a+=b;
     expectedResult = 2237;
@@ -152,8 +138,8 @@ TEST(UTNative64Int,basic_math){
   // TEST CASE WHEN FIRST NUMBER IS LESS THAN SECOND NUMBER AND MSB
   // HAS NO OVERFLOW
   {
-    native_int::BigInteger a("2034");
-    native_int::BigInteger b("203450");
+    NativeInteger a("2034");
+    NativeInteger b("203450");
 
     a+=b;
     expectedResult = 205484;
@@ -161,30 +147,15 @@ TEST(UTNative64Int,basic_math){
     EXPECT_EQ(expectedResult, a.ConvertToInt())
       << "Falure testing plus_equals_a_less_than_b";
   }
-  // TEST CASE WHEN MSB OF THE RESULT HAS BIT-OVERFLOW TO THE NEXT
-  // BYTE
+  // TEST CASE WITH OVERFLOW
   {
-    native_int::BigInteger a("768900");
-    native_int::BigInteger b("16523408");
+    NativeInteger a(((uint64_t)1)<<63);
+    NativeInteger b(a);
 
-    a+=b;
-    expectedResult = 17292308;
-
-    EXPECT_EQ(expectedResult,a.ConvertToInt())
-      << "Falure testing plus_equals_overflow_to_next_byte";
+    EXPECT_THROW((a+=b), lbcrypto::math_error)
+      << "Falure testing plus_equals_overflow";
   }
-  // TEST CASE WHEN MSB OF THE RESULT HAS BIT-OVERFLOW IN THE SAME
-  // BYTE
-  {
-    native_int::BigInteger a("35");
-    native_int::BigInteger b("1015");
 
-    a+=b;
-    expectedResult = 1050;
-
-    EXPECT_EQ(expectedResult,a.ConvertToInt())
-      << "Falure testing plus_equals_no_overflow_to_next_byte";
-  }
   /************************************************/
   /* TESTING METHOD MINUS FOR ALL CONDITIONS      */
   /************************************************/
@@ -193,13 +164,13 @@ TEST(UTNative64Int,basic_math){
   // Returns a-b, which is stored in another BigInteger
   // calculatedResult When a<b, the result is 0, since there is no
   // support for negative numbers as of now ConvertToInt converts
-  // native_int::BigInteger calculatedResult to integer
+  // NativeInteger calculatedResult to integer
 
   {
     // TEST CASE WHEN FIRST NUMBER IS LESS THAN THE SECOND NUMBER
 
-    native_int::BigInteger a("20489");
-    native_int::BigInteger b("2034455");
+    NativeInteger a("20489");
+    NativeInteger b("2034455");
 
     calculatedResult = a.Minus(b);
     expectedResult = 0;
@@ -211,8 +182,8 @@ TEST(UTNative64Int,basic_math){
   }
   // TEST CASE WHEN FIRST NUMBER IS EQUAL TO THE SECOND NUMBER
   {
-    native_int::BigInteger a("2048956567");
-    native_int::BigInteger b("2048956567");
+    NativeInteger a("2048956567");
+    NativeInteger b("2048956567");
 
     calculatedResult = a.Minus(b);
     expectedResult = 0;
@@ -222,8 +193,8 @@ TEST(UTNative64Int,basic_math){
   }
   // TEST CASE WHEN FIRST NUMBER IS GREATER THAN THE SECOND NUMBER
   {
-    native_int::BigInteger a("2048956567");
-    native_int::BigInteger b("2034455");
+    NativeInteger a("2048956567");
+    NativeInteger b("2034455");
 
     calculatedResult = a.Minus(b);
     expectedResult = 2046922112;
@@ -233,8 +204,8 @@ TEST(UTNative64Int,basic_math){
   }
   // TEST CASE WHEN SUBTRACTION NEEDS BORROW FROM NEXT BYTE
   {
-    native_int::BigInteger a("196737");
-    native_int::BigInteger b("65406");
+    NativeInteger a("196737");
+    NativeInteger b("65406");
 
     calculatedResult = a.Minus(b);
     expectedResult = 131331;
@@ -250,12 +221,12 @@ TEST(UTNative64Int,basic_math){
   // The operator "-=(Minus Equals)" does subtractionn of two Big
   // Integers a,b Calculates a-b, and stores result in a Results to 0,
   // when a<b, since there is no concept of negative number as of now
-  // ConvertToInt converts native_int::BigInteger a to integer
+  // ConvertToInt converts NativeInteger a to integer
   {
     // TEST CASE WHEN FIRST NUMBER IS LESS THAN THE SECOND NUMBER
 
-    native_int::BigInteger a("20489");
-    native_int::BigInteger b("2034455");
+    NativeInteger a("20489");
+    NativeInteger b("2034455");
 
     a-=b;
     expectedResult = 0;
@@ -267,8 +238,8 @@ TEST(UTNative64Int,basic_math){
   }
   // TEST CASE WHEN FIRST NUMBER IS EQUAL TO THE SECOND NUMBER
   {
-    native_int::BigInteger a("2048956567");
-    native_int::BigInteger b("2048956567");
+    NativeInteger a("2048956567");
+    NativeInteger b("2048956567");
 
     a-=b;
     expectedResult = 0;
@@ -279,8 +250,8 @@ TEST(UTNative64Int,basic_math){
   // TEST CASE WHEN FIRST NUMBER IS GREATER THAN THE SECOND NUMBER
   {
 
-    native_int::BigInteger a("2048956567");
-    native_int::BigInteger b("2034455");
+    NativeInteger a("2048956567");
+    NativeInteger b("2034455");
 
     a-=b;
     expectedResult = 2046922112;
@@ -290,8 +261,8 @@ TEST(UTNative64Int,basic_math){
   }
   // TEST CASE WHEN SUBTRACTION NEEDS BORROW FROM NEXT BYTE
   {
-    native_int::BigInteger a("196737");
-    native_int::BigInteger b("65406");
+    NativeInteger a("196737");
+    NativeInteger b("65406");
 
     a-=b;
     expectedResult = 131331;
@@ -306,12 +277,12 @@ TEST(UTNative64Int,basic_math){
 
   // The method "Times" does multiplication on two BigIntegers
   // a,b Returns a*b, which is stored in another BigInteger
-  // calculatedResult ConvertToInt converts native_int::BigInteger
+  // calculatedResult ConvertToInt converts NativeInteger
   // calculatedResult to integer
   {
     //ask about the branching if (b.m_MSB==0 or 1)
-    native_int::BigInteger a("1967");
-    native_int::BigInteger b("654");
+    NativeInteger a("1967");
+    NativeInteger b("654");
 
     calculatedResult = a.Times(b);
     expectedResult = 1286418;
@@ -326,15 +297,15 @@ TEST(UTNative64Int,basic_math){
   // The method "Divided By" does division of BigInteger a by
   // another BigInteger b Returns a/b, which is stored in another
   // BigInteger calculatedResult ConvertToInt converts
-  // native_int::BigInteger calculatedResult to integer When b=0, throws
+  // NativeInteger calculatedResult to integer When b=0, throws
   // error, since division by Zero is not allowed When a<b, returns 0,
   // since decimal value is not returned
 
 
   // TEST CASE WHEN FIRST NUMBER IS LESS THAN THE SECOND NUMBER
   {
-    native_int::BigInteger a("2048");
-    native_int::BigInteger b("2034455");
+    NativeInteger a("2048");
+    NativeInteger b("2034455");
 
     calculatedResult = a.DividedBy(b);
     expectedResult = 0;
@@ -346,8 +317,8 @@ TEST(UTNative64Int,basic_math){
   // TEST CASE WHEN FIRST NUMBER IS EQUAL TO THE SECOND NUMBER
   {
 
-    native_int::BigInteger a("2048956567");
-    native_int::BigInteger b("2048956567");
+    NativeInteger a("2048956567");
+    NativeInteger b("2048956567");
 
     calculatedResult = a.DividedBy(b);
     expectedResult = 1;
@@ -357,8 +328,8 @@ TEST(UTNative64Int,basic_math){
   }
   // TEST CASE WHEN FIRST NUMBER IS GREATER THAN THE SECOND NUMBER
   {
-    native_int::BigInteger a("2048956567");
-    native_int::BigInteger b("2034455");
+    NativeInteger a("2048956567");
+    NativeInteger b("2034455");
 
     calculatedResult = a.DividedBy(b);
     expectedResult = 1007;
@@ -369,8 +340,8 @@ TEST(UTNative64Int,basic_math){
 
 
   {
-	  native_int::BigInteger a("8096");
-	  native_int::BigInteger b("4049");
+	  NativeInteger a("8096");
+	  NativeInteger b("4049");
 
 	  calculatedResult = a.Mod(b);
 	  expectedResult = 4047;
@@ -382,8 +353,8 @@ TEST(UTNative64Int,basic_math){
   // TEST CASE FOR VERIFICATION OF ROUNDING OPERATION.
 
   {
-	  native_int::BigInteger a("8096");
-	  native_int::BigInteger b("4049");
+	  NativeInteger a("8096");
+	  NativeInteger b("4049");
 
 	  calculatedResult = a.DivideAndRound(b);
 	  expectedResult = 2;
@@ -393,8 +364,8 @@ TEST(UTNative64Int,basic_math){
   }
 
   /*{
-    native_int::BigInteger a("204");
-    native_int::BigInteger b("210");
+    NativeInteger a("204");
+    NativeInteger b("210");
 
     calculatedResult = a.DivideAndRound(b);
     expectedResult = 1;
@@ -405,8 +376,8 @@ TEST(UTNative64Int,basic_math){
 
   // TEST CASE FOR VERIFICATION OF ROUNDING OPERATION.
   {
-	  native_int::BigInteger a("100");
-	  native_int::BigInteger b("210");
+	  NativeInteger a("100");
+	  NativeInteger b("210");
 
 	  calculatedResult = a.DivideAndRound(b);
 	  expectedResult = 0;
@@ -417,9 +388,9 @@ TEST(UTNative64Int,basic_math){
 
   // TEST CASE FOR VERIFICATION OF ROUNDING OPERATION.
   /*{
-    native_int::BigInteger a("4048");
-    native_int::BigInteger b("4049");
-    native_int::BigInteger c("2");
+    NativeInteger a("4048");
+    NativeInteger b("4049");
+    NativeInteger c("2");
 
     calculatedResult = a.MultiplyAndRound(c, b);
     expectedResult = 2;
@@ -429,7 +400,7 @@ TEST(UTNative64Int,basic_math){
   }*/
 }
 
-TEST(UTNative64Int,basic_compare){
+TEST(UTNativeInteger,basic_compare){
 
   /************************************************/
   /* TESTING BASIC COMPARATOR METHODS AND OPERATORS */
@@ -448,13 +419,13 @@ TEST(UTNative64Int,basic_compare){
   // Result is stored in signed integer, and then the result is
   // typecasted to int as EXPECT_EQ takes integer
 
-  sint c;
-  sint expectedResult;
+  int c;
+  int expectedResult;
 
   // TEST CASE WHEN FIRST NUMBER IS GREATER THAN SECOND NUMBER
   {
-    native_int::BigInteger a("112504");
-    native_int::BigInteger b("46968");
+    NativeInteger a("112504");
+    NativeInteger b("46968");
 
     c = a.Compare(b);
     expectedResult = 1;
@@ -464,8 +435,8 @@ TEST(UTNative64Int,basic_compare){
   }
   // TEST CASE WHEN FIRST NUMBER IS LESS THAN SECOND NUMBER
   {
-    native_int::BigInteger a("12504");
-    native_int::BigInteger b("46968");
+    NativeInteger a("12504");
+    NativeInteger b("46968");
 
     c = a.Compare(b);
     expectedResult = -1;
@@ -475,8 +446,8 @@ TEST(UTNative64Int,basic_compare){
   }
   // TEST CASE WHEN FIRST NUMBER IS EQUAL TO SECOND NUMBER
   {
-    native_int::BigInteger a("34512504");
-    native_int::BigInteger b("34512504");
+    NativeInteger a("34512504");
+    NativeInteger b("34512504");
 
     c = a.Compare(b);
     expectedResult = 0;
@@ -486,7 +457,7 @@ TEST(UTNative64Int,basic_compare){
   }
 }
 
-TEST(UTNative64Int,mod_operations){
+TEST(UTNativeInteger,mod_operations){
 
   /************************************************/
   /* TESTING METHOD MOD FOR ALL CONDITIONS        */
@@ -494,15 +465,15 @@ TEST(UTNative64Int,mod_operations){
 
   // The method "Mod" does modulus operation on two BigIntegers
   // m,p Returns (m mod p), which is stored in another BigInteger
-  // calculatedResult ConvertToInt converts native_int::BigInteger r to
+  // calculatedResult ConvertToInt converts NativeInteger r to
   // integer
 
-  native_int::BigInteger calculatedResult;
+  NativeInteger calculatedResult;
   uint64_t expectedResult;
   // TEST CASE WHEN THE NUMBER IS LESS THAN MOD
   {
-    native_int::BigInteger m("27");
-    native_int::BigInteger p("240");
+    NativeInteger m("27");
+    NativeInteger p("240");
 
     calculatedResult = m.Mod(p);
     expectedResult = 27;
@@ -512,8 +483,8 @@ TEST(UTNative64Int,mod_operations){
   }
   // TEST CASE WHEN THE NUMBER IS GREATER THAN MOD
   {
-    native_int::BigInteger m("93409673");
-    native_int::BigInteger p("406");
+    NativeInteger m("93409673");
+    NativeInteger p("406");
 
     calculatedResult = m.Mod(p);
     expectedResult = 35;
@@ -523,8 +494,8 @@ TEST(UTNative64Int,mod_operations){
   }
   // TEST CASE WHEN THE NUMBER IS DIVISIBLE BY MOD
   {
-    native_int::BigInteger m("32768");
-    native_int::BigInteger p("16");
+    NativeInteger m("32768");
+    NativeInteger p("16");
 
     calculatedResult = m.Mod(p);
     expectedResult = 0;
@@ -535,8 +506,8 @@ TEST(UTNative64Int,mod_operations){
 
   // TEST CASE WHEN THE NUMBER IS EQUAL TO MOD
   {
-    native_int::BigInteger m("67108913");
-    native_int::BigInteger p("67108913");
+    NativeInteger m("67108913");
+    NativeInteger p("67108913");
 
     calculatedResult = m.Mod(p);
     expectedResult = 0;
@@ -554,7 +525,7 @@ TEST(UTNative64Int,mod_operations){
   /* 	The method "Divided By" does division of BigInteger m by another BigInteger p
 	Function takes b as argument and operates on a
   	Returns a/b, which is stored in another BigInteger calculatedResult
-	ConvertToInt converts native_int::BigInteger calculatedResult to integer
+	ConvertToInt converts NativeInteger calculatedResult to integer
 	When b=0, throws error, since division by Zero is not allowed
 	When a<b, returns 0, since decimal value is not returned
   */
@@ -563,13 +534,13 @@ TEST(UTNative64Int,mod_operations){
 
   // TEST CASE WHEN THE NUMBER IS LESS THAN MOD			//NOT GIVING PROPER OUTPUT AS OF NOW
 
-  /*TEST(UTNative64Int_METHOD_MOD_BARRETT,NUMBER_LESS_THAN_MOD){
+  /*TEST(UTNativeInteger_METHOD_MOD_BARRETT,NUMBER_LESS_THAN_MOD){
 
-    native_int::BigInteger a("9587");
-    native_int::BigInteger b("3591");
-    native_int::BigInteger c("177");
+    NativeInteger a("9587");
+    NativeInteger b("3591");
+    NativeInteger c("177");
 
-    native_int::BigInteger calculatedResult = a.ModBarrett(b,c);
+    NativeInteger calculatedResult = a.ModBarrett(b,c);
     uint64_t expectedResult = 205484;
 
     std::cout<<"\n"<<d.ConvertToInt()<<"\n";	//for testing purpose
@@ -577,7 +548,7 @@ TEST(UTNative64Int,mod_operations){
     //EXPECT_EQ(27,calculatedResult.ConvertToInt());
     }
   */
-TEST(UTNative64Int,mod_inverse){
+TEST(UTNativeInteger,mod_inverse){
   /*************************************************/
   /* TESTING METHOD MOD INVERSE FOR ALL CONDITIONS */
   /*************************************************/
@@ -587,15 +558,15 @@ TEST(UTNative64Int,mod_inverse){
   //    uses extended Euclidean algorithm m and p are co-primes (i,e GCD
   //    of m and p is 1)
   // If m and p are not co-prime, the method throws an error
-  // ConvertToInt converts native_int::BigInteger calculatedResult to integer
+  // ConvertToInt converts NativeInteger calculatedResult to integer
 
-  native_int::BigInteger calculatedResult;
+  NativeInteger calculatedResult;
   uint64_t expectedResult;
 
   // TEST CASE WHEN THE NUMBER IS GREATER THAN MOD
   {
-    native_int::BigInteger m("5");
-    native_int::BigInteger p("108");
+    NativeInteger m("5");
+    NativeInteger p("108");
 
     calculatedResult = m.ModInverse(p);
     expectedResult = 65;
@@ -605,8 +576,8 @@ TEST(UTNative64Int,mod_inverse){
   }
   // TEST CASE WHEN THE NUMBER AND MOD ARE NOT CO-PRIME
   {
-    native_int::BigInteger m("3017");
-    native_int::BigInteger p("108");
+    NativeInteger m("3017");
+    NativeInteger p("108");
 
     calculatedResult = m.ModInverse(p);
     expectedResult = 77;
@@ -620,10 +591,10 @@ TEST(UTNative64Int,mod_inverse){
   //testcase that failed during testing.
   {
 
-    native_int::BigInteger first("4974113608263");
-    native_int::BigInteger second("486376675628");
+    NativeInteger first("4974113608263");
+    NativeInteger second("486376675628");
     string modcorrect("110346851983");
-    native_int::BigInteger modresult;
+    NativeInteger modresult;
 
     modresult = first.Mod(second);
 
@@ -631,10 +602,10 @@ TEST(UTNative64Int,mod_inverse){
       <<"Failure ModInverse() Mod regression test";
 
 
-    native_int::BigInteger input ("405107564542978792");
-    native_int::BigInteger modulus("1152921504606847009");
+    NativeInteger input ("405107564542978792");
+    NativeInteger modulus("1152921504606847009");
     string modIcorrect("844019068664266609");
-    native_int::BigInteger modIresult;
+    NativeInteger modIresult;
 
     bool thrown = false;
     try {
@@ -655,10 +626,10 @@ TEST(UTNative64Int,mod_inverse){
   // Mod(0)
   {
 #if 0 //BBI just hangs, do not run this test.
-    native_int::BigInteger first("4974113608263");
-    native_int::BigInteger second("0");
+    NativeInteger first("4974113608263");
+    NativeInteger second("0");
     string modcorrect("4974113608263");
-    native_int::BigInteger modresult;
+    NativeInteger modresult;
 
     modresult = first.Mod(second);
 
@@ -671,8 +642,8 @@ TEST(UTNative64Int,mod_inverse){
 }
 
 
-TEST(UTNative64Int,mod_arithmetic){
-  native_int::BigInteger calculatedResult;
+TEST(UTNativeInteger,mod_arithmetic){
+  NativeInteger calculatedResult;
   uint64_t expectedResult;
   /************************************************/
   /* TESTING METHOD MODADD FOR ALL CONDITIONS     */
@@ -681,16 +652,16 @@ TEST(UTNative64Int,mod_arithmetic){
   //   Returns:
   //     (m+n)mod q
   //      = {(m mod q) + (n mod q)}mod q
-  //   ConvertToInt converts native_int::BigInteger calculatedResult to integer
+  //   ConvertToInt converts NativeInteger calculatedResult to integer
 
 
 
 
   // TEST CASE WHEN THE FIRST NUMBER IS GREATER THAN MOD
   {
-    native_int::BigInteger m("58059595");
-    native_int::BigInteger n("3768");
-    native_int::BigInteger q("4067");
+    NativeInteger m("58059595");
+    NativeInteger n("3768");
+    NativeInteger q("4067");
 
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 2871;
@@ -700,9 +671,9 @@ TEST(UTNative64Int,mod_arithmetic){
   }
   // TEST CASE WHEN THE SECOND NUMBER IS GREATER THAN MOD
   {
-    native_int::BigInteger m("595");
-    native_int::BigInteger n("376988");
-    native_int::BigInteger q("4067");
+    NativeInteger m("595");
+    NativeInteger n("376988");
+    NativeInteger q("4067");
 
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 3419;
@@ -712,9 +683,9 @@ TEST(UTNative64Int,mod_arithmetic){
   }
   // TEST CASE WHEN THE BOTH NUMBERS ARE LESS THAN MOD
   {
-    native_int::BigInteger m("595");
-    native_int::BigInteger n("376");
-    native_int::BigInteger q("4067");
+    NativeInteger m("595");
+    NativeInteger n("376");
+    NativeInteger q("4067");
 
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 971;
@@ -724,9 +695,9 @@ TEST(UTNative64Int,mod_arithmetic){
   // TEST CASE WHEN THE BOTH NUMBERS ARE GREATER THAN MOD
   {
 
-    native_int::BigInteger m("59509095449");
-    native_int::BigInteger n("37654969960");
-    native_int::BigInteger q("4067");
+    NativeInteger m("59509095449");
+    NativeInteger n("37654969960");
+    NativeInteger q("4067");
 
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 2861;
@@ -736,9 +707,9 @@ TEST(UTNative64Int,mod_arithmetic){
   }
 
   {
-	native_int::BigInteger m( "4611686019217177693" );
-	native_int::BigInteger n( "2305843009213700738" );
-	native_int::BigInteger q( "4611686019217177861" );
+	NativeInteger m( "4611686019217177693" );
+	NativeInteger n( "2305843009213700738" );
+	NativeInteger q( "4611686019217177861" );
 
 	calculatedResult = m.ModAdd(n,q);
 	expectedResult = 2305843009213700570;
@@ -749,9 +720,9 @@ TEST(UTNative64Int,mod_arithmetic){
   //Native operations with modulus > 32 bits and less than 64 bits are not supported for Visual C++
 #if !defined(_MSC_VER)
   {
-	native_int::BigInteger m( "13835058055282163712" );
-	native_int::BigInteger n( "13835058055282163719" );
-	native_int::BigInteger q( "13835058055282163729" );
+	NativeInteger m( "13835058055282163712" );
+	NativeInteger n( "13835058055282163719" );
+	NativeInteger q( "13835058055282163729" );
 	bool thrown = false;
 	try {
 	  calculatedResult = m.ModAdd(n,q);
@@ -781,7 +752,7 @@ TEST(UTNative64Int,mod_arithmetic){
   //    = 0 when m=n
   //    = {(m mod q)+q-(n mod q)}mod q when m<n
 
-  //   ConvertToInt converts native_int::BigInteger calculatedResult to
+  //   ConvertToInt converts NativeInteger calculatedResult to
   //   integer
 
   //MEMORY ALLOCATION ERROR IN MODSUB METHOD (due to copying value to null pointer)
@@ -789,11 +760,9 @@ TEST(UTNative64Int,mod_arithmetic){
 
   // TEST CASE WHEN THE FIRST NUMBER IS GREATER THAN MOD
   {
-    native_int::BigInteger m("595");
-    native_int::BigInteger n("399");
-    native_int::BigInteger q("406");
-
-    //std::cout << "Before : " << std::endl;
+    NativeInteger m("595");
+    NativeInteger n("399");
+    NativeInteger q("406");
 
     calculatedResult = m.ModSub(n,q);
     expectedResult = 196;
@@ -803,9 +772,9 @@ TEST(UTNative64Int,mod_arithmetic){
   }
   // TEST CASE WHEN THE FIRST NUMBER LESS THAN SECOND NUMBER AND MOD
   {
-    native_int::BigInteger m("39960");
-    native_int::BigInteger n("595090959");
-    native_int::BigInteger q("406756");
+    NativeInteger m("39960");
+    NativeInteger n("595090959");
+    NativeInteger q("406756");
 
     calculatedResult = m.ModSub(n,q);
     expectedResult = 33029;
@@ -816,9 +785,9 @@ TEST(UTNative64Int,mod_arithmetic){
   }
   // TEST CASE WHEN THE FIRST NUMBER EQUAL TO SECOND NUMBER
   {
-    native_int::BigInteger m("595090959");
-    native_int::BigInteger n("595090959");
-    native_int::BigInteger q("406756");
+    NativeInteger m("595090959");
+    NativeInteger n("595090959");
+    NativeInteger q("406756");
 
     calculatedResult = m.ModSub(n,q);
     expectedResult = 0;
@@ -834,14 +803,14 @@ TEST(UTNative64Int,mod_arithmetic){
   // The method "Mod Mul" operates on BigIntegers m,n,q
   //   Returns:  (m*n)mod q
   //              = {(m mod q)*(n mod q)}
-  // ConvertToInt converts native_int::BigInteger calculatedResult to integer
+  // ConvertToInt converts NativeInteger calculatedResult to integer
 
   {
-    native_int::BigInteger m("39960");
-    native_int::BigInteger n("7959");
-    native_int::BigInteger q("406756");
+    NativeInteger m("39960");
+    NativeInteger n("7959");
+    NativeInteger q("406756");
 
-    native_int::BigInteger calculatedResult = m.ModMul(n,q);
+    NativeInteger calculatedResult = m.ModMul(n,q);
     uint64_t expectedResult = 365204;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
@@ -855,14 +824,14 @@ TEST(UTNative64Int,mod_arithmetic){
   // The method "Mod Exp" operates on BigIntegers m,n,q
   // Returns:  (m^n)mod q
   //   = {(m mod q)^(n mod q)}mod q
-  // ConvertToInt converts native_int::BigInteger calculatedResult to integer
+  // ConvertToInt converts NativeInteger calculatedResult to integer
 
   {
-    native_int::BigInteger m("39960");
-    native_int::BigInteger n("9");
-    native_int::BigInteger q("406756");
+    NativeInteger m("39960");
+    NativeInteger n("9");
+    NativeInteger q("406756");
 
-    native_int::BigInteger calculatedResult = m.ModExp(n,q);
+    NativeInteger calculatedResult = m.ModExp(n,q);
     uint64_t expectedResult = 96776;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
@@ -871,9 +840,9 @@ TEST(UTNative64Int,mod_arithmetic){
  //Native operations with modulus > 32 bits and less than 64 bits are not supported for Visual C++
 #if !defined(_MSC_VER)
   {
-	native_int::BigInteger m( "4611686019217177693" );
-	native_int::BigInteger n( "2305843009213700738" );
-	native_int::BigInteger q( "4611686019217177861" );
+	NativeInteger m( "4611686019217177693" );
+	NativeInteger n( "2305843009213700738" );
+	NativeInteger q( "4611686019217177861" );
 
 	calculatedResult = m.ModMul(n,q);
 	expectedResult = 66341216340;
@@ -883,9 +852,9 @@ TEST(UTNative64Int,mod_arithmetic){
   }
 
   {
-	native_int::BigInteger m( "13835058055282163712" );
-	native_int::BigInteger n( "13835058055282163719" );
-	native_int::BigInteger q( "13835058055282163729" );
+	NativeInteger m( "13835058055282163712" );
+	NativeInteger n( "13835058055282163719" );
+	NativeInteger q( "13835058055282163729" );
 
 	calculatedResult = m.ModMul(n,q);
 	expectedResult = 170;
@@ -896,7 +865,7 @@ TEST(UTNative64Int,mod_arithmetic){
 #endif
 }
 
-TEST(UTNative64Int,shift){
+TEST(UTNativeInteger,shift){
 
   /****************************/
   /* TESTING SHIFT OPERATORS  */
@@ -916,14 +885,14 @@ TEST(UTNative64Int,shift){
   //        example:
   //            4<<3 => (100)<<3 => (100000) => 32
   //           this is equivalent to: 4* (2^3) => 4*8 =32
-  //ConvertToInt converts native_int::BigInteger calculatedResult to integer
+  //ConvertToInt converts NativeInteger calculatedResult to integer
 
   // TEST CASE WHEN SHIFT IS LESS THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39960");
+    NativeInteger a("39960");
     usshort shift = 3;
 
-    native_int::BigInteger calculatedResult = a<<(shift);
+    NativeInteger calculatedResult = a<<(shift);
     uint64_t expectedResult = 319680;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
@@ -931,10 +900,10 @@ TEST(UTNative64Int,shift){
   }
   // TEST CASE WHEN SHIFT IS GREATER THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39960");
+    NativeInteger a("39960");
     usshort shift = 6;
 
-    native_int::BigInteger calculatedResult = a<<(shift);
+    NativeInteger calculatedResult = a<<(shift);
     uint64_t expectedResult = 2557440;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
@@ -954,14 +923,14 @@ TEST(UTNative64Int,shift){
   // from right which is equivalent to a * (2^num)
   // example :4<<3 => (100)<<3 => (100000) => 32
   // this is equivalent to: 4* (2^3) => 4*8 =32
-  // ConvertToInt converts native_int::BigInteger a to integer
+  // ConvertToInt converts NativeInteger a to integer
 
 
 
 
   // TEST CASE WHEN SHIFT IS LESS THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39960");
+    NativeInteger a("39960");
     usshort num = 3;
 
     a<<=(num);
@@ -972,7 +941,7 @@ TEST(UTNative64Int,shift){
   }
   // TEST CASE WHEN SHIFT IS GREATER THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39960");
+    NativeInteger a("39960");
     usshort num = 6;
 
     a<<=(num);
@@ -996,15 +965,15 @@ TEST(UTNative64Int,shift){
   //  ex:4>>3 => (100000)>>3 => (000100) => 4
 
   // this is equivalent to: 32*(2^3) => 32/8 = 4
-  // ConvertToInt converts native_int::BigInteger calculatedResult to integer
+  // ConvertToInt converts NativeInteger calculatedResult to integer
 
 
   // TEST CASE WHEN SHIFT IS LESS THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39965675");
+    NativeInteger a("39965675");
     usshort shift = 3;
 
-    native_int::BigInteger calculatedResult = a>>(shift);
+    NativeInteger calculatedResult = a>>(shift);
     uint64_t expectedResult = 4995709;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
@@ -1012,10 +981,10 @@ TEST(UTNative64Int,shift){
   }
   // TEST CASE WHEN SHIFT IS GREATER THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39965675");
+    NativeInteger a("39965675");
     usshort shift = 6;
 
-    native_int::BigInteger calculatedResult = a>>(shift);
+    NativeInteger calculatedResult = a>>(shift);
     uint64_t expectedResult = 624463;
 
     EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
@@ -1037,12 +1006,12 @@ TEST(UTNative64Int,shift){
   //   ex:4>>3 => (100000)>>3 => (000100) => 4
 
   //   this is equivalent to: 32*(2^3) => 32/8 = 4
-  //   ConvertToInt converts native_int::BigInteger calculatedResult to integer
+  //   ConvertToInt converts NativeInteger calculatedResult to integer
 
 
   // TEST CASE WHEN SHIFT IS LESS THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39965675");
+    NativeInteger a("39965675");
     usshort shift = 3;
 
     a>>=(shift);
@@ -1053,7 +1022,7 @@ TEST(UTNative64Int,shift){
   }
   // TEST CASE WHEN SHIFT IS GREATER THAN 4 (MAX SHIFT DONE AT A TIME)
   {
-    native_int::BigInteger a("39965675");
+    NativeInteger a("39965675");
     usshort shift = 6;
 
     a>>=(shift);
@@ -1068,14 +1037,14 @@ TEST(UTNative64Int,shift){
 /* TESTING METHOD  BitStringToBigInteger */
 /****************************************/
 
-TEST(UTNative64Int,method_binary_string_to_big_binary_integer){
-	//TEST CASE FOR STATIC METHOD BitStringToBigInteger in native_int::BigInteger
+TEST(UTNativeInteger,method_binary_string_to_big_binary_integer){
+	//TEST CASE FOR STATIC METHOD BitStringToBigInteger in NativeInteger
 
 	string binaryString = "1011101101110001111010111011000000011";
-	native_int::BigInteger b =
-			native_int::BigInteger::BitStringToBigInteger(binaryString);
+	NativeInteger b =
+			NativeInteger::BitStringToBigInteger(binaryString);
 
-	native_int::BigInteger expectedResult("100633769475");
+	NativeInteger expectedResult("100633769475");
 	EXPECT_EQ(expectedResult, b)
 	<< "Failure testing BitStringToBigInteger";
 }
@@ -1083,18 +1052,18 @@ TEST(UTNative64Int,method_binary_string_to_big_binary_integer){
 /****************************************/
 /* TESTING METHOD  EXP                  */
 /****************************************/
-TEST(UTNative64Int,method_exponentiation_without_modulus){
+TEST(UTNativeInteger,method_exponentiation_without_modulus){
 
-  native_int::BigInteger x("56");
-  native_int::BigInteger result = x.Exp(10);
+  NativeInteger x("56");
+  NativeInteger result = x.Exp(10);
 
-  native_int::BigInteger expectedResult("303305489096114176");
+  NativeInteger expectedResult("303305489096114176");
   EXPECT_EQ(expectedResult, result)
     << "Failure testing exp";
 }
 
-TEST(UTNative64Int,method_ConvertToDouble) {
-  native_int::BigInteger x("104037585658683683");
+TEST(UTNativeInteger,method_ConvertToDouble) {
+  NativeInteger x("104037585658683683");
   double xInDouble = 104037585658683683;
 
   EXPECT_EQ(xInDouble, x.ConvertToDouble());

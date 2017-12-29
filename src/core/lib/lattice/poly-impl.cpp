@@ -26,7 +26,6 @@
 
 #include "elemparams.cpp"
 #include "ilparams.cpp"
-#include "../encoding/encodingparams.cpp"
 #include "../math/discretegaussiangenerator.cpp"
 #include "../math/discreteuniformgenerator.cpp"
 #include "../math/binaryuniformgenerator.cpp"
@@ -46,7 +45,6 @@ template class DiscreteUniformGeneratorImpl<BigInteger,BigVector>;
 namespace lbcrypto {
 template class ElemParams<BigInteger>;
 template class ILParamsImpl<BigInteger>;
-template class EncodingParamsImpl<BigInteger>;
 template class PolyImpl<BigInteger,BigInteger,BigVector,ILParams>;
 
 template<>

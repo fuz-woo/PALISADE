@@ -177,7 +177,6 @@ namespace exp_int {
   template<typename limb_t>
   ubint<limb_t>::ubint(const ubint& rhs){
     bool dbg_flag = false;		// if true then print dbg output
-    //std::cout<<"Cc";
     if (rhs.m_state == GARBAGE)
       std::cout<<"copy garbage"<<std::endl;
 
@@ -200,7 +199,6 @@ namespace exp_int {
   template<typename limb_t>
   ubint<limb_t>::ubint(ubint &&rhs){
     bool dbg_flag = false;		// if true then print dbg output
-    //std::cout<<"Mc";
     DEBUG("move copy ctor(&bint)");
 
     //copy MSB
@@ -336,7 +334,6 @@ return result;
     try {
       ans = std::stof(this->ToString());
     } catch (const std::exception& e) {
-      std::cerr << e.what();
       throw std::logic_error("ConvertToFloat() parse error converting to float");
       ans = -1.0; //TODO: this signifies an error... 
     }
@@ -352,7 +349,6 @@ return result;
     try {
       ans = std::stod(this->ToString());
     } catch (const std::exception& e) {
-      std::cerr << e.what();
       throw std::logic_error("ConvertToDouble() parse error converting to double");
       ans = -1.0; 
     }
@@ -368,7 +364,6 @@ return result;
     try {
       ans = std::stold(this->ToString());
     } catch (const std::exception& e) {
-      std::cerr << e.what();
       throw std::logic_error("ConvertToLongDouble() parse error converting to long double");
       ans = -1.0; 
     }
@@ -467,12 +462,12 @@ return result;
       DEBUG("CURRENT SIZE "<<currentSize);
       ans.m_value.resize(currentSize+shiftByLimb); // allocate more storage
       DEBUG("resize is  "<<ans.m_value.size());
-      for (sint i = currentSize-1; i>=0; i-- ) {  //shift limbs required # of indicies
+      for (int i = currentSize-1; i>=0; i-- ) {  //shift limbs required # of indicies
 	DEBUG("to : "<<i+shiftByLimb<< "from "<<i );
 	ans.m_value[i+shiftByLimb] = ans.m_value[i];
       }
       //zero out the 'shifted in' limbs
-      for (sint i = shiftByLimb -1 ; i>=0; i-- ) {
+      for (int i = shiftByLimb -1 ; i>=0; i-- ) {
 	DEBUG("clear : "<<i);
 	ans.m_value[i] = 0;
       }
@@ -552,12 +547,12 @@ return result;
 	DEBUG("CURRENT SIZE "<<currentSize);
 	m_value.resize(currentSize+shiftByLimb); // allocate more storage
 	DEBUG("resize is  "<<m_value.size());
-	for (sint i = currentSize-1; i>=0; i-- ) {  //shift limbs required # of indicies
+	for (int i = currentSize-1; i>=0; i-- ) {  //shift limbs required # of indicies
 	  DEBUG("to : "<<i+shiftByLimb<< "from "<<i );
 	  m_value[i+shiftByLimb] = m_value[i];
 	}
 	//zero out the 'shifted in' limbs
-	for (sint i = shiftByLimb -1 ; i>=0; i-- ) {
+	for (int i = shiftByLimb -1 ; i>=0; i-- ) {
 	  DEBUG("clear : "<<i);
 	  m_value[i] = 0;
 	}
@@ -642,7 +637,7 @@ return result;
       DEBUG("startVal "<< startVal);
       DEBUG("compShiftVal " << compShiftVal);
 
-      for(sint i = startVal -1 ; i>=0;i--){
+      for(int i = startVal -1 ; i>=0;i--){
 	DEBUG("bit shift "<<i);
 	oldVal = ans.m_value[i];
 	ans.m_value[i] = (ans.m_value[i]>>remainingShift) + overFlow;
@@ -672,21 +667,6 @@ return result;
    */
   template<typename limb_t>
   ubint<limb_t>&  ubint<limb_t>::operator>>=(usint shift){
-#if 0
-    //check for garbage
-    if(m_state==State::GARBAGE)
-      throw std::logic_error("Value not initialized");
-
-    if(this->m_MSB==0 )
-      return *this;
-    else if(this->m_MSB<=shift){
-      *this = ZERO;
-      return *this;
-    } else {
-      *this = *this >> shift;
-      return *this;
-    }
-#else
     bool dbg_flag = false;
 
     //garbage check
@@ -753,7 +733,7 @@ return result;
       DEBUG("startVal "<< startVal);
       DEBUG("compShiftVal " << compShiftVal);
 
-      for(sint i = startVal -1 ; i>=0;i--){
+      for(int i = startVal -1 ; i>=0;i--){
 	DEBUG("bit shift "<<i);
 	oldVal = this->m_value[i];
 	this->m_value[i] = (this->m_value[i]>>remainingShift) + overFlow;
@@ -772,9 +752,9 @@ return result;
     this->SetMSB();
     DEBUG("final MSB check "<<this->m_MSB);
     return *this;
-#endif
   }
 
+#if 0  
 
   template<typename limb_t>
   void ubint<limb_t>::PrintLimbsInDec() const{
@@ -805,7 +785,7 @@ return result;
     }
   }
 
-
+#endif
 
   template<typename limb_t>
   usint ubint<limb_t>::GetMSB() const {
@@ -961,24 +941,21 @@ return result;
     ubint result(*this);
 
     DEBUG ("result starts out");
-    if (dbg_flag){
-      result.PrintLimbsInDec();
-    }
+    DEBUGEXP(result.GetInternalRepresentation());
+
     //array position in A to end substraction (a is always larger than b now)
     int endValA = ceilIntByUInt(this->m_MSB);
     //array position in B to end substraction
     int endValB = ceilIntByUInt(b.m_MSB);
-
-    if (dbg_flag){
-      std::cout<<"a "<<std::endl;
-      this->PrintLimbsInHex();
-      this->PrintLimbsInDec();
-      std::cout<<"b "<<std::endl;
-      b.PrintLimbsInHex();
-      b.PrintLimbsInDec();
-      std::cout<<"endValA "<< endValA <<std::endl;
-      std::cout<<"endValB "<< endValB <<std::endl;
-    }
+	
+    DEBUG("a ");
+    DEBUGEXP(this->GetInternalRepresentation());
+    DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
+    DEBUG("b ");
+    DEBUGEXP(b.GetInternalRepresentation());
+    DEBUGEXP(std::hex<<b.GetInternalRepresentation()<<std::dec);
+    DEBUGEXP(endValA);
+    DEBUGEXP(endValB);
 
     for(size_t i=0; i<b.m_value.size(); ++i){
       DEBUG ("limb  "<<i);
@@ -1075,8 +1052,7 @@ return result;
       DEBUG("mibl A:"<<this->ToString() );
       //DEBUG("mibl B:"<<limbb );
       DEBUG("ans.size() now " <<ans.m_value.size());
-      if (dbg_flag)
-	ans.PrintLimbsInDec();
+      DEBUGEXP(ans.GetInternalRepresentation());
 
       usint ix= 0;
       while (ix<i){
@@ -1093,8 +1069,7 @@ return result;
 	tmpans.m_value.push_back((limb_t)temp);
 	ofl = temp>>m_limbBitLength;
 	DEBUG("ans.size() now " <<ans.m_value.size());
-	if (dbg_flag)
-	  tmpans.PrintLimbsInDec();
+	DEBUGEXP(tmpans.GetInternalRepresentation());	
       }
       //check if there is any final overflow
       if(ofl){
@@ -1106,8 +1081,7 @@ return result;
       tmpans.m_state = INITIALIZED;
       tmpans.SetMSB();
       DEBUG("ans.size() final " <<ans.m_value.size());
-      if (dbg_flag)
-	tmpans.PrintLimbsInDec();
+      DEBUGEXP(tmpans.GetInternalRepresentation());	
       DEBUG("mibl ans "<<ans.ToString());
       /////
 
@@ -1290,8 +1264,8 @@ return result;
     DEBUG("mibl A:"<<this->ToString() );
     DEBUG("mibl B:"<<b );
     DEBUG("ans.size() now " <<ans.m_value.size());
-    if (dbg_flag)
-      ans.PrintLimbsInDec();
+    DEBUGEXP(ans.GetInternalRepresentation());	
+
     for(;i<endVal ;++i){
       DEBUG("mullimb i"<<i);
       temp = ((Dlimb_t)m_value[i]*(Dlimb_t)b) + ofl;
@@ -1300,8 +1274,8 @@ return result;
       ans.m_value.push_back((limb_t)temp);
       ofl = temp>>m_limbBitLength;
       DEBUG("ans.size() now " <<ans.m_value.size());
-      if (dbg_flag)
-        ans.PrintLimbsInDec();
+      DEBUGEXP(ans.GetInternalRepresentation());
+    
     }
     //check if there is any final overflow
     if(ofl){
@@ -1313,12 +1287,11 @@ return result;
     ans.m_state = INITIALIZED;
     ans.SetMSB();
     DEBUG("ans.size() final " <<ans.m_value.size());
-    if (dbg_flag)
-      ans.PrintLimbsInDec();
+    DEBUGEXP(ans.GetInternalRepresentation());	
     DEBUG("mibl ans "<<ans.ToString());
 
     return ans;
-  }
+    }
 
   /* q[0], r[0], u[0], and v[0] contain the LEAST significant words.
      (The sequence is in little-endian order).
@@ -1794,7 +1767,7 @@ return result;
     //define  bit register array
     uschar *bitArr = new uschar[m_limbBitLength](); //todo smartpointer
 
-    sint cnt=m_limbBitLength-1;
+    int cnt=m_limbBitLength-1;
     //cnt is a pointer to the bit position in bitArr, when bitArr is compelete it is ready to be transfered to Value
     while(zptr!=arrSize){
       bitArr[cnt]=DecValue[arrSize-1]%2;
@@ -1915,7 +1888,7 @@ return result;
     ubint ans(0);
     if (dbg_flag){
       DEBUG("modulus ");
-      modulus.PrintLimbsInDec();
+      DEBUGEXP(modulus.GetInternalRepresentation());	
     }
 
     int f;
@@ -1930,10 +1903,7 @@ return result;
     ans.NormalizeLimbs();
     ans.SetMSB();
     ans.m_state = INITIALIZED;
-    if (dbg_flag){
-      DEBUG("ans");
-      ans.PrintLimbsInDec();
-    }
+    DEBUGEXP(ans.GetInternalRepresentation());	
     return(ans);
 
 #else //radically slow for 64 bit version.
@@ -1973,7 +1943,7 @@ return result;
 	DEBUG("j = "<<j);
       }
     }
-    PrintLimbsInHex();
+    DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);	
     result.NormalizeLimbs();
     result.SetMSB();
     return result;
@@ -1998,7 +1968,7 @@ return result;
 
 	usint n = modulus.m_MSB;
 	usint alpha = n + 3;
-	sint beta = -2;
+	int beta = -2;
 
 	q>>=n + beta;
 	q*=mu;
@@ -2110,7 +2080,7 @@ return result;
     //SOUTH ALGORITHM
 
     size_t limtest = quotient.size()-1;
-    for(sint i=limtest; i>=0;i--){
+    for(int i=limtest; i>=0;i--){
       mods.push_back(quotient[i]*second + first);
       first = second;
       second = mods.back();
@@ -2202,8 +2172,7 @@ return result;
       DEBUG("mibl A:"<<a.ToString() );
       // DEBUG("mibl B:"<<limbb );
       DEBUG("ans.size() now " <<ans.m_value.size());
-      if (dbg_flag)
-	ans.PrintLimbsInDec();
+      DEBUGEXP(ans.GetInternalRepresentation());	
 
       usint ix= 0;
       while (ix<i){
@@ -2219,8 +2188,8 @@ return result;
 	tmpans.m_value.push_back((limb_t)temp);
 	ofl = temp>>a.m_limbBitLength;
 	DEBUG("ans.size() now " <<ans.m_value.size());
-	if (dbg_flag)
-	  tmpans.PrintLimbsInDec();
+	DEBUGEXP(tmpans.GetInternalRepresentation());	
+	
       }
       //check if there is any final overflow
       if(ofl){
@@ -2232,8 +2201,8 @@ return result;
       tmpans.m_state = INITIALIZED;
       tmpans.SetMSB();
       DEBUG("ans.size() final " <<ans.m_value.size());
-      if (dbg_flag)
-	tmpans.PrintLimbsInDec();
+      DEBUGEXP(tmpans.GetInternalRepresentation());
+	
       DEBUG("mibl ans "<<ans.ToString());
 
       //      ans += (tmpans<<=(i)*a.m_limbitLength);
@@ -2264,6 +2233,34 @@ return result;
       *bb = std::move(b.ModBarrett(modulus,mu));
     
     return (*a**bb).ModBarrett(modulus,mu);
+#endif
+  }
+
+
+    //the following is deprecated
+  template<typename limb_t>
+  void ubint<limb_t>::ModBarrettMulInPlace(const ubint& b, const ubint& modulus,const ubint& mu) {
+#ifdef NO_BARRETT
+    *this = this->ModMul(b, modulus);
+    return ;
+
+#else
+
+    ubint* bb = const_cast<ubint*>(&b);
+    
+    //if this is greater than q reduce a to its mod value
+    if(*this>modulus)
+      this->ModBarrettInPlace(modulus,mu);
+    
+    //if b is greater than q reduce b to its mod value
+    if(b>modulus)
+      *bb = b.ModBarrett(modulus,mu);
+    	*this = *this**bb;
+
+	this->ModBarrettInPlace(modulus, mu);
+
+	return;
+
 #endif
   }
 
@@ -2311,13 +2308,13 @@ return result;
 	ubint z(*this);
 	ubint q(*this);
 
-	uschar n = modulus.m_MSB;
+	usint n = modulus.m_MSB;
 	//level is set to the index between 0 and BARRET_LEVELS - 1
-	uschar level = (this->m_MSB-1-n)*BARRETT_LEVELS/(n+1)+1;
-	uschar gamma = (n*level)/BARRETT_LEVELS;
+	usint level = (this->m_MSB-1-n)*BARRETT_LEVELS/(n+1)+1;
+	usint gamma = (n*level)/BARRETT_LEVELS;
 
-	uschar alpha = gamma + 3;
-	schar beta = -2;
+	usint alpha = gamma + 3;
+	int beta = -2;
 
 	const ubint& mu = mu_arr[level];
 
@@ -2455,7 +2452,7 @@ return result;
 
     //find the first occurence of non-zero value in print_VALUE
     for(counter=0;counter<m_numDigitInPrintval-1;counter++){
-      if((sint)print_VALUE[counter]!=0)break;							
+      if((int)print_VALUE[counter]!=0)break;
     }
 
     //append this ubint's digits to this method's returned string object
@@ -2473,20 +2470,18 @@ return result;
 
   //Compares the current object with the ubint a.
   template<typename limb_t>
-  inline sint ubint<limb_t>::Compare(const ubint& a) const
+  inline int ubint<limb_t>::Compare(const ubint& a) const
   {
     bool dbg_flag = false;		// if true then print dbg output
     if(this->m_state==GARBAGE || a.m_state==GARBAGE)
       throw std::logic_error("ERROR Compare() against uninitialized bint\n");
 
     DEBUG("comparing this "<< this->ToString());
-    if (dbg_flag)
-      this->PrintLimbsInHex();
-
+    DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);	
+    
     DEBUG("a "<<a.ToString());
-    if (dbg_flag)
-      a.PrintLimbsInHex();
-
+    DEBUGEXP(std::hex<<a.GetInternalRepresentation()<<std::dec);
+    
     //check MSBs to get quick answer
     if(this->m_MSB<a.m_MSB)
       return -1;
@@ -2494,7 +2489,7 @@ return result;
       return 1;
     if(this->m_MSB==a.m_MSB){
       //check each limb in descending order
-      for(sint i=m_value.size()-1 ;i>=0; i--){
+      for(int i=m_value.size()-1 ;i>=0; i--){
 	DEBUG("i "<<i);
 	DEBUG("a "<<this->m_value[i]);
 	DEBUG("b "<<a.m_value[i]);
@@ -2590,10 +2585,21 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
       throw std::logic_error("ERROR == against uninitialized bint\n");
     return(this->Compare(a)==0);
   }
+  template<typename limb_t>
+  bool ubint<limb_t>::operator==(const usint& a) const{
+    if(this->m_state==GARBAGE)
+      throw std::logic_error("ERROR == against uninitialized bint\n");
+    return(this->Compare(a)==0);
+  }
 
 
   template<typename limb_t>
   bool ubint<limb_t>::operator!=(const ubint& a)const{
+    return(this->Compare(a)!=0);
+  }
+
+  template<typename limb_t>
+  bool ubint<limb_t>::operator!=(const usint& a)const{
     return(this->Compare(a)!=0);
   }
 
@@ -2656,7 +2662,7 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
   //Serialize ubint by concatnating 6bits converted to an ascii character together, and terminating with '|'
   //note modulus is ignored
   template<typename limb_t>
-  const std::string ubint<limb_t>::Serialize(const ubint<limb_t>& modulus) const {
+  const std::string ubint<limb_t>::SerializeToString(const ubint<limb_t>& modulus) const {
     bool dbg_flag = false;
 
     std::string ans = "";
@@ -2688,7 +2694,7 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
   //returns input cp with stripped chars for decoded myZZ
   //note modulus is ignored
   template<typename limb_t>
-    const char * ubint<limb_t>::Deserialize(const char *cp, const ubint<limb_t>& modulus){
+    const char * ubint<limb_t>::DeserializeFromString(const char *cp, const ubint<limb_t>& modulus){
     bool dbg_flag = false;
 
     m_value.clear();
@@ -2721,12 +2727,51 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
     return cp;
   }
 
+  template<typename limb_t>
+  bool ubint<limb_t>::Serialize(lbcrypto::Serialized* serObj) const{
+    
+    if( !serObj->IsObject() )
+      return false;
+    
+    lbcrypto::SerialItem bbiMap(rapidjson::kObjectType);
+    
+    bbiMap.AddMember("IntegerType", IntegerTypeName(), serObj->GetAllocator());
+    bbiMap.AddMember("Value", this->ToString(), serObj->GetAllocator());
+    serObj->AddMember("BigIntegerImpl", bbiMap, serObj->GetAllocator());
+    return true;
+  }
+
+  template<typename limb_t>
+  bool ubint<limb_t>::Deserialize(const lbcrypto::Serialized& serObj){
+    //find the outer name
+    lbcrypto::Serialized::ConstMemberIterator mIter = serObj.FindMember("BigIntegerImpl");
+    if( mIter == serObj.MemberEnd() )//not found, so fail
+      return false;
+    
+    lbcrypto::SerialItem::ConstMemberIterator vIt; //interator within name
+    
+    //is this the correct integer type?
+    if( (vIt = mIter->value.FindMember("IntegerType")) == mIter->value.MemberEnd() )
+      return false;
+    if( IntegerTypeName() != vIt->value.GetString() )
+      return false;
+    
+    //find the value
+    if( (vIt = mIter->value.FindMember("Value")) == mIter->value.MemberEnd() )
+      return false;
+  //assign the value found
+    AssignVal(vIt->value.GetString());
+    return true;
+  }
+  
+
+  
   //helper functions
   template<typename limb_t>
   bool ubint<limb_t>::isPowerOfTwo(const ubint& m_numToCheck){
     usint m_MSB = m_numToCheck.m_MSB;
     for(int i=m_MSB-1;i>0;i--){
-      if((sint)m_numToCheck.GetBitAtIndex(i)==(sint)1){
+      if((int)m_numToCheck.GetBitAtIndex(i) == 1){
 	return false;
       }
     }
@@ -2736,14 +2781,16 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
   template<typename limb_t>
   usint ubint<limb_t>::GetDigitAtIndexForBase(usint index, usint base) const{
 
-    usint digit = 0;
-    usint newIndex = index; 
-    for (usint i = 1; i < base; i = i*2)
-      {
-	digit += GetBitAtIndex(newIndex)*i;
-	newIndex++;
-      }
-    return digit;
+	  usint DigitLen = ceil(log2(base));
+
+	  usint digit = 0;
+	  usint newIndex = 1 + (index - 1)*DigitLen;
+	  for (usint i = 1; i < base; i = i * 2)
+	  {
+		  digit += GetBitAtIndex(newIndex)*i;
+		  newIndex++;
+	  }
+	  return digit;
 
   }
 
@@ -2819,7 +2866,7 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
   limb_t ubint<limb_t>::UintInBinaryToDecimal(uschar *a){
     limb_t Val = 0;
     limb_t one =1;
-    for(sint i=m_limbBitLength-1;i>=0;i--){
+    for(int i=m_limbBitLength-1;i>=0;i--){
       Val+= one**(a+i);
       one<<=1;
       *(a+i)=0;
@@ -2835,7 +2882,7 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
   void ubint<limb_t>::double_bitVal(uschar* a){
 	
     uschar ofl=0;
-    for(sint i=m_numDigitInPrintval-1;i>-1;i--){
+    for(int i=m_numDigitInPrintval-1;i>-1;i--){
       *(a+i)<<=1;
       if(*(a+i)>9){
 	*(a+i)=*(a+i)-10+ofl;
@@ -2852,7 +2899,7 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
   void ubint<limb_t>::add_bitVal(uschar* a,uschar b){
     uschar ofl=0;
     *(a+m_numDigitInPrintval-1)+=b;
-    for(sint i=m_numDigitInPrintval-1;i>-1;i--){
+    for(int i=m_numDigitInPrintval-1;i>-1;i--){
       *(a+i) += ofl;
       if(*(a+i)>9){
 	*(a+i)=0;
@@ -2889,7 +2936,7 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
     else if (index > m_MSB)
       return 0;
     limb_t result;
-    sint idx =ceilIntByUInt(index)-1;//idx is the index of the character array
+    int idx =ceilIntByUInt(index)-1;//idx is the index of the character array
     limb_t temp = this->m_value[idx];
     limb_t bmask_counter = index%m_limbBitLength==0? m_limbBitLength:index%m_limbBitLength;//bmask is the bit number in the 8 bit array
     limb_t bmask = 1;
@@ -2937,10 +2984,12 @@ ubint<limb_t> ubint<limb_t>::MultiplyAndRound(const ubint &p, const ubint &q) co
     //dbc commented out  unsupported on some machines
     std::cout << "sizeof uint128_t "<< sizeof (uint128_t) << std::endl;
 #endif
-
-
+ 
   }
 
   template class ubint<expdtype>;
+
+  //to stream internal representation
+  template std::ostream& operator << <expdtype>(std::ostream& os, const std::vector<expdtype>& v);
 
 } // namespace exp_int ends

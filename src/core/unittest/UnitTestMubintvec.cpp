@@ -103,87 +103,87 @@ TEST(UTmubintvec,ctor_access_eq_neq){
   //note this is the same code as the ubintvec, just to confirm it works
   //as inherited
   exp_int::xubint q("1234567"); // a bigger number
-
+  
   exp_int::xmubintvec m(5); // calling constructor to create a vector of length 5
-                 //note all values are zero.
-
+  //note all values are zero.
+  
   m.SetModulus(q);
-
+  
   exp_int::xmubintvec n(5,q); // calling contructor with modulus
-
+  
   usint i;
   usint j;
-
+  
   EXPECT_EQ(5U,m.size())<< "Failure in size()";
   EXPECT_EQ(5U,n.size())<< "Failure in size()";
 
   // Old fashioned soon to be deprecated way of 
   // setting value of the value at different index locations
 
-  //test SetValAtIndex(string)
-  m.SetValAtIndex(0,"9868");  
-  m.SetValAtIndex(1,"5879");
-  m.SetValAtIndex(2,"4554");
-  m.SetValAtIndex(3,"2343");
-  m.SetValAtIndex(4,"4624");
-
+  //test at(string)
+  m.at(0)="9868";  
+  m.at(1)="5879";
+  m.at(2)="4554";
+  m.at(3)="2343";
+  m.at(4)="4624";
+  
   DEBUG("m "<<m);
-  EXPECT_EQ(9868U,m.GetValAtIndex(0).ConvertToUsint())
-    << "Failure in SetValAtIndex(0)";
-
-
+  EXPECT_EQ(9868U,m.at(0).ConvertToUsint())
+    << "Failure in at(0)";
+  
+  
   //old fashioned way of expect
-  EXPECT_EQ(9868U,m.GetValAtIndex(0).ConvertToUsint())
-    << "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(5879U,m.GetValAtIndex(1).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(4554U,m.GetValAtIndex(2).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(2343U,m.GetValAtIndex(3).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
-  EXPECT_EQ(4624U,m.GetValAtIndex(4).ConvertToUsint())
-<< "Failure in SetValAtIndex(str)";
-
-  EXPECT_EQ(exp_int::xubint(9868U),m.GetValAtIndex(0))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(5879U),m.GetValAtIndex(1))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(4554U),m.GetValAtIndex(2))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(2343U),m.GetValAtIndex(3))<< "Failure in SetValAtIndex()";
-  EXPECT_EQ(exp_int::xubint(4624U),m.GetValAtIndex(4))<< "Failure in SetValAtIndex()";
-
+  EXPECT_EQ(9868U,m.at(0).ConvertToUsint())
+    << "Failure in at(str)";
+  EXPECT_EQ(5879U,m.at(1).ConvertToUsint())
+    << "Failure in at(str)";
+  EXPECT_EQ(4554U,m.at(2).ConvertToUsint())
+    << "Failure in at(str)";
+  EXPECT_EQ(2343U,m.at(3).ConvertToUsint())
+    << "Failure in at(str)";
+  EXPECT_EQ(4624U,m.at(4).ConvertToUsint())
+    << "Failure in at(str)";
+  
+  EXPECT_EQ(exp_int::xubint(9868U),m.at(0))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(5879U),m.at(1))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(4554U),m.at(2))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(2343U),m.at(3))<< "Failure in at()";
+  EXPECT_EQ(exp_int::xubint(4624U),m.at(4))<< "Failure in at()";
+  
   //new way of setting value of the value at different index locations
   n[0]="4";
   n[1]=9;   //int (implied)
   n[2]=exp_int::xubint("66"); //exp_int::xubint
   n[3] = 33L;  //long
   n[4] = 7UL;  //unsigned long
-
+  
   // new way of accessing
   EXPECT_EQ(exp_int::xubint(4),n[0])<< "Failure in []";
   EXPECT_EQ(exp_int::xubint(9),n[1])<< "Failure in []";
   EXPECT_EQ(exp_int::xubint(66),n[2])<< "Failure in []";
   EXPECT_EQ(exp_int::xubint(33),n[3])<< "Failure in []";
   EXPECT_EQ(exp_int::xubint(7),n[4])<< "Failure in []";
+  
+  //test at(exp_int::xubint)
+  n.at(0)=exp_int::xubint("4");
+  n.at(1)=exp_int::xubint("9");
+  n.at(2)=exp_int::xubint("66");
+  n.at(3)=exp_int::xubint("33");
+  n.at(4)=exp_int::xubint("7");
+  
 
-  //test SetValAtIndex(exp_int::xubint)
-  n.SetValAtIndex(0,exp_int::xubint("4"));
-  n.SetValAtIndex(1,exp_int::xubint("9"));
-  n.SetValAtIndex(2,exp_int::xubint("66"));
-  n.SetValAtIndex(3,exp_int::xubint("33"));
-  n.SetValAtIndex(4,exp_int::xubint("7"));
-
-
-  EXPECT_EQ(exp_int::xubint(4),n[0])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(9),n[1])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(66),n[2])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(33),n[3])<< "Failure in SetValAtIndex(exp_int::xubint)";
-  EXPECT_EQ(exp_int::xubint(7),n[4])<< "Failure in SetValAtIndex(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(4),n[0])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(9),n[1])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(66),n[2])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(33),n[3])<< "Failure in at(exp_int::xubint)";
+  EXPECT_EQ(exp_int::xubint(7),n[4])<< "Failure in at(exp_int::xubint)";
 
   m+=n;
 
   usint expectedResult[5] = {9872,5888,4620,2376,4631};
 
   for (i=0,j=0;j<5;i++,j++) {
-    EXPECT_EQ (expectedResult[i], (m.GetValAtIndex(j)).ConvertToUsint())
+    EXPECT_EQ (expectedResult[i], (m.at(j)).ConvertToUsint())
       << "Failure testing method_plus_equals";
   }
 
@@ -194,11 +194,12 @@ TEST(UTmubintvec,ctor_access_eq_neq){
   EXPECT_EQ (expectedvecstr, m)<< "Failure string initializer list";
 
   exp_int::xmubintvec expectedvecint(5);
-  expectedvecint = {exp_int::xubint(9872U),exp_int::xubint(5888U),exp_int::xubint(4620U),exp_int::xubint(2376U),exp_int::xubint(4631U)}; //ubints
   expectedvecint.SetModulus(q);
-  EXPECT_EQ (expectedvecint, m)<< "Failure exp_int::xubint initializer list";
 
-  expectedvecint = {9872U,5888u,4620u,2376u,4631u}; //usints
+  //  expectedvecint = {exp_int::xubint(9872U),exp_int::xubint(5888U),exp_int::xubint(4620U),exp_int::xubint(2376U),exp_int::xubint(4631U)}; //ubints
+//  EXPECT_EQ (expectedvecint, m)<< "Failure exp_int::xubint initializer list";
+
+  expectedvecint = {9872ULL,5888ULL,4620ULL,2376ULL,4631ULL}; //usints
   EXPECT_EQ (expectedvecint, m)<< "Failure usint initializer list";
 
   expectedvecint = {9872,5888,4620,2376,4631}; //ints (compiler promotes)
@@ -288,31 +289,31 @@ TEST(UTmubintvec, constructorTest){
   bool dbg_flag = false;
   exp_int::xmubintvec m(10);
   
-  m.SetValAtIndex(0,"48");
-  m.SetValAtIndex(1,"53");
-  m.SetValAtIndex(2,"7");
-  m.SetValAtIndex(3,"178");
-  m.SetValAtIndex(4,"190");
-  m.SetValAtIndex(5,"120");
-  m.SetValAtIndex(6,"79");
-  m.SetValAtIndex(7,"108");
-  m.SetValAtIndex(8,"60");
-  m.SetValAtIndex(9,"12"); 
+  m.at(0)="48";
+  m.at(1)="53";
+  m.at(2)="7";
+  m.at(3)="178";
+  m.at(4)="190";
+  m.at(5)="120";
+  m.at(6)="79";
+  m.at(7)="108";
+  m.at(8)="60";
+  m.at(9)="12"; 
 
   DEBUG("m: "<<m);
 
   uint64_t expectedResult[10] = {48,53,7,178,190,120,79,108,60,12};  // the expected values are stored as one dimensional integer array
 
   for (usint i=0;i<10;i++){
-    DEBUG("val "<<i<< " is "<<m.GetValAtIndex(i));
-    EXPECT_EQ (expectedResult[i], (m.GetValAtIndex(i)).ConvertToInt());
+    DEBUG("val "<<i<< " is "<<m.at(i));
+    EXPECT_EQ (expectedResult[i], (m.at(i)).ConvertToInt());
   }
 
 
    exp_int::xmubintvec binvect(m);
 
   for (usint i=0;i<10;i++){
-    EXPECT_EQ (expectedResult[i], (binvect.GetValAtIndex(i)).ConvertToInt());
+    EXPECT_EQ (expectedResult[i], (binvect.at(i)).ConvertToInt());
   }
 }
 
@@ -324,16 +325,16 @@ TEST(UTmubintvec,mod){
 	
 
   //setting value of the value at different index locations
-  m.SetValAtIndex(0,"987968");
-  m.SetValAtIndex(1,"587679");
-  m.SetValAtIndex(2,"456454");
-  m.SetValAtIndex(3,"234343");
-  m.SetValAtIndex(4,"769789");
-  m.SetValAtIndex(5,"465654");
-  m.SetValAtIndex(6,"79");
-  m.SetValAtIndex(7,"346346");
-  m.SetValAtIndex(8,"325328");
-  m.SetValAtIndex(9,"7698798");	
+  m.at(0)="987968";
+  m.at(1)="587679";
+  m.at(2)="456454";
+  m.at(3)="234343";
+  m.at(4)="769789";
+  m.at(5)="465654";
+  m.at(6)="79";
+  m.at(7)="346346";
+  m.at(8)="325328";
+  m.at(9)="7698798";	
 
   exp_int::xubint q("233");		//calling costructor of exp_int::xubint Class to create object for modulus
   //set modulus

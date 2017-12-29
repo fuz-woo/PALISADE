@@ -25,7 +25,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * @section DESCRIPTION
- * Demo software for FV multiparty operations.
+ * Demo software for BFV multiparty operations.
  *
  */
 
@@ -37,8 +37,6 @@
 
 #include "palisade.h"
 #include "cryptocontexthelper.h"
-#include "cryptocontextgen.h"
-#include "encoding/byteplaintextencoding.h"
 #include "utils/debug.h"
 #include "utils/serializablehelper.h"
 
@@ -54,23 +52,30 @@ int main(int argc, char *argv[])
 
 	//Generate parameters.
 	double diff, start, finish;
-
-	std::cout << "\nThis code demonstrates the use of the FV, BV, StSt, Null and LTV schemes for basic proxy-re-encryption operations. " ;
-	std::cout << "This code shows how to use schemes and pre-computed parameters for those schemes can be selected during run-time. " ;
-	std::cout << "In this demonstration we encrypt data and then proxy re-encrypt it. " ;
-	std::cout << "We do not generally recommend the use of the LTV scheme due to security concerns. " << std::endl;
-
-	std::cout << "\nChoose parameter set: ";
-	CryptoContextHelper::printParmSetNamesByFilter(std::cout,"PRE");
-
 	string input;
-	std::cin >> input;
 
+	if (argc < 2) {
+	  std::cout << "\nThis code demonstrates the use of the BFV, BGV, StSt, Null and LTV schemes for basic proxy-re-encryption operations. " ;
+	  std::cout << "This code shows how to use schemes and pre-computed parameters for those schemes can be selected during run-time. " ;
+	  std::cout << "In this demonstration we encrypt data and then proxy re-encrypt it. " ;
+	  std::cout << "We do not generally recommend the use of the LTV scheme due to security concerns. " << std::endl;
+
+	  std::cout << "\nThis demo can be run as "<<argv[0]<<" <PARAMETER SET> " <<std::endl;
+	  std::cout << "\nChoose parameter set: ";
+	  CryptoContextHelper::printParmSetNamesByFilter(std::cout,"PRE");
+	  
+	  std::cin >> input;
+	} else {
+	  input = argv[1];
+	}
+
+	std::cout << "time using Math backend "<<MATHBACKEND <<std::endl;
+	
 	start = currentDateTime();
 
-	shared_ptr<CryptoContext<Poly>> cryptoContext = CryptoContextHelper::getNewContext(input);
+	CryptoContext<Poly> cryptoContext = CryptoContextHelper::getNewContext(input);
 	if (!cryptoContext) {
-		cout << "Error on " << input << endl;
+		cout << "Error on parameter set:" << input << endl;
 		return 0;
 	}
 
@@ -115,19 +120,16 @@ int main(int argc, char *argv[])
 	// Encode source data
 	////////////////////////////////////////////////////////////
 
-	std::vector<uint32_t> vectorOfInts = {1,0,1,1,1,1,0,1,1,1,0,1};
-	IntPlaintextEncoding plaintext(vectorOfInts);
+	std::vector<int64_t> vectorOfInts = {1,0,1,1,1,1,0,1,1,1,0,1};
+	Plaintext plaintext = cryptoContext->MakeCoefPackedPlaintext(vectorOfInts);
 
 	////////////////////////////////////////////////////////////
 	// Encryption
 	////////////////////////////////////////////////////////////
 
-
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext1;
-
 	start = currentDateTime();
 
-	ciphertext1 = cryptoContext->Encrypt(keyPair1.publicKey, plaintext, true);
+	auto ciphertext1 = cryptoContext->Encrypt(keyPair1.publicKey, plaintext);
 
 	finish = currentDateTime();
 	diff = finish - start;
@@ -137,11 +139,11 @@ int main(int argc, char *argv[])
 	//Decryption of Ciphertext
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding plaintextDec1;
+	Plaintext plaintextDec1;
 
 	start = currentDateTime();
 
-	cryptoContext->Decrypt(keyPair1.secretKey, ciphertext1, &plaintextDec1, true);
+	cryptoContext->Decrypt(keyPair1.secretKey, ciphertext1, &plaintextDec1);
 
 	finish = currentDateTime();
 	diff = finish - start;
@@ -149,7 +151,7 @@ int main(int argc, char *argv[])
 
 	//std::cin.get();
 
-	plaintextDec1.resize(plaintext.size());
+	plaintextDec1->SetLength(plaintext->GetLength());
 
 	cout << "\n Original Plaintext: \n";
 	cout << plaintext << endl;
@@ -187,21 +189,21 @@ int main(int argc, char *argv[])
 	////////////////////////////////////////////////////////////
 
 	// Set a flag to determine which ReKeyGent interface is supported
-	// flagBV == true means BV or FV
-	// flagBV == false corresponds to LTV, StSt, and Null
+	// flagBGV == true means BGV or BFV
+	// flagBGV == false corresponds to LTV, StSt, and Null
 
-	bool flagBV = true;
+	bool flagBGV = true;
 
-	if ((input.find("BV") == string::npos) && (input.find("FV") == string::npos))
-		flagBV = false;
+	if ((input.find("BGV") == string::npos) && (input.find("BFV") == string::npos))
+		flagBGV = false;
 
 	std::cout <<"\n"<< "Generating proxy re-encryption key..." << std::endl;
 
-	shared_ptr<LPEvalKey<Poly>> reencryptionKey12;
+	LPEvalKey<Poly> reencryptionKey12;
 
 	start = currentDateTime();
 
-	if (flagBV)
+	if (flagBGV)
 		reencryptionKey12 = cryptoContext->ReKeyGen(keyPair2.secretKey, keyPair1.secretKey);
 	else
 		reencryptionKey12 = cryptoContext->ReKeyGen(keyPair2.publicKey, keyPair1.secretKey);
@@ -216,9 +218,7 @@ int main(int argc, char *argv[])
 
 	start = currentDateTime();
 
-	vector<shared_ptr<Ciphertext<Poly>>> ciphertext2;
-
-	ciphertext2 = cryptoContext->ReEncrypt(reencryptionKey12, ciphertext1);
+	auto ciphertext2 = cryptoContext->ReEncrypt(reencryptionKey12, ciphertext1);
 
 	finish = currentDateTime();
 	diff = finish - start;
@@ -228,17 +228,17 @@ int main(int argc, char *argv[])
 	//Decryption of Ciphertext
 	////////////////////////////////////////////////////////////
 
-	IntPlaintextEncoding plaintextDec2;
+	Plaintext plaintextDec2;
 
 	start = currentDateTime();
 
-	cryptoContext->Decrypt(keyPair2.secretKey, ciphertext2, &plaintextDec2, true);
+	cryptoContext->Decrypt(keyPair2.secretKey, ciphertext2, &plaintextDec2);
 
 	finish = currentDateTime();
 	diff = finish - start;
 	cout << "Decryption time: " << "\t" << diff << " ms" << endl;
 
-	plaintextDec2.resize(plaintext.size());
+	plaintextDec2->SetLength(plaintext->GetLength());
 
 	cout << "\n Original Plaintext: \n";
 	cout << plaintext << endl;
