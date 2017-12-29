@@ -30,3 +30,4 @@ You build the entirety of PALISADE by running make. There are various command li
 * BINDIR=directory builds the library with a different target directory
 * BACKEND=n builds the library with MATHBACKEND set to n (you may want to touch the src/core/lib/math/backend.h file to force the build)
 * COVERAGE=any builds the library with coverage testing enabled
+* OMP=n builds the library with OMP flag set to n; currently n can be any value; turns on loop parallelization for the Matrix class in src/core/lib/math; additional levels of parallelization will be added in the future.
