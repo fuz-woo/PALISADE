@@ -282,7 +282,7 @@ CryptoContextHelper::getNewDCRTContext(const string& parmset, usint numTowers, u
 			return 0;
 		}
 
-		parms = GenerateDCRTParams(stoul(ring), numTowers, primeBits);
+		parms = GenerateDCRTParams<DCRTPoly::Integer>(stoul(ring), numTowers, primeBits);
 
 	}
 	return buildContextFromSerialized<DCRTPoly>(it->second, parms);

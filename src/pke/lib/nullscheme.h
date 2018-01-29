@@ -794,13 +794,7 @@ class LPAlgorithmSHENull : public LPSHEAlgorithm<Element> {
 
 			Element temp = ciphertext->GetElement();
 
-			//Switch from coefficient representation to evaluation
-			temp.SwitchFormat();
-
 			temp = temp.AutomorphismTransform(i);
-			
-			//Switch from evaluation representation to coefficient
-			temp.SwitchFormat();
 
 			permutedCiphertext->SetElement(temp);
 
@@ -846,39 +840,45 @@ class LPAlgorithmSHENull : public LPSHEAlgorithm<Element> {
 
 			typename Element::PolyType cResult(c1.GetParams(), Format::COEFFICIENT, true);
 
-			typename Element::PolyType cLarger(c1.GetParams(), Format::COEFFICIENT, true);
+			if (c1.GetParams()->OrderIsPowerOfTwo())
+			{
+				typename Element::PolyType cLarger(c1.GetParams(), Format::COEFFICIENT, true);
 
-			typename Element::PolyType::Integer ptm( ptmod.ConvertToInt() );
+				typename Element::PolyType::Integer ptm( ptmod.ConvertToInt() );
 
-			int	ringdim = c1.GetRingDimension();
-			for (int c1e = 0; c1e<ringdim; c1e++) {
-				typename Element::PolyType::Integer answer, c1val, c2val, prod;
-				c1val = c1.at(c1e);
-				if (c1val != 0) {
-					for (int c2e = 0; c2e<ringdim; c2e++) {
-						c2val = c2.at(c2e);
-						if (c2val != 0) {
-							prod = c1val * c2val;
+				int	ringdim = c1.GetRingDimension();
+				for (int c1e = 0; c1e<ringdim; c1e++) {
+					typename Element::PolyType::Integer answer, c1val, c2val, prod;
+					c1val = c1.at(c1e);
+					if (c1val != typename Element::PolyType::Integer(0)) {
+						for (int c2e = 0; c2e<ringdim; c2e++) {
+							c2val = c2.at(c2e);
+							if (c2val != typename Element::PolyType::Integer(0)) {
+								prod = c1val * c2val;
 
-							int index = (c1e + c2e);
+								int index = (c1e + c2e);
 
-							if (index >= ringdim) {
-								index %= ringdim;
-								cLarger.at(index)= (cLarger.at(index) + prod) % ptm;
+								if (index >= ringdim) {
+									index %= ringdim;
+									cLarger.at(index)= (cLarger.at(index) + prod) % ptm;
+								}
+								else
+								  cResult.at(index)= (cResult.at(index) + prod) % ptm;
 							}
-							else
-							  cResult.at(index)= (cResult.at(index) + prod) % ptm;
 						}
 					}
 				}
-			}
 
-			// fold cLarger back into the answer
-			for (int i = 0; i<ringdim; i++) {
-				typename Element::PolyType::Integer adj;
-				adj = cResult.at(i) + (ptm - cLarger.at(i)) % ptm;
-				cResult.at(i)= adj % ptm;
+				// fold cLarger back into the answer
+				for (int i = 0; i<ringdim; i++) {
+					typename Element::PolyType::Integer adj;
+					adj = cResult.at(i) + (ptm - cLarger.at(i)) % ptm;
+					cResult.at(i)= adj % ptm;
+				}
+
 			}
+			else
+				PALISADE_THROW( lbcrypto::math_error, "Polynomial multiplication in coefficient representation is not currently supported for non-power-of-two polynomials");
 
 			return std::move( cResult );
 		}

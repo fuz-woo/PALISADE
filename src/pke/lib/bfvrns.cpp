@@ -33,6 +33,7 @@ The BFV scheme is introduced in the following papers:
    - Junfeng Fan and Frederik Vercauteren (2012). Somewhat Practical Fully Homomorphic Encryption.  Cryptology ePrint Archive, Report 2012/144. (https://eprint.iacr.org/2012/144.pdf)
 
  Our implementation builds from the designs here:
+   - Halevi S. and Polyakov Y. (in preparation, 2018) A Simpler, Faster RNS Variant of the BFV Homomorphic Encryption Scheme.
    - Lepoint T., Naehrig M. (2014) A Comparison of the Homomorphic Encryption Schemes FV and YASHE. In: Pointcheval D., Vergnaud D. (eds) Progress in Cryptology – AFRICACRYPT 2014. AFRICACRYPT 2014. Lecture Notes in Computer Science, vol 8469. Springer, Cham. (https://eprint.iacr.org/2014/062.pdf)
    - Jean-Claude Bajard and Julien Eynard and Anwar Hasan and Vincent Zucca (2016). A Full RNS Variant of FV like Somewhat Homomorphic Encryption Schemes. Cryptology ePrint Archive, Report 2016/510. (https://eprint.iacr.org/2016/510)
 

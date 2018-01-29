@@ -50,7 +50,7 @@
 #include "../../utils/memory.h"
 #include "../../utils/palisadebase64.h"
 #include "../../utils/serializable.h"
-#include "../native_int/binint.h"
+//#include "../native_int/binint.h"
 
 /**
 *@namespace cpu_int
@@ -241,15 +241,19 @@ namespace cpu_int{
     BigInteger(const BigInteger& bigInteger);
 
     /**
+    * Move constructor for copying a big binary integer
+    *
+    * @param bigInteger is the big binary integer to be copied.
+    */
+    BigInteger(BigInteger&& bigInteger);
+
+    /**
      * Construct a BigInteger from a NativeInteger
      * @param native
      */
     BigInteger(const NativeInteger& native) : BigInteger( native.ConvertToInt() ) {}
    
-    /**
-    * Destructor.
-    */
-    ~BigInteger();
+    ~BigInteger() {}
         
     /**
     * Assignment operator
@@ -259,23 +263,39 @@ namespace cpu_int{
     */
     const BigInteger&  operator=(const BigInteger &rhs);
 
+    /**
+    * Move Assignment operator
+    *
+    * @param &rhs is the big binary integer to be assigned from.
+    * @return assigned BigInteger ref.
+    */
+    const BigInteger&  operator=(BigInteger &&rhs);
+
 	/**
     * Assignment operator from unsigned integer
     *
     * @param val is the unsigned integer value that is assigned.
     * @return the assigned BigInteger ref.
     */
-    //TODO: should this be uint_64_t?    
-    inline const BigInteger& operator=(usint val) {
-      *this = intToBigInteger(val);
+    const BigInteger& operator=(uint64_t val) {
+      *this = BigInteger(val);
       return *this;
     }
-	
-    inline const BigInteger& operator=(std::string strval) {
+
+    /**
+     * Assignment from string
+     * @param strval
+     * @return the assigned BigInteger ref.
+     */
+    const BigInteger& operator=(const std::string strval) {
       *this = BigInteger(strval);
       return *this;
     }
 
+    const BigInteger& operator=(const NativeInteger& val) {
+      *this = BigInteger(val);
+      return *this;
+    }
 	
 //Auxillary Functions
     
@@ -457,6 +477,17 @@ namespace cpu_int{
     BigInteger ModBarrett(const BigInteger& modulus, const BigInteger mu_arr[BARRETT_LEVELS+1]) const;
 
     /**
+    * returns the modulus with respect to the input value - In place version.
+	* Implements generalized Barrett modular reduction algorithm. Uses an array of precomputed values \mu.
+	* See the cpp file for details of the implementation.
+    *
+    * @param modulus is the modulus to perform operations with.
+    * @param mu_arr is an array of the Barrett values of length BARRETT_LEVELS.
+    * @return result of the modulus operation.
+    */
+    void ModBarrettInPlace(const BigInteger& modulus, const BigInteger mu_arr[BARRETT_LEVELS+1]);
+
+    /**
     * returns the modulus inverse with respect to the input value.
     *
     * @param modulus is the modulus to perform.
@@ -472,6 +503,15 @@ namespace cpu_int{
     * @return result of the modulus addition operation.
     */
     BigInteger ModAdd(const BigInteger& b, const BigInteger& modulus) const;
+
+    /**
+    * Scalar modular addition with operands < modulus
+    *
+    * @param &b is the scalar to add.
+    * @param modulus is the modulus to perform operations with.
+    * @return result of the modulus addition operation.
+    */
+    BigInteger ModAddFast(const BigInteger& b, const BigInteger& modulus) const;
 
     /**
     * Scalar modular addition.
@@ -512,6 +552,15 @@ namespace cpu_int{
     BigInteger ModSub(const BigInteger& b, const BigInteger& modulus) const;
 
     /**
+    * Scalar modular subtraction with operands < modulus
+    *
+    * @param &b is the scalar to subtract.
+    * @param modulus is the modulus to perform operations with.
+    * @return result of the modulus subtraction operation.
+    */
+    BigInteger ModSubFast(const BigInteger& b, const BigInteger& modulus) const;
+
+    /**
     * Scalar modular subtraction.
     *
     * @param &b is the scalar to subtract.
@@ -548,6 +597,15 @@ namespace cpu_int{
     * @return is the result of the modulus multiplication operation.
     */
     BigInteger ModMul(const BigInteger& b, const BigInteger& modulus) const;
+
+    /**
+    * Scalar modulus multiplication that assumes operands are < modulus
+    *
+    * @param &b is the scalar to multiply.
+    * @param modulus is the modulus to perform operations with.
+    * @return is the result of the modulus multiplication operation.
+    */
+    BigInteger ModMulFast(const BigInteger& b, const BigInteger& modulus) const;
 
     /**
     * Scalar modulus multiplication.
@@ -896,20 +954,19 @@ namespace cpu_int{
 		static usint GetMSBDUint_type(Duint_type x);
 		
 		/**
-		* function that returns the BigInteger after multiplication by b.
+		* function that returns the BigInteger after multiplication by a uint.
 		* @param b is the number to be multiplied.
 		* @return the BigInteger after the multiplication.
 		*/
-        BigInteger MulIntegerByChar(uint_type b) const;
+        BigInteger MulByUint(const uint_type b) const;
 
 		/**
-		* function that returns the BigInteger after multiplication by b.
-		* the pointer argument is used to minimize the number of BigInteger instantiations
+		* function that returns the BigInteger after multiplication by a uint.
 		* @param b is the number to be multiplied.
-		* @param ans - where result is stored ("in-place")
+		* @return the BigInteger after the multiplication.
 		*/
-		void MulIntegerByCharInPlace(uint_type b, BigInteger *ans) const;
-		
+        void MulByUintToInt(const uint_type b, BigInteger* ans) const;
+
 		/**
 		* function that returns the decimal value from the binary array a.
 		* @param a is a pointer to the binary array.

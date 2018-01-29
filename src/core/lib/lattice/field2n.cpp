@@ -36,7 +36,7 @@ Field2n::Field2n(const Poly & element)
 	} else {
 		// the value of element.at(i) is usually small - so a 64-bit integer is more than enough
 		// this approach is much faster than BigInteger::ConvertToDouble
-		BigInteger negativeThreshold(element.GetModulus()/ 2);
+		BigInteger negativeThreshold(element.GetModulus() / Poly::Integer(2));
 		for (size_t i = 0; i < element.GetLength(); i++) {
 			if (element.at(i) > negativeThreshold)
 				this->push_back((double)(int64_t)(-1 * (element.GetModulus() - element.at(i)).ConvertToInt()));

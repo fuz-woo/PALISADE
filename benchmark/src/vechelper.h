@@ -32,19 +32,19 @@
 #include "math/backend.h"
 using namespace lbcrypto;
 
-template<typename T>
-inline BigVector makeVector(shared_ptr<T> p) {
-	Poly::DugType dug;
-	dug.SetModulus(p->GetModulus());
+template<typename V>
+inline V makeVector(usint ringdim, const typename V::Integer& mod) {
+	DiscreteUniformGeneratorImpl<typename V::Integer,V> dug;
+	dug.SetModulus(mod);
 
-	return dug.GenerateVector(p->GetCyclotomicOrder()/2);
+	return dug.GenerateVector(ringdim);
 }
 
-inline NativeVector makeNativeVector(shared_ptr<ILNativeParams> p) {
-	NativePoly::DugType dug;
-	dug.SetModulus(p->GetModulus());
+inline NativeVector makeNativeVector(usint ringdim, const NativeInteger& mod) {
+	DiscreteUniformGeneratorImpl<NativeInteger,NativeVector> dug;
+	dug.SetModulus(mod);
 
-	return dug.GenerateVector(p->GetRingDimension());
+	return dug.GenerateVector(ringdim);
 }
 
 #endif

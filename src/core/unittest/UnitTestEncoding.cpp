@@ -59,7 +59,7 @@ TEST_F(UTEncoding,scalar_encoding) {
 	usint m = 8;
 	PlaintextModulus ptm = 128;
 
-	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m);
 	EncodingParams ep( new EncodingParamsImpl( ptm ) );
 
 	ScalarEncoding	se(lp, ep, value);
@@ -96,7 +96,7 @@ TEST_F(UTEncoding,coef_packed_encoding) {
 	vector<int64_t> value = {32, 17, 8, -12, -32, 22, -101, 6 };
 	usint m = 16;
 
-	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m);
 	EncodingParams ep( new EncodingParamsImpl(256) );
 
 	CoefPackedEncoding	se(lp, ep, value);
@@ -134,7 +134,7 @@ TEST_F(UTEncoding,string_encoding) {
 	usint m = 64;
 
 	shared_ptr<ILParams> lp =
-			ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
+			ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m);
 	EncodingParams ep( new EncodingParamsImpl(256) );
 	StringEncoding	se(lp, ep, value);
 	se.Encode();
@@ -143,7 +143,7 @@ TEST_F(UTEncoding,string_encoding) {
 
 	// truncate!
 	shared_ptr<ILParams> lp2 =
-			ElemParamFactory::GenElemParams<ILParams,BigInteger>(4);
+			ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(4);
 	StringEncoding	se2(lp2, ep, value);
 	se2.Encode();
 	se2.Decode();
@@ -153,7 +153,7 @@ TEST_F(UTEncoding,string_encoding) {
 TEST_F(UTEncoding,integer_encoding){
 	int	m = 64;
 	PlaintextModulus ptm = ((uint64_t)1<<30);
-	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m);
 	EncodingParams ep( new EncodingParamsImpl(ptm) );
 
 	int64_t mv = ((uint64_t)1<<20) + (uint64_t)1;

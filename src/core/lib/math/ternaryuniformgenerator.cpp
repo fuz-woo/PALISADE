@@ -42,7 +42,7 @@ VecType TernaryUniformGeneratorImpl<IntType,VecType>::GenerateVector (usint size
 	for (usint i = 0; i < size; i++) {
 		randomNumber = m_distribution(PseudoRandomNumberGenerator::GetPRNG());
 		if (randomNumber < 0)
-			v[i] = modulus - 1;
+			v[i] = modulus - IntType(1);
 		else
 			v[i] = IntType(randomNumber);
 	}

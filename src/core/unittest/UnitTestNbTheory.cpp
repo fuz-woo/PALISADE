@@ -192,11 +192,11 @@ TEST(UTNbTheory, method_primitive_root_of_unity_VERY_LONG){
     BigInteger M(std::to_string(m)), MbyTwo(M.DividedBy(2));
 
     BigInteger wpowerm = primitiveRootOfUnity.ModExp(M, primeModulus);
-    EXPECT_EQ(wpowerm, 1)
+    EXPECT_EQ(wpowerm, BigInteger(1))
       <<"Failure single equal_m";
 
     BigInteger wpowermbytwo = primitiveRootOfUnity.ModExp(MbyTwo, primeModulus);
-    EXPECT_NE(wpowermbytwo, 1)
+    EXPECT_NE(wpowermbytwo, BigInteger(1))
       <<"Failure single not_equal_mbytwo";
   }
   {
@@ -215,13 +215,13 @@ TEST(UTNbTheory, method_primitive_root_of_unity_VERY_LONG){
       BigInteger primitiveRootOfUnity = lbcrypto::RootOfUnity<BigInteger>(m, primeModulus);
 
       BigInteger wpowerm = primitiveRootOfUnity.ModExp(M, primeModulus);
-      EXPECT_EQ(wpowerm, 1)
+      EXPECT_EQ(wpowerm, BigInteger(1))
 	<<"Failure single input iteration "<< i <<" equal_m";
 	BigInteger wpowermbytwo = primitiveRootOfUnity.ModExp(MbyTwo, primeModulus);
-      EXPECT_NE(wpowermbytwo, 1)
+      EXPECT_NE(wpowermbytwo, BigInteger(1))
 	<<"Failure single input  iteration "<< i <<" not_equal_mbytwo";
       BigInteger wpowermbyfour = primitiveRootOfUnity.ModExp(MbyFour, primeModulus);
-      EXPECT_NE(wpowermbyfour, 1)
+      EXPECT_NE(wpowermbyfour, BigInteger(1))
 	<<"Failure single input iteration "<< i <<"not_equal_mbyfour";
     }
   }
@@ -293,17 +293,17 @@ TEST(UTNbTheory, method_primitive_root_of_unity_VERY_LONG){
 
 		BigInteger wpowerm = primitiveRootOfUnity.ModExp(M, primeModulus);
 		// fout << "w^m = " << wpowerm << endl;
-		EXPECT_EQ(wpowerm, 1)
+		EXPECT_EQ(wpowerm, BigInteger(1))
 		  <<"Failure multi input iteration "<< i <<" equal_m";
 
 		BigInteger wpowermbytwo = primitiveRootOfUnity.ModExp(MbyTwo, primeModulus);
 		// fout << "w^(m/2) = " << wpowermbytwo << endl;
-		EXPECT_NE(wpowermbytwo, 1)
+		EXPECT_NE(wpowermbytwo, BigInteger(1))
 		  <<"Failure multi input  iteration "<< i <<" not_equal_mbytwo";
 
 		BigInteger wpowermbyfour = primitiveRootOfUnity.ModExp(MbyFour, primeModulus);
 		// fout << "w^(m/4) = " << wpowermbyfour << endl;
-		EXPECT_NE(wpowermbyfour, 1)
+		EXPECT_NE(wpowermbyfour, BigInteger(1))
 		  <<"Failure multi input  iteration "<< i <<" not_equal_mbyfour";
 		// fout << "----------------------------------------------------------------------------------------------------------------------------------" << endl;
 		// fout << endl;

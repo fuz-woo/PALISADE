@@ -51,6 +51,7 @@ template<typename IntType>
 class ILParamsImpl : public ElemParams<IntType>
 {
 public:
+	typedef IntType Integer;
 
 	/**
 	 * Constructor that initializes nothing.

@@ -196,12 +196,12 @@ TEST(UTBinVect,NTL_modulus_framework){
   DEBUG("qtest1 "<<qtest1);
   EXPECT_EQ(q1, qtest1)<<"Failure NTL vector.GetModulus() 1";
 
-  for (size_t i = 0; i < m.size(); i++){
-    EXPECT_EQ(m_expected_1[i],m[i]) << "Failure in NTL ["<<i<<"]";
+  for (size_t i = 0; i < m.GetLength(); i++){
+    EXPECT_EQ(m_expected_1[i],m[i].ConvertToInt()) << "Failure in NTL ["<<i<<"]";
   }
   NTL::myZZ elem = m[0]; 
 
-  EXPECT_EQ(9868U,elem) << "Failure in NTL elem 1";
+  EXPECT_EQ(9868U,elem.ConvertToInt()) << "Failure in NTL elem 1";
 
   //now switch the modulus.
   m.SetModulus(q2);
@@ -215,8 +215,8 @@ TEST(UTBinVect,NTL_modulus_framework){
   vector<usint> m_modulus_2 = {208, 14, 69, 273, 139,}; 
   EXPECT_EQ(q2, qtest2)<<"Failure NTL vector.GetModulus() 2";
 
-  for (size_t i = 0; i < m.size(); i++){
-    EXPECT_NE(m_modulus_2[i],m[i]) << "Failure in NTL ["<<i<<"]";
+  for (size_t i = 0; i < m.GetLength(); i++){
+    EXPECT_NE(m_modulus_2[i],m[i].ConvertToInt()) << "Failure in NTL ["<<i<<"]";
   }
 }
 
@@ -258,7 +258,7 @@ TEST(UTBinVect, CTOR_Test){
 
 // TEST CASE WHEN NUMBERS AFTER ADDITION ARE SMALLER THAN MODULUS 
 
-TEST(UTBinVect,ModAddBBITestBigModulus){
+TEST(UTBinVect,ModAddBigModulus){
 
 	BigInteger q("3435435");	// constructor calling to set mod value
 	BigVector m(5,q);		// calling constructor to create a vector of length 5 and passing value of q
@@ -284,7 +284,7 @@ TEST(UTBinVect,ModAddBBITestBigModulus){
 
 // TEST CASE WHEN NUMBERS AFTER ADDITION ARE GREATER THAN MODULUS 
 
-TEST(UTBinVect,ModAddBBITestSmallerModulus){
+TEST(UTBinVect,ModAddSmallerModulus){
   bool dbg_flag = false;
 
 	BigInteger q("3534");	// constructor calling to set mod value
@@ -370,11 +370,11 @@ TEST(UTBinVect,modsub_first_number_greater_than_second_number){
 
 /*--------------TESTING METHOD MODUMUL FOR ALL CONDITIONS---------------------------*/
 
-/* 	The method "Mod Mod" operates on Big Vector m, BigIntegers n,q
+/* 	The method "Mod Mul" operates on Big Vector m, BigIntegers n,q
   	Returns:  (m*n)mod q
 	and the result is stored in Big Vector calculatedResult.
 */
-TEST(UTBinVect,test_modmul_BBI){
+TEST(UTBinVect,ModMulTest){
 
 	BigInteger q("3534");			// constructor calling to set mod value
 	BigVector m(5,q);				// calling constructor to create a vector of length 5 and passing value of q
@@ -403,7 +403,7 @@ TEST(UTBinVect,test_modmul_BBI){
   	Returns:  (m^n)mod q
 	and the result is stored in Big Vector calculatedResult.
 */
-TEST(UTBinVect,test_modexp){
+TEST(UTBinVect,ModExpTest){
   bool dbg_flag = false;
 	BigInteger q("3534");			// constructor calling to set mod value
 	BigVector m(5,q);				// calling constructor to create a vector of length 5 and passing value of q

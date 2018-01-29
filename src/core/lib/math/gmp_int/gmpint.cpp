@@ -50,13 +50,6 @@ namespace NTL {
   // constant log2 of limb bitlength
   const usint myZZ::m_log2LimbBitLength = Log2<NTL_ZZ_NBITS>::value;
 
-  const myZZ myZZ::ZERO=myZZ(0L);
-  const myZZ myZZ::ONE=myZZ(1);
-  const myZZ myZZ::TWO=myZZ(2);
-  const myZZ myZZ::THREE=myZZ(3);
-  const myZZ myZZ::FOUR=myZZ(4);
-  const myZZ myZZ::FIVE=myZZ(5);
-
   myZZ::myZZ():ZZ() {SetMSB();}
 
   myZZ::myZZ(uint64_t d): ZZ(0) {
@@ -333,7 +326,6 @@ namespace NTL {
   
   const std::string myZZ::ToString() const
   {
-    //todo Not sure if this string is safe, it may be ephemeral if not returned  by value.
     std::stringstream result("");
     result << *this;
     return result.str();
@@ -355,7 +347,7 @@ namespace NTL {
     
     //check for garbage initialization and 0 condition
     //check for garbage initialization and 0 condition
-    if(q==ZERO)
+    if(q==myZZ(0))
       throw std::logic_error("DivideAndRound() Divisor is zero");
     
     myZZ halfQ(q>>1);
@@ -363,9 +355,9 @@ namespace NTL {
     
     if (*this < q) {
       if (*this <= halfQ)
-	return myZZ(ZERO);
+	return myZZ(0);
       else
-	return myZZ(ONE);
+	return myZZ(1);
     }
     //=============
     myZZ ans(0);
@@ -394,19 +386,13 @@ namespace NTL {
     //==============
     //Rounding operation from running remainder
     if (!(rv <= halfQ)) {
-      ans += ONE;
+      ans += myZZ(1);
       DEBUG("added1 ans "<<ans.ToString());
     }
     return ans;
   }
   
   
-  //various operators on mixed operands
-  myZZ& myZZ::operator*=(const myZZ &a) {
-    *this = *this*a;
-    return *this;
-  }
-
   // helper functions convert a ubint in and out of a string of
   // characters the encoding is Base64-like: the first 11 6-bit
   // groupings are Base64 encoded

@@ -65,7 +65,6 @@ BigVectorImpl<IntegerType>::BigVectorImpl(usint length, const IntegerType& modul
 			m_data[i] = 0;
 		}
 	}
-
 }
 
 template<class IntegerType>
@@ -92,7 +91,6 @@ BigVectorImpl<IntegerType>::BigVectorImpl(const BigVectorImpl &bigVector){
 	for(usint i=0;i<m_length;i++){
 		m_data[i] = bigVector.m_data[i];
 	}
-
 }
 
 template<class IntegerType>
@@ -101,6 +99,8 @@ BigVectorImpl<IntegerType>::BigVectorImpl(BigVectorImpl &&bigVector){
 	m_length = bigVector.m_length;
 	m_modulus = bigVector.m_modulus;
 	bigVector.m_data = NULL;
+	bigVector.m_length = 0;
+	bigVector.m_modulus = 0;
 }
 
 //ASSIGNMENT OPERATOR
@@ -108,7 +108,7 @@ template<class IntegerType>
 const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(const BigVectorImpl &rhs){
 	if(this!=&rhs){
 		if(this->m_length==rhs.m_length){
-			for (usint i = 0; i < m_length; i++){
+			for (size_t i = 0; i < m_length; i++){
 				this->m_data[i] = rhs.m_data[i];
 			}
 		}
@@ -118,7 +118,7 @@ const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(const Bi
 			m_length = rhs.m_length;
 			m_modulus = rhs.m_modulus;
 			m_data = new IntegerType[m_length];
-			for (usint i = 0; i < m_length; i++){
+			for (size_t i = 0; i < m_length; i++){
 				m_data[i] = rhs.m_data[i];
 			}
 		}
@@ -129,9 +129,23 @@ const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(const Bi
 }
 
 template<class IntegerType>
+const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(BigVectorImpl &&rhs){
+
+	if(this!=&rhs){
+		delete [] m_data;
+		m_data = rhs.m_data;
+		m_length = rhs.m_length;
+		m_modulus = rhs.m_modulus;
+		rhs.m_data = NULL;
+	}
+
+	return *this;
+}
+
+template<class IntegerType>
 const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(std::initializer_list<uint64_t> rhs){
-	usint len = rhs.size();
-	for(usint i=0;i<m_length;i++){ // this loops over each tower
+	size_t len = rhs.size();
+	for(size_t i=0;i<m_length;i++){
 		if(i<len) {
 		  if (m_modulus!=0)
 			m_data[i] = IntegerType(*(rhs.begin()+i))%m_modulus;
@@ -146,10 +160,10 @@ const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(std::ini
 }
 
 template<class IntegerType>
-const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(std::initializer_list<std::string> rhs){
+const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(std::initializer_list<std::string> rhs) {
         bool dbg_flag = false;
-	usint len = rhs.size();
-	for(usint i=0;i<m_length;i++){ // this loops over each tower
+        size_t len = rhs.size();
+	for(size_t i=0;i<m_length;i++){
 		if(i<len) {
 		  if (m_modulus!=0)
 			m_data[i] = IntegerType(*(rhs.begin()+i))%m_modulus;
@@ -162,22 +176,6 @@ const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(std::ini
 	}
 
 	return *this;
-}
-
-template<class IntegerType>
-BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator=(BigVectorImpl &&rhs){
-
-	if(this!=&rhs){
-
-		delete [] m_data;
-		m_data = rhs.m_data;
-		m_length = rhs.m_length;
-		m_modulus = rhs.m_modulus;
-		rhs.m_data = NULL;
-	}
-
-	return *this;
-
 }
 
 template<class IntegerType>
@@ -248,17 +246,37 @@ BigVectorImpl<IntegerType> BigVectorImpl<IntegerType>::Mod(const IntegerType& mo
 	{
 		BigVectorImpl ans(this->GetLength(),this->GetModulus());
 		IntegerType halfQ(this->GetModulus() >> 1);
-		for (usint i = 0; i<ans.GetLength(); i++) {
-			if (this->at(i)>halfQ) {
-			  ans.at(i)=this->at(i).ModSub(this->GetModulus(),modulus);
+		for (size_t i = 0; i<ans.GetLength(); i++) {
+			if (this->operator[](i)>halfQ) {
+			  ans[i] = this->operator[](i).ModSub(this->GetModulus(),modulus);
 			}
 			else {
-			  ans.at(i)=this->at(i).Mod(modulus);
+			  ans[i] = this->operator[](i).Mod(modulus);
 			}
 		}
 		return ans;
 	}
+}
 
+template<class IntegerType>
+const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::ModEq(const IntegerType& modulus) {
+
+	if (modulus==2) {
+		return this->ModByTwoEq();
+	}
+	else
+	{
+		IntegerType halfQ(this->GetModulus() >> 1);
+		for (usint i = 0; i<this->GetLength(); i++) {
+			if (this->operator[](i)>halfQ) {
+			  this->operator[](i).ModSubEq(this->GetModulus(),modulus);
+			}
+			else {
+			  this->operator[](i).ModEq(modulus);
+			}
+		}
+		return *this;
+	}
 }
 
 template<class IntegerType>
@@ -476,54 +494,32 @@ const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::ModSubEq(const Big
 
 template<class IntegerType>
 BigVectorImpl<IntegerType> BigVectorImpl<IntegerType>::ModByTwo() const {
-
-	BigVectorImpl ans(this->GetLength(),this->GetModulus());
-	IntegerType halfQ(this->GetModulus() >> 1);
-	for (usint i = 0; i<ans.GetLength(); i++) {
-		if (this->at(i)>halfQ) {
-			if (this->at(i).Mod(2) == 1)
-			  ans.at(i)= IntegerType(0);
-			else
-			  ans.at(i)= 1;
-		}
-		else {
-			if (this->at(i).Mod(2) == 1)
-			  ans.at(i)= 1;
-			else
-			  ans.at(i)= IntegerType(0);
-		}
-
-	}
+	BigVectorImpl ans(*this);
+	ans.ModByTwoEq();
 	return ans;
 }
 
-//template<class IntegerType>
-//const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator+=(const BigVectorImpl &b) {
-//
-//	if((this->m_length!=b.m_length) || this->m_modulus!=b.m_modulus ){
-//        throw std::logic_error("operator+= called on BigVectorImpl's with different parameters.");
-//	}
-//
-//	for(usint i=0;i<this->m_length;i++){
-//		this->m_data[i] = this->m_data[i].ModAdd(b.m_data[i],this->m_modulus);
-//	}
-//	return *this;
-//
-//}
+template<class IntegerType>
+const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::ModByTwoEq() {
 
-//template<class IntegerType>
-//const BigVectorImpl<IntegerType>& BigVectorImpl<IntegerType>::operator-=(const BigVectorImpl &b) {
-//
-//	if((this->m_length!=b.m_length) || this->m_modulus!=b.m_modulus ){
-//        throw std::logic_error("operator-= called on BigVectorImpl's with different parameters.");
-//	}
-//
-//	for(usint i=0;i<this->m_length;i++){
-//		this->m_data[i] = this->m_data[i].ModSub(b.m_data[i],this->m_modulus);
-//	}
-//	return *this;
-//
-//}
+	IntegerType halfQ(this->GetModulus() >> 1);
+	for (usint i = 0; i<this->GetLength(); i++) {
+		if (this->operator[](i)>halfQ) {
+			if (this->operator[](i).Mod(2) == 1)
+				this->operator[](i) = IntegerType(0);
+			else
+				this->operator[](i) = 1;
+		}
+		else {
+			if (this->operator[](i).Mod(2) == 1)
+				this->operator[](i) = 1;
+			else
+				this->operator[](i )= IntegerType(0);
+		}
+
+	}
+	return *this;
+}
 
 /*
 Source: http://homes.esat.kuleuven.be/~fvercaut/papers/bar_mont.pdf

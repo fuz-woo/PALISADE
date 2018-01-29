@@ -301,9 +301,9 @@ TEST(UTNTT, decomposeMult_single_crt) {
 	DEBUG("resultsEval.coef "<<resultsEval.GetValues());
 	DEBUG("resultsEval.modulus"<< resultsEval.GetModulus());
 
-	EXPECT_EQ(resultsEval.at(0), 0);
-	EXPECT_EQ(resultsEval.at(1), 0);
+	EXPECT_EQ(resultsEval.at(0), BigInteger(0));
+	EXPECT_EQ(resultsEval.at(1), BigInteger(0));
 	EXPECT_EQ(resultsEval.at(2), BigInteger("17728"));
-	EXPECT_EQ(resultsEval.at(3), 0);
+	EXPECT_EQ(resultsEval.at(3), BigInteger(0));
 
 }

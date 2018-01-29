@@ -326,6 +326,9 @@ bool LPAlgorithmParamsGenBFV<Element>::ParamsGen(shared_ptr<LPCryptoParameters<E
 
 	}
 
+	if (ceil(log2(q))+1 > 125)
+		PALISADE_THROW( lbcrypto::math_error, "BFV cannot autogenerate parameters for this case, please use BFVrns instead.");
+
 	typename Element::Integer qPrime = FirstPrime<typename Element::Integer>(ceil(log2(q))+1, 2*n);
 	typename Element::Integer rootOfUnity = RootOfUnity<typename Element::Integer>(2 * n, qPrime);
 

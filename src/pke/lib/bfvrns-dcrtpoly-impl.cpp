@@ -90,7 +90,7 @@ bool LPCryptoParametersBFVrns<DCRTPoly>::PrecomputeCRTTables(){
 
 	for (size_t i = 0; i < size; i++){
 		BigInteger qi = BigInteger(moduli[i].ConvertToInt());
-		CRTDecryptionFloatTable[i] = ((modulusQ.DividedBy(qi)).ModInverse(qi) * GetPlaintextModulus()).Mod(qi).ConvertToDouble()/qi.ConvertToDouble();
+		CRTDecryptionFloatTable[i] = ((modulusQ.DividedBy(qi)).ModInverse(qi) * BigInteger(GetPlaintextModulus())).Mod(qi).ConvertToDouble()/qi.ConvertToDouble();
 	}
 
 	m_CRTDecryptionFloatTable = CRTDecryptionFloatTable;
@@ -101,7 +101,7 @@ bool LPCryptoParametersBFVrns<DCRTPoly>::PrecomputeCRTTables(){
 	for( usint vi = 0 ; vi < size; vi++ ) {
 		BigInteger qi = BigInteger(moduli[vi].ConvertToInt());
 		BigInteger divBy = modulusQ / qi;
-		BigInteger quotient = (divBy.ModInverse(qi))*(GetPlaintextModulus())/qi;
+		BigInteger quotient = (divBy.ModInverse(qi))*BigInteger(GetPlaintextModulus())/qi;
 		qDecryptionInt[vi] = quotient.Mod(GetPlaintextModulus()).ConvertToInt();
 	}
 

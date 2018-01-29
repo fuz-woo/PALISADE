@@ -1,5 +1,4 @@
-/**
- * @file parmfactory.h parameter factory.
+/*
  * @author  TPOC: palisade@njit.edu
  *
  * @copyright Copyright (c) 2017, New Jersey Institute of Technology (NJIT)
@@ -22,61 +21,48 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- */ 
+ */
 
-#ifndef SRC_CORE_LIB_UTILS_PARMFACTORY_H_
-#define SRC_CORE_LIB_UTILS_PARMFACTORY_H_
+// this file contains the magic needed to compile and benchmark all backends in the same executable
 
-// useful for testing
+#ifndef BENCHMARK_SRC_ALLBACKENDS_H_
+#define BENCHMARK_SRC_ALLBACKENDS_H_
 
-#include "../lattice/dcrtpoly.h"
+#define _USE_MATH_DEFINES
 #include "math/backend.h"
-#include "math/distrgen.h"
-
 #include "utils/inttypes.h"
-
+#include "math/nbtheory.h"
+#include "math/distrgen.h"
 #include "lattice/elemparams.h"
 #include "lattice/ilparams.h"
 #include "lattice/ildcrtparams.h"
 #include "lattice/ilelement.h"
 #include "lattice/poly.h"
+#include "lattice/dcrtpoly.h"
+#include "utils/utilities.h"
 
+using namespace std;
 using namespace lbcrypto;
 
-/**
- * Generate an ILDCRTParams with a given number of parms, with cyphertext moduli of at least a given size
- * @param m - order
- * @param numOfTower - # of polynomials
- * @param pbits - number of bits in the prime, to start with
- * @return
- */
-template<typename I>
-inline shared_ptr<ILDCRTParams<I>> GenerateDCRTParams(usint m, usint numOfTower, usint pbits) {
+using BE2Integer = cpu_int::BigInteger<integral_dtype,BigIntegerBitLength>;
+using BE2ILParams = ILParamsImpl<BE2Integer>;
+using BE2ILDCRTParams = ILDCRTParams<BE2Integer>;
+using BE2Vector = cpu_int::BigVectorImpl<BE2Integer>;
+using BE2Poly = PolyImpl<BE2Integer, BE2Integer, BE2Vector, BE2ILParams>;
+using BE2DCRTPoly = DCRTPolyImpl<BE2Integer, BE2Integer, BE2Vector, BE2ILDCRTParams>;
 
-	if( numOfTower == 0 )
-		throw std::logic_error("Can't make parms with numOfTower == 0 ");
+using BE4Integer = exp_int::xubint;
+using BE4ILParams = ILParamsImpl<BE4Integer>;
+using BE4ILDCRTParams = ILDCRTParams<BE4Integer>;
+using BE4Vector = exp_int::xmubintvec;
+using BE4Poly = PolyImpl<BE4Integer, BE4Integer, BE4Vector, BE4ILParams>;
+using BE4DCRTPoly = DCRTPolyImpl<BE4Integer, BE4Integer, BE4Vector, BE4ILDCRTParams>;
 
-	std::vector<NativeInteger> moduli(numOfTower);
-	std::vector<NativeInteger> rootsOfUnity(numOfTower);
+using BE6Integer = NTL::myZZ;
+using BE6ILParams = ILParamsImpl<BE6Integer>;
+using BE6ILDCRTParams = ILDCRTParams<BE6Integer>;
+using BE6Vector = NTL::myVecP<NTL::myZZ>;
+using BE6Poly = PolyImpl<BE6Integer, BE6Integer, BE6Vector, BE6ILParams>;
+using BE6DCRTPoly = DCRTPolyImpl<BE6Integer, BE6Integer, BE6Vector, BE6ILDCRTParams>;
 
-	NativeInteger q = FirstPrime<NativeInteger>(pbits, m);
-	I modulus(1);
-
-	usint j = 0;
-	for(;;) {
-		moduli[j] = q;
-		rootsOfUnity[j] = RootOfUnity(m, q);
-		modulus = modulus * I(q.ConvertToInt());
-		if( ++j == numOfTower )
-			break;
-
-		q = NextPrime(q, m);
-	}
-
-	shared_ptr<ILDCRTParams<I>> params(new ILDCRTParams<I>(m, moduli, rootsOfUnity));
-
-	return params;
-}
-
-
-#endif /* SRC_CORE_LIB_UTILS_PARMFACTORY_H_ */
+#endif /* BENCHMARK_SRC_ALLBACKENDS_H_ */

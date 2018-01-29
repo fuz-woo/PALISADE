@@ -41,11 +41,12 @@
 using namespace std;
 using namespace lbcrypto;
 
-static std::vector<int64_t> makeVector(int siz, const PlaintextModulus& ptmi) {
+static std::vector<int64_t> makeIntVector(int siz, const PlaintextModulus& ptmi) {
 	std::vector<int64_t>			elem;
+	PlaintextModulus half = ptmi/2;
 
 	for( int i=0; i<siz; i++ )
-		elem.push_back(i%ptmi);
+		elem.push_back(i%half);
 
 	return elem;
 }
@@ -56,8 +57,8 @@ static bool setup_SHE(CryptoContext<Poly> cc, Ciphertext<Poly>& ct1, Ciphertext<
 
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	Plaintext p1 = cc->MakeCoefPackedPlaintext( makeVector(nel, ptm) );
-	Plaintext p2 = cc->MakeCoefPackedPlaintext( makeVector(nel, ptm) );
+	Plaintext p1 = cc->MakeCoefPackedPlaintext( makeIntVector(nel, ptm) );
+	Plaintext p2 = cc->MakeCoefPackedPlaintext( makeIntVector(nel, ptm) );
 
 	ct1 = cc->Encrypt(kp.publicKey, p1);
 	ct2 = cc->Encrypt(kp.publicKey, p2);
@@ -76,14 +77,17 @@ void BM_evalAdd_SHE(benchmark::State& state) { // benchmark
 	Ciphertext<Poly> ct1, ct2;
 
 	if( state.thread_index == 0 ) {
-		state.PauseTiming();
-		cc = CryptoContextHelper::getNewContext(parms[state.range(0)]);
-		cc->Enable(ENCRYPTION);
-		cc->Enable(SHE);
+		try {
+			cc = CryptoContextHelper::getNewContext(parms[state.range(0)]);
+			cc->Enable(ENCRYPTION);
+			cc->Enable(SHE);
 
-		setup_SHE(cc, ct1, ct2);
-		state.ResumeTiming();
+			setup_SHE(cc, ct1, ct2);
+		} catch( std::exception& e ) {
+		state.SkipWithError( e.what() );
+		return;
 	}
+}
 
 	while (state.KeepRunning()) {
 		Ciphertext<Poly> ctP = cc->EvalAdd(ct1, ct2);
@@ -95,17 +99,24 @@ BENCHMARK_PARMS(BM_evalAdd_SHE)
 void BM_evalMult_SHE(benchmark::State& state) { // benchmark
 	CryptoContext<Poly> cc;
 	Ciphertext<Poly> ct1, ct2;
+	bool isSetup = false;
 
 	if( state.thread_index == 0 ) {
-		state.PauseTiming();
-		cc = CryptoContextHelper::getNewContext(parms[state.range(0)]);
-		cc->Enable(ENCRYPTION);
-		cc->Enable(SHE);
+		try {
+			cc = CryptoContextHelper::getNewContext(parms[state.range(0)]);
+			cc->Enable(ENCRYPTION);
+			cc->Enable(SHE);
 
-		bool isSetup = setup_SHE(cc, ct1, ct2);
-		state.ResumeTiming();
-		if( !isSetup )
+			isSetup = setup_SHE(cc, ct1, ct2);
+		} catch( std::exception& e ) {
+			state.SkipWithError( e.what() );
+			return;
+		}
+
+		if( !isSetup ) {
 			state.SkipWithError("Setup failed: EvalMultKeyGen not supported?");
+			return;
+		}
 	}
 
 	while (state.KeepRunning()) {
@@ -120,7 +131,6 @@ void BM_baseDecompose_SHE(benchmark::State& state) { // benchmark
 	Ciphertext<Poly> ct1, ct2;
 
 	if( state.thread_index == 0 ) {
-		state.PauseTiming();
 		try {
 			cc = CryptoContextHelper::getNewContext(parms[state.range(0)]);
 			cc->Enable(ENCRYPTION);
@@ -128,9 +138,9 @@ void BM_baseDecompose_SHE(benchmark::State& state) { // benchmark
 
 			setup_SHE(cc, ct1, ct2);
 		} catch( std::exception& e ) {
-			state.SkipWithError( "Unable to set up for BaseDecompose" );
+			state.SkipWithError( e.what() );
+			return;
 		}
-		state.ResumeTiming();
 	}
 
 	while (state.KeepRunning()) {

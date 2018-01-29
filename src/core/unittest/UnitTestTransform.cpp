@@ -188,16 +188,6 @@ TEST(UTTransform, CRT_polynomial_multiplication_big_ring) {
 TEST(UTTransform, CRT_polynomial_multiplication_big_ring_prime_cyclotomics) {
         bool dbg_flag = false;
 
-	//usint m = 1733;
-	//usint p = 2 * m + 1;
-	//BigInteger modulusP(p);
-
-	//BigInteger modulusQ("1152921504606909071");
-	//BigInteger squareRootOfRoot("44343872016735288");
-
-	//BigInteger bigmodulus("10889035741470030830827987437816582848513");
-	//BigInteger bigroot("5879632101734955395039618227388702592012");
-
 	usint m = 1733;
 
 	BigInteger modulus("1152921504606909071");
@@ -212,6 +202,7 @@ TEST(UTTransform, CRT_polynomial_multiplication_big_ring_prime_cyclotomics) {
 
 	BigVector a(n, modulus);
 	a = { 1,2,3,4,5,6,7,8,9,10 };
+
 	auto A = ChineseRemainderTransformArb<BigInteger, BigVector>::ForwardTransform(a, squareRootOfRoot, bigModulus, bigRoot, m);
 
 	BigVector b(n, modulus);

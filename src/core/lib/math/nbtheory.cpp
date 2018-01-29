@@ -186,14 +186,14 @@ namespace lbcrypto {
 		bool prevMod = false;
 		for (usint i = 1; i < s + 1; i++) {
 			DEBUG("wf " << i);
-			if (mod != 1 && mod != p - 1)
+			if (mod != IntType(1) && mod != p - IntType(1))
 				prevMod = true;
 			else
 				prevMod = false;
 			mod = mod.ModMul(mod, p);
-			if (mod == 1 && prevMod) return true;
+			if (mod == IntType(1) && prevMod) return true;
 		}
-		return (mod != 1);
+		return (mod != IntType(1));
 	}
 
 	/*
@@ -208,8 +208,8 @@ namespace lbcrypto {
             std::set<IntType> primeFactors;
             DEBUG("FindGenerator(" << q << "),calling PrimeFactorize");
 
-            IntType qm1 = q - 1;
-            IntType qm2 = q - 2;
+            IntType qm1 = q - IntType(1);
+            IntType qm2 = q - IntType(2);
             PrimeFactorize<IntType>(qm1, primeFactors);
             DEBUG("prime factors of " << qm1);
             for( auto& v : primeFactors ) DEBUG(v << " ");
@@ -220,14 +220,14 @@ namespace lbcrypto {
                     usint count = 0;
 
                     //gen = RNG(qm2).ModAdd(IntType::ONE, q); //modadd note needed
-                    gen = RNG(qm2) + 1;
+                    gen = RNG(qm2) + IntType(1);
                     DEBUG("generator " << gen);
                     DEBUG("cycling thru prime factors");
 
                     for (auto it = primeFactors.begin(); it != primeFactors.end(); ++it) {
                             DEBUG(qm1 << " / " << *it << " " << gen.ModExp(qm1 / (*it), q));
 
-                            if (gen.ModExp(qm1 / (*it), q) == 1) break;
+                            if (gen.ModExp(qm1 / (*it), q) == IntType(1)) break;
                             else count++;
                     }
                     if (count == primeFactors.size()) generatorFound = true;
@@ -258,8 +258,8 @@ namespace lbcrypto {
 			usint count = 0;
 			DEBUG("count " << count);
 
-			gen = RNG(phi_q_m1) + 1; // gen is random in [1, phi(q)]
-			if (GreatestCommonDivisor<IntType>(gen, q) != 1) {
+			gen = RNG(phi_q_m1) + IntType(1); // gen is random in [1, phi(q)]
+			if (GreatestCommonDivisor<IntType>(gen, q) != IntType(1)) {
 				// Generator must lie in the group!
 				continue;
 			}
@@ -269,7 +269,7 @@ namespace lbcrypto {
 				DEBUG("in set");
 				DEBUG("divide " << phi_q << " by " << *it);
 
-				if (gen.ModExp(phi_q / (*it), q) == 1) break;
+				if (gen.ModExp(phi_q / (*it), q) == IntType(1)) break;
 				else count++;
 			}
 
@@ -301,7 +301,7 @@ namespace lbcrypto {
 			DEBUG("in set");
 			DEBUG("divide " << qm1 << " by " << *it);
 
-			if (g.ModExp(qm1 / (*it), q) == 1) break;
+			if (g.ModExp(qm1 / (*it), q) == IntType(1)) break;
 			else count++;
 		}
 
@@ -325,7 +325,7 @@ namespace lbcrypto {
 		bool dbg_flag = false;
 		DEBUG("in Root of unity m :" << m << " modulo " << modulo.ToString());
 		IntType M(m);
-		if ((modulo - 1).Mod(M) != 0) {
+		if ((modulo - IntType(1)).Mod(M) != IntType(0)) {
 			std::string errMsg = "Please provide a primeModulus(q) and a cyclotomic number(m) satisfying the condition: (q-1)/m is an integer. The values of primeModulus = " + modulo.ToString() + " and m = " + std::to_string(m) + " do not satisfy this condition";
 			throw std::runtime_error(errMsg);
 		}
@@ -334,10 +334,10 @@ namespace lbcrypto {
 		IntType gen = FindGenerator(modulo);
 		DEBUG("gen = " << gen.ToString());
 
-		DEBUG("calling gen.ModExp( " << ((modulo - 1).DividedBy(M)).ToString() << ", modulus " << modulo.ToString());
-		result = gen.ModExp((modulo - 1).DividedBy(M), modulo);
+		DEBUG("calling gen.ModExp( " << ((modulo - IntType(1)).DividedBy(M)).ToString() << ", modulus " << modulo.ToString());
+		result = gen.ModExp((modulo - IntType(1)).DividedBy(M), modulo);
 		DEBUG("result = " << result.ToString());
-		if (result == 1) {
+		if (result == IntType(1)) {
 			DEBUG("LOOP?");
 			return RootOfUnity(m, modulo);
 		}
@@ -432,7 +432,7 @@ namespace lbcrypto {
 		m_a = a;
 		m_b = b;
 		DEBUG("GCD a " << a.ToString() << " b " << b.ToString());
-		while (m_b != 0) {
+		while (m_b != IntType(0)) {
 			m_t = m_b;
 			DEBUG("GCD m_a.Mod(b) " << m_a.ToString() << "( " << m_b.ToString() << ")");
 			m_b = m_a.Mod(m_b);
@@ -462,23 +462,23 @@ namespace lbcrypto {
 	bool MillerRabinPrimalityTest(const IntType& p, const usint niter)
 	{
 		bool dbg_flag = false;
-		if (p < 2 || ((p != 2) && (p.Mod(2) == 0)))
+		if (p < IntType(2) || ((p != IntType(2)) && (p.Mod(2) == IntType(0))))
 			return false;
-		if (p == 2 || p == 3 || p == 5)
+		if (p == IntType(2) || p == IntType(3) || p == IntType(5))
 			return true;
 
-		IntType d = p - 1;
+		IntType d = p - IntType(1);
 		usint s = 0;
 		DEBUG("start while d " << d);
-		while (d.Mod(2) == 0) {
-			d = d.DividedBy(2);
+		while (d.Mod(2) == IntType(0)) {
+			d.DividedByEq(2);
 			s++;
 		}
 		DEBUG("end while s " << s);
 		bool composite = true;
 		for (usint i = 0; i < niter; i++) {
 			DEBUG(".1");
-			IntType a = RNG(p - 3).ModAdd(2, p);
+			IntType a = RNG(p - IntType(3)).ModAdd(2, p);
 			DEBUG(".2");
 			composite = (WitnessFunction(a, d, s, p));
 			if (composite)
@@ -494,10 +494,10 @@ namespace lbcrypto {
 	{
 		bool dbg_flag = false;
 		DEBUG("in NTL MRPT");
-		if (p < NTL::myZZ::TWO || ((p != NTL::myZZ::TWO) &&
-			(p.Mod(NTL::myZZ::TWO) == NTL::myZZ::ZERO)))
+		if (p < NTL::myZZ(2) || ((p != NTL::myZZ(2)) &&
+			(p.Mod(NTL::myZZ(2)) == NTL::myZZ(0))))
 			return false;
-		if (p == NTL::myZZ::TWO || p == NTL::myZZ::THREE || p == NTL::myZZ::FIVE)
+		if (p == NTL::myZZ(2) || p == NTL::myZZ(3) || p == NTL::myZZ(5))
 			return true;
 
 		return (bool)ProbPrime(p, niter); //TODO: check to see if niter >maxint
@@ -519,7 +519,7 @@ namespace lbcrypto {
 		IntType xx(x);
 
 		//check divisibility by 2
-		if (n.Mod(2) == 0)
+		if (n.Mod(2) == IntType(0))
 			return IntType(2);
 
 		//Precompute the Barrett mu parameter
@@ -535,10 +535,10 @@ namespace lbcrypto {
 			xx = xx.ModBarrettMul(xx, n, mu).ModBarrettAdd(c, n, mu);
 			xx = xx.ModBarrettMul(xx, n, mu).ModBarrettAdd(c, n, mu);
 #endif
-			divisor = GreatestCommonDivisor(((x - xx) > 0) ? x - xx : xx - x, n);
+			divisor = GreatestCommonDivisor(((x - xx) > IntType(0)) ? x - xx : xx - x, n);
 			DEBUG("PRF divisor " << divisor.ToString());
 
-		} while (divisor == 1);
+		} while (divisor == IntType(1));
 
 		return divisor;
 	}
@@ -558,7 +558,7 @@ namespace lbcrypto {
 		DEBUG("In PrimeFactorize n " << n);
 		DEBUG("set size " << primeFactors.size());
 
-		if (n == 0 || n == 1) return;
+		if (n == IntType(0) || n == IntType(1)) return;
 		DEBUG("calling MillerRabinPrimalityTest(" << n << ")");
 		if (MillerRabinPrimalityTest(n)) {
 			DEBUG("Miller true");
@@ -607,10 +607,11 @@ namespace lbcrypto {
 	template<typename IntType>
 	IntType NextPrime(const IntType &q, usint m) {
 
-		IntType qNew = q + m;
+		IntType M(m);
+		IntType qNew = q + M;
 
 		while (!MillerRabinPrimalityTest(qNew)) {
-			qNew += m;
+			qNew += M;
 		}
 
 		return qNew;

@@ -262,7 +262,7 @@ TEST_F(UTSHE, keyswitch_SingleCRT) {
 
 	float stdDev = 4;
 
-	shared_ptr<Poly::Params> params = ElemParamFactory::GenElemParams<Poly::Params,Poly::Integer>(m, 50);
+	shared_ptr<Poly::Params> params = ElemParamFactory::GenElemParams<Poly::Params>(m, 50);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, 256, 1, stdDev);
 	cc->Enable(ENCRYPTION);
@@ -295,7 +295,7 @@ TEST_F(UTSHE, sparsekeygen_single_crt_encrypt_decrypt) {
 
 	float stdDev = 4;
 
-	shared_ptr<Poly::Params> params = ElemParamFactory::GenElemParams<Poly::Params,Poly::Integer>(m);
+	shared_ptr<Poly::Params> params = ElemParamFactory::GenElemParams<Poly::Params>(m);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, 256, 1, stdDev);
 	cc->Enable(ENCRYPTION);
@@ -332,7 +332,7 @@ TEST_F(UTSHE, keyswitch_ModReduce_DCRT) {
 	usint plaintextmodulus = 256;
 	usint relinWindow = 1;
 
-	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams( m, size, 30 );
+	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams<BigInteger>( m, size, 30 );
 
 	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextLTV(params, plaintextmodulus, relinWindow, stdDev);
 
@@ -380,7 +380,7 @@ TEST_F(UTSHE, ringreduce_single_crt) {
 
 	float stdDev = 4;
 
-	shared_ptr<Poly::Params> params = ElemParamFactory::GenElemParams<Poly::Params,Poly::Integer>(m);
+	shared_ptr<Poly::Params> params = ElemParamFactory::GenElemParams<Poly::Params>(m);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, 2, 1, stdDev);
 	cc->Enable(ENCRYPTION);
@@ -431,7 +431,7 @@ TEST_F(UTSHE, ringreduce_double_crt) {
 	usint relinWindow = 1;
 	usint size = 3;
 
-	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams( m, size, 30 );
+	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams<BigInteger>( m, size, 30 );
 
 	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextLTV(params, plaintextmodulus, relinWindow, stdDev);
 	cc->Enable(ENCRYPTION);

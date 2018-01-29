@@ -67,6 +67,7 @@ public:
 	typedef TernaryUniformGeneratorImpl<IntType,VecType> TugType;
 	typedef BinaryUniformGeneratorImpl<IntType,VecType> BugType;
 	typedef PolyImpl<NativeInteger,NativeInteger,NativeVector,ILNativeParams> PolyNative;
+	typedef PolyImpl<ModType,IntType,VecType,ParmType> PolyLargeType;
 
 	/**
 	 * @brief Return the element name.

@@ -40,7 +40,7 @@
 #include <thread>
 #include "backend.h"
 
-//#define FIXED_SEED // if defined, then uses a fixed seed number for reproducable results during debug. Use only one OMP thread to ensure reproducability 
+//#define FIXED_SEED // if defined, then uses a fixed seed number for reproducible results during debug. Use only one OMP thread to ensure reproducibility
 
 namespace lbcrypto {
 

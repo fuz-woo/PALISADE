@@ -41,22 +41,15 @@ using namespace std;
 using namespace lbcrypto;
 
 void BM_encoding_Scalar(benchmark::State& state) {
+	usint	m = 1024;
+	PlaintextModulus	ptm = 128;
+	int64_t value = 47;
 	Plaintext plaintext;
-
-	if( state.thread_index == 0 ) {
-		state.PauseTiming();
-		int64_t value = 47;
-
-		usint	m = 1024;
-		PlaintextModulus	ptm = 128;
-
-		shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
-		EncodingParams ep( new EncodingParamsImpl(ptm) );
-		plaintext.reset( new ScalarEncoding(lp, ep, value) );
-		state.ResumeTiming();
-	}
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams>(m);
+	EncodingParams ep( new EncodingParamsImpl(ptm) );
 
 	while (state.KeepRunning()) {
+		plaintext.reset( new ScalarEncoding(lp, ep, value) );
 		plaintext->Encode();
 	}
 }
@@ -65,23 +58,16 @@ BENCHMARK(BM_encoding_Scalar);
 
 
 void BM_encoding_Integer(benchmark::State& state) { // benchmark
-	CryptoContext<Poly> cc;
 	Plaintext plaintext;
+	usint	m = 1024;
+	PlaintextModulus	ptm = 128;
+	int64_t mv = 58;
 
-	if( state.thread_index == 0 ) {
-		state.PauseTiming();
-
-		usint	m = 1024;
-		PlaintextModulus	ptm = 128;
-		int64_t mv = ((int64_t)1<<33) + (int64_t)1;
-
-		shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
-		EncodingParams ep( new EncodingParamsImpl(ptm) );
-		plaintext.reset( new IntegerEncoding(lp, ep, mv) );
-		state.ResumeTiming();
-	}
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams>(m);
+	EncodingParams ep( new EncodingParamsImpl(ptm) );
 
 	while (state.KeepRunning()) {
+		plaintext.reset( new IntegerEncoding(lp, ep, mv) );
 		plaintext->Encode();
 	}
 }
@@ -90,26 +76,19 @@ BENCHMARK(BM_encoding_Integer);
 
 void BM_encoding_CoefPacked(benchmark::State& state) {
 	Plaintext plaintext;
+	usint	m = 1024;
+	PlaintextModulus	ptm = 128;
+	PlaintextModulus half = ptm / 2;
 
-	if( state.thread_index == 0 ) {
-		state.PauseTiming();
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams>(m);
+	EncodingParams ep( new EncodingParamsImpl(ptm) );
 
-		usint	m = 1024;
-		PlaintextModulus	ptm = 128;
-		int64_t mv = ((int64_t)1<<33) + (int64_t)1;
-
-		shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
-		EncodingParams ep( new EncodingParamsImpl(ptm) );
-
-		vector<int64_t> intvec;
-		for( usint ii=0; ii<m/2; ii++)
-			intvec.push_back( rand() % ptm );
-
-		plaintext.reset( new CoefPackedEncoding(lp,ep,intvec) );
-		state.ResumeTiming();
-	}
+	vector<int64_t> intvec;
+	for( usint ii=0; ii<m/2; ii++)
+		intvec.push_back( rand() % half );
 
 	while (state.KeepRunning()) {
+		plaintext.reset( new CoefPackedEncoding(lp,ep,intvec) );
 		plaintext->Encode();
 	}
 }
@@ -123,29 +102,22 @@ void BM_encoding_PackedIntPlaintext(benchmark::State& state) {
 
 	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 
-	if( state.thread_index == 0 ) {
-		state.PauseTiming();
+	usint m = 22;
+	PlaintextModulus p = 89;
+	BigInteger modulusP(p);
+	BigInteger modulusQ("955263939794561");
+	BigInteger squareRootOfRoot("941018665059848");
+	BigInteger bigmodulus("80899135611688102162227204937217");
+	BigInteger bigroot("77936753846653065954043047918387");
 
-		usint m = 22;
-		PlaintextModulus p = 89;
-		BigInteger modulusP(p);
-		BigInteger modulusQ("955263939794561");
-		BigInteger squareRootOfRoot("941018665059848");
-		BigInteger bigmodulus("80899135611688102162227204937217");
-		BigInteger bigroot("77936753846653065954043047918387");
+	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
+	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-		auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-		ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
-
-		lp.reset(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
-		ep.reset(new EncodingParamsImpl(p,8));
-		state.ResumeTiming();
-	}
+	lp.reset(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
+	ep.reset(new EncodingParamsImpl(p,8));
 
 	while (state.KeepRunning()) {
-		state.PauseTiming();
 		plaintext.reset( new PackedEncoding(lp,ep,vectorOfInts1) );
-		state.ResumeTiming();
 
 		plaintext->Encode();
 	}
@@ -165,8 +137,6 @@ void BM_encoding_PackedIntPlaintext_SetParams(benchmark::State& state) {
 	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 
 	if( state.thread_index == 0 ) {
-		state.PauseTiming();
-
 		BigInteger modulusQ("955263939794561");
 		BigInteger squareRootOfRoot("941018665059848");
 		BigInteger bigmodulus("80899135611688102162227204937217");
@@ -178,12 +148,10 @@ void BM_encoding_PackedIntPlaintext_SetParams(benchmark::State& state) {
 
 		lp.reset(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 		ep.reset(new EncodingParamsImpl(p,8));
-		state.ResumeTiming();
 	}
 
 	while (state.KeepRunning()) {
 		PackedEncoding::SetParams(m, p);
-
 		state.PauseTiming();
 		PackedEncoding::Destroy();
 		state.ResumeTiming();
@@ -197,31 +165,26 @@ void BM_Encoding_String(benchmark::State& state) { // benchmark
 	CryptoContext<Poly> cc;
 	Plaintext plaintext;
 
-	if( state.thread_index == 0 ) {
-		state.PauseTiming();
+	usint	m = 1024;
+	PlaintextModulus	ptm = 256;
 
-		usint	m = 1024;
-		PlaintextModulus	ptm = 256;
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams>(m);
+	EncodingParams ep( new EncodingParamsImpl(ptm) );
 
-		shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParams,BigInteger>(m);
-		EncodingParams ep( new EncodingParamsImpl(ptm) );
+	auto randchar = []() -> char {
+		const char charset[] =
+				"0123456789"
+				"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				"abcdefghijklmnopqrstuvwxyz";
+		const size_t max_index = (sizeof(charset) - 1);
+		return charset[ rand() % max_index ];
+	};
 
-		auto randchar = []() -> char {
-			const char charset[] =
-					"0123456789"
-					"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-					"abcdefghijklmnopqrstuvwxyz";
-			const size_t max_index = (sizeof(charset) - 1);
-			return charset[ rand() % max_index ];
-		};
-
-		string fullStr(m/2,0);
-		std::generate_n(fullStr.begin(), m/2, randchar);
-		plaintext.reset( new StringEncoding(lp,ep,fullStr) );
-		state.ResumeTiming();
-	}
+	string fullStr(m/2,0);
+	std::generate_n(fullStr.begin(), m/2, randchar);
 
 	while (state.KeepRunning()) {
+		plaintext.reset( new StringEncoding(lp,ep,fullStr) );
 		plaintext->Encode();
 	}
 }
