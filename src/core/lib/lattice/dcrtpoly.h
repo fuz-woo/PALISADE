@@ -69,7 +69,9 @@ public:
 
 	// this class contains an array of these:
 	typedef PolyImpl<NativeInteger,NativeInteger,NativeVector,ILNativeParams> PolyType;
-	typedef PolyImpl<ModType,IntType,VecType,ILParams> PolyLargeType;
+
+	// the composed polynomial type
+	typedef PolyImpl<ModType,IntType,VecType,ILParamsImpl<IntType>> PolyLargeType;
 
 	static const std::string GetElementName() {
 		return "DCRTPolyImpl";
@@ -91,7 +93,7 @@ public:
 	*/
 	DCRTPolyImpl(const shared_ptr<ParmType> params, Format format = EVALUATION, bool initializeElementToZero = false);
 
-	const DCRTPolyType& operator=(const Poly& element);
+	const DCRTPolyType& operator=(const PolyLargeType& element);
 
 	/**
 	* @brief Constructor based on discrete Gaussian generator.
@@ -137,7 +139,7 @@ public:
 	* @param &element Poly to build other towers from.
 	* @param params parameter set required for DCRTPoly.
 	*/
-	DCRTPolyImpl(const Poly &element, const shared_ptr<ParmType> params);
+	DCRTPolyImpl(const PolyLargeType &element, const shared_ptr<ParmType> params);
 
 	/**
 	* @brief Construct using an tower of ILVectro2ns. The params and format for the DCRTPoly will be derived from the towers.
@@ -684,11 +686,7 @@ public:
 	*
 	* @return the interpolated ring element as a Poly object.
 	*/
-	Poly CRTInterpolate() const;
-
-//	NativePoly CRTInterpolate() {
-//		PALISADE_THROW(config_error, "DCRT interpolate to NativePoly is not supported");
-//	}
+	PolyLargeType CRTInterpolate() const;
 
 	NativePoly DecryptionCRTInterpolate(PlaintextModulus ptm) const;
 

@@ -56,6 +56,8 @@ std::vector<uint64_t> ArbLTVAutomorphismPackedArray(usint i);
 std::vector<uint64_t> ArbBGVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on LTV scheme with polynomial operation in power of 2 cyclotomics.
 std::vector<uint64_t> LTVAutomorphismPackedArray(usint i);
+//declaration for Automorphism Test on Null scheme with polynomial operation in power of 2 cyclotomics.
+std::vector<uint64_t> NullAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on BGV scheme with polynomial operation in powerof 2 cyclotomics.
 std::vector<uint64_t> BGVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on BFV scheme with polynomial operation in power of 2 cyclotomics.
@@ -80,6 +82,18 @@ TEST_F(UTAUTOMORPHISM, Test_LTV_Automorphism_PowerOf2) {
 
 }
 
+TEST_F(UTAUTOMORPHISM, Test_Null_Automorphism_PowerOf2) {
+
+	PackedEncoding::Destroy();
+
+	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
+
+	for (usint index = 3; index < 16; index = index + 2) {
+		auto morphedVector = NullAutomorphismPackedArray(index);
+		EXPECT_TRUE(CheckAutomorphism(morphedVector, initVector));
+	}
+
+}
 
 TEST_F(UTAUTOMORPHISM, Test_BGV_Automorphism_PowerOf2) {
 	PackedEncoding::Destroy();
@@ -269,6 +283,47 @@ std::vector<uint64_t> LTVAutomorphismPackedArray(usint i) {
 	shared_ptr<ILParams> params(new ILParams(m, q, rootOfUnity));
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, plaintextModulus, 1, stdDev);
+	cc->Enable(ENCRYPTION);
+	cc->Enable(SHE);
+
+	// Initialize the public key containers.
+	LPKeyPair<Poly> kp = cc->KeyGen();
+
+	Ciphertext<Poly> ciphertext;
+
+	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
+
+	ciphertext = cc->Encrypt(kp.publicKey, intArray);
+
+	std::vector<usint> indexList = { 3,5,7,9,11,13,15 };
+
+	auto evalKeys = cc->EvalAutomorphismKeyGen(kp.publicKey, kp.secretKey, indexList);
+
+	Ciphertext<Poly> p1;
+
+	p1 = cc->EvalAutomorphism(ciphertext, i, *evalKeys);
+
+	Plaintext intArrayNew;
+
+	cc->Decrypt(kp.secretKey, p1, &intArrayNew);
+
+	return intArrayNew->GetPackedValue();
+
+}
+
+std::vector<uint64_t> NullAutomorphismPackedArray(usint i) {
+
+	usint m = 16;
+	BigInteger q("67108913");
+	//BigInteger rootOfUnity("61564");
+	usint plaintextModulus = 17;
+
+	//float stdDev = 4;
+
+	//shared_ptr<ILParams> params(new ILParams(m, q, rootOfUnity));
+
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextNull(m, plaintextModulus);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 

@@ -62,25 +62,7 @@ public:
 		string				ru;	// root of unity
 	} DefaultSet[];
 
-	/**
-	 * GenElemParams for a particular predefined cyclotomic order
-	 *
-	 * @param o - the order (an ElementOrder)
-	 * @return new params
-	 */
-	template<typename P, typename I>
-	static shared_ptr<P> GenElemParams(ElementOrder o) {
-		return shared_ptr<P>( new P(DefaultSet[o].m, I(DefaultSet[o].q), I(DefaultSet[o].ru)) );
-	}
-
-	/**
-	 * GenElemParams for a particular cyclotomic order - finds the predefined order that's >= m
-	 *
-	 * @param m - order
-	 * @return new params
-	 */
-	template<typename P, typename I>
-	static shared_ptr<P> GenElemParams(usint m) {
+	static size_t GetNearestIndex(usint m) {
 		size_t sIdx = 0;
 		if( DefaultSet[0].m < m ) {
 			for( sIdx = 1; DefaultSet[sIdx].m != 0; sIdx++ ) {
@@ -91,7 +73,31 @@ public:
 		if( DefaultSet[sIdx].m == 0 )
 			sIdx--;
 
-		return shared_ptr<P>( new P(DefaultSet[sIdx].m, I(DefaultSet[sIdx].q), I(DefaultSet[sIdx].ru)) );
+		return sIdx;
+	}
+
+	/**
+	 * GenElemParams for a particular predefined cyclotomic order
+	 *
+	 * @param o - the order (an ElementOrder)
+	 * @return new params
+	 */
+	template<typename P>
+	static shared_ptr<P> GenElemParams(ElementOrder o) {
+		return shared_ptr<P>( new P(DefaultSet[o].m, typename P::Integer(DefaultSet[o].q), typename P::Integer(DefaultSet[o].ru)) );
+	}
+
+	/**
+	 * GenElemParams for a particular cyclotomic order - finds the predefined order that's >= m
+	 *
+	 * @param m - order
+	 * @return new params
+	 */
+	template<typename P>
+	static shared_ptr<P> GenElemParams(usint m) {
+		size_t sIdx = GetNearestIndex(m);
+
+		return shared_ptr<P>( new P(DefaultSet[sIdx].m, typename P::Integer(DefaultSet[sIdx].q), typename P::Integer(DefaultSet[sIdx].ru)) );
 	}
 
 	/**
@@ -102,10 +108,10 @@ public:
 	 * @param bits # of bits in q
 	 * @return new params
 	 */
-	template<typename P, typename I>
+	template<typename P>
 	static shared_ptr<P> GenElemParams(usint m, usint bits, usint towersize = 0) {
-		I q = FirstPrime<I>(bits,m);
-		I ru = RootOfUnity<I>(m, q);
+		typename P::Integer q = FirstPrime<typename P::Integer>(bits,m);
+		typename P::Integer ru = RootOfUnity<typename P::Integer>(m, q);
 		return shared_ptr<P>( new P(m, q, ru) );
 	}
 
@@ -117,16 +123,16 @@ public:
 	 * @param rootUnity - root of unity
 	 * @return
 	 */
-	template<typename P, typename I>
-	static shared_ptr<P> GenElemParams(usint m, const I& ctModulus, const I& rootUnity) {
+	template<typename P>
+	static shared_ptr<P> GenElemParams(usint m, const typename P::Integer& ctModulus, const typename P::Integer& rootUnity) {
 		return shared_ptr<P>( new P(m, ctModulus, rootUnity) );
 	}
 };
 
 template<>
 inline shared_ptr<ILDCRTParams<BigInteger>>
-ElemParamFactory::GenElemParams<ILDCRTParams<BigInteger>,BigInteger>(usint m, usint bits, usint towersize) {
-	return GenerateDCRTParams(m, towersize, bits);
+ElemParamFactory::GenElemParams<ILDCRTParams<BigInteger>>(usint m, usint bits, usint towersize) {
+	return GenerateDCRTParams<BigInteger>(m, towersize, bits);
 }
 
 } /* namespace lbcrypto */

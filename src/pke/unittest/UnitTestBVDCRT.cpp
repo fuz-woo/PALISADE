@@ -63,7 +63,7 @@ TEST_F(UTBGVDCRT, Poly_bgv_DCRT_MODREDUCE) {
 
 	float stdDev = 4;
 
-	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams(m, numOfTower, 48);
+	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams<BigInteger>(m, numOfTower, 48);
 
 	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBGV(params, plaintextModulus, m, stdDev);
 	cc->Enable(ENCRYPTION);

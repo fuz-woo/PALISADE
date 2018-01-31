@@ -194,7 +194,7 @@ void ChineseRemainderTransformFTT<IntType,VecType>::ForwardTransform(const VecTy
 	if( OpFFT->GetLength() != CycloOrder/2 )
 		throw std::logic_error("Vector for ChineseRemainderTransformFTT::ForwardTransform size must be == CyclotomicOrder/2");
 
-	if (rootOfUnity == 1 || rootOfUnity == 0)
+	if (rootOfUnity == IntType(1) || rootOfUnity == IntType(0))
 		throw std::logic_error("Root of unity for ChineseRemainderTransformFTT::ForwardTransform cannot be zero or one");
 
 	if (!IsPowerOfTwo(CycloOrder))
@@ -247,7 +247,7 @@ void ChineseRemainderTransformFTT<IntType,VecType>::InverseTransform(const VecTy
 	if( OpIFFT->GetLength() != CycloOrder/2 )
 		throw std::logic_error("Vector for ChineseRemainderTransformFTT::InverseTransform size must be == CyclotomicOrder/2");
 
-	if (rootOfUnity == 1 || rootOfUnity == 0)
+	if (rootOfUnity == IntType(1) || rootOfUnity == IntType(0))
 		throw std::logic_error("Root of unity for ChineseRemainderTransformFTT::InverseTransform cannot be zero or one");
 
 	if (!IsPowerOfTwo(CycloOrder))

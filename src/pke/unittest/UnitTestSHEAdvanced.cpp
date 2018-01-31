@@ -69,7 +69,7 @@ TEST_F(UTSHEAdvanced, test_eval_mult_single_crt) {
 	float stdDev = 4;
 	PlaintextModulus ptm = 20;
 
-	shared_ptr<Poly::Params> parms = ElemParamFactory::GenElemParams<Poly::Params,Poly::Integer>(m, 50);
+	shared_ptr<Poly::Params> parms = ElemParamFactory::GenElemParams<Poly::Params>(m, 50);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(parms, ptm, relin, stdDev);
 	cc->Enable(ENCRYPTION);
@@ -190,7 +190,7 @@ TEST_F(UTSHEAdvanced, test_eval_add_single_crt) {
 
 	float stdDev = 4;
 
-	shared_ptr<Poly::Params> parms = ElemParamFactory::GenElemParams<Poly::Params,Poly::Integer>(m);
+	shared_ptr<Poly::Params> parms = ElemParamFactory::GenElemParams<Poly::Params>(m);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(parms, ptm, 1, stdDev);
 
@@ -317,7 +317,7 @@ TEST_F(UTSHEAdvanced, test_composed_eval_mult_two_towers) {
 
 	PlaintextModulus ptm = 16;
 
-	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams( init_m, init_size, dcrtBits );
+	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams<BigInteger>( init_m, init_size, dcrtBits );
 
 	shared_ptr<ILDCRTParams<BigInteger>> paramsSmall( new ILDCRTParams<BigInteger>( *params ) );
 	paramsSmall->PopLastParam();

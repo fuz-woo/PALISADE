@@ -648,14 +648,6 @@ TEST(UTNativeInteger,mod_arithmetic){
   /************************************************/
   /* TESTING METHOD MODADD FOR ALL CONDITIONS     */
   /************************************************/
-  // The method "Mod Add" operates on BigIntegers m,n,q
-  //   Returns:
-  //     (m+n)mod q
-  //      = {(m mod q) + (n mod q)}mod q
-  //   ConvertToInt converts NativeInteger calculatedResult to integer
-
-
-
 
   // TEST CASE WHEN THE FIRST NUMBER IS GREATER THAN MOD
   {
@@ -666,7 +658,7 @@ TEST(UTNativeInteger,mod_arithmetic){
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 2871;
 
-    EXPECT_EQ(expectedResult,calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult,calculatedResult)
       << "Failure testing first_number_greater_than_modulus";
   }
   // TEST CASE WHEN THE SECOND NUMBER IS GREATER THAN MOD
@@ -678,7 +670,7 @@ TEST(UTNativeInteger,mod_arithmetic){
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 3419;
 
-    EXPECT_EQ(expectedResult,calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult,calculatedResult)
       << "Failure testing second_number_greater_than_modulus";
   }
   // TEST CASE WHEN THE BOTH NUMBERS ARE LESS THAN MOD
@@ -689,7 +681,7 @@ TEST(UTNativeInteger,mod_arithmetic){
 
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 971;
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult, calculatedResult)
       << "Failure testing both_numbers_less_than_modulus";
   }
   // TEST CASE WHEN THE BOTH NUMBERS ARE GREATER THAN MOD
@@ -702,7 +694,7 @@ TEST(UTNativeInteger,mod_arithmetic){
     calculatedResult = m.ModAdd(n,q);
     expectedResult = 2861;
 
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult, calculatedResult)
       << "Failure testing both_numbers_greater_than_modulus";
   }
 
@@ -714,11 +706,10 @@ TEST(UTNativeInteger,mod_arithmetic){
 	calculatedResult = m.ModAdd(n,q);
 	expectedResult = 2305843009213700570;
 
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult, calculatedResult)
       << "Failure testing really big numbers";
   }
-  //Native operations with modulus > 32 bits and less than 64 bits are not supported for Visual C++
-#if !defined(_MSC_VER)
+
   {
 	NativeInteger m( "13835058055282163712" );
 	NativeInteger n( "13835058055282163719" );
@@ -736,27 +727,13 @@ TEST(UTNativeInteger,mod_arithmetic){
 	expectedResult = 13835058055282163702ULL;
 
 
-	EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
-		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic); this test is expected to fail in Visual Studio";
+	EXPECT_EQ(expectedResult, calculatedResult)
+		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic)";
   }
-#endif
 
   /************************************************/
   /* TESTING METHOD MODSUB FOR ALL CONDITIONS -*/
   /************************************************/
-
-  // The method "Mod Sub" operates on BigIntegers m,n,q
-  //   Returns:
-  //    (m-n)mod q
-  //    = {(m mod q) - (n mod q)}mod q	when m>n
-  //    = 0 when m=n
-  //    = {(m mod q)+q-(n mod q)}mod q when m<n
-
-  //   ConvertToInt converts NativeInteger calculatedResult to
-  //   integer
-
-  //MEMORY ALLOCATION ERROR IN MODSUB METHOD (due to copying value to null pointer)
-
 
   // TEST CASE WHEN THE FIRST NUMBER IS GREATER THAN MOD
   {
@@ -767,7 +744,7 @@ TEST(UTNativeInteger,mod_arithmetic){
     calculatedResult = m.ModSub(n,q);
     expectedResult = 196;
 
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult, calculatedResult)
       << "Failure testing first_number_greater_than_modulus";
   }
   // TEST CASE WHEN THE FIRST NUMBER LESS THAN SECOND NUMBER AND MOD
@@ -780,7 +757,7 @@ TEST(UTNativeInteger,mod_arithmetic){
     expectedResult = 33029;
 
     //[{(a mod c)+ c} - (b mod c)] since a < b
-    EXPECT_EQ(expectedResult,calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult,calculatedResult)
       << "Failure testing first_number_less_than_modulus";
   }
   // TEST CASE WHEN THE FIRST NUMBER EQUAL TO SECOND NUMBER
@@ -792,18 +769,70 @@ TEST(UTNativeInteger,mod_arithmetic){
     calculatedResult = m.ModSub(n,q);
     expectedResult = 0;
 
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult, calculatedResult)
       << "Failure testing first_number_equals_second_number";
+  }
+  // TEST CASE WHEN THE BOTH NUMBERS ARE LESS THAN MOD
+  {
+    NativeInteger m("595");
+    NativeInteger n("376");
+    NativeInteger q("4067");
+
+    calculatedResult = m.ModSub(n,q);
+    expectedResult = 219;
+    EXPECT_EQ(expectedResult, calculatedResult)
+      << "Failure testing both_numbers_less_than_modulus";
+  }
+  // TEST CASE WHEN THE BOTH NUMBERS ARE GREATER THAN MOD
+  {
+
+    NativeInteger m("59509095449");
+    NativeInteger n("37654969960");
+    NativeInteger q("4067");
+
+    calculatedResult = m.ModSub(n,q);
+    expectedResult = 3381;
+
+    EXPECT_EQ(expectedResult, calculatedResult)
+      << "Failure testing both_numbers_greater_than_modulus";
+  }
+
+  {
+	NativeInteger m( "4611686019217177693" );
+	NativeInteger n( "2305843009213700738" );
+	NativeInteger q( "4611686019217177861" );
+
+	calculatedResult = m.ModSub(n,q);
+	expectedResult = 2305843010003476955;
+
+    EXPECT_EQ(expectedResult, calculatedResult)
+      << "Failure testing really big numbers";
+  }
+
+  {
+	NativeInteger m( "13835058055282163712" );
+	NativeInteger n( "13835058055282163719" );
+	NativeInteger q( "13835058055282163729" );
+	bool thrown = false;
+	try {
+	  calculatedResult = m.ModSub(n,q);
+	} catch (...) {
+	  thrown = true;
+	}
+
+	EXPECT_FALSE(thrown)
+	  << "Failure testing ModSub() of really big numbers threw exception ";
+
+	expectedResult = 13835058055282163722ULL;
+
+
+	EXPECT_EQ(expectedResult, calculatedResult)
+		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic)";
   }
 
   /************************************************/
   /* TESTING METHOD MODMUL FOR ALL CONDITIONS     */
   /************************************************/
-
-  // The method "Mod Mul" operates on BigIntegers m,n,q
-  //   Returns:  (m*n)mod q
-  //              = {(m mod q)*(n mod q)}
-  // ConvertToInt converts NativeInteger calculatedResult to integer
 
   {
     NativeInteger m("39960");
@@ -813,32 +842,10 @@ TEST(UTNativeInteger,mod_arithmetic){
     NativeInteger calculatedResult = m.ModMul(n,q);
     uint64_t expectedResult = 365204;
 
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+    EXPECT_EQ(expectedResult, calculatedResult)
       << "Failure testing mod_mul_test";
   }
 
-  /************************************************/
-  /* TESTING METHOD MODEXP FOR ALL CONDITIONS     */
-  /************************************************/
-
-  // The method "Mod Exp" operates on BigIntegers m,n,q
-  // Returns:  (m^n)mod q
-  //   = {(m mod q)^(n mod q)}mod q
-  // ConvertToInt converts NativeInteger calculatedResult to integer
-
-  {
-    NativeInteger m("39960");
-    NativeInteger n("9");
-    NativeInteger q("406756");
-
-    NativeInteger calculatedResult = m.ModExp(n,q);
-    uint64_t expectedResult = 96776;
-
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
-      << "Failure testing mod_exp_test";
-  }
- //Native operations with modulus > 32 bits and less than 64 bits are not supported for Visual C++
-#if !defined(_MSC_VER)
   {
 	NativeInteger m( "4611686019217177693" );
 	NativeInteger n( "2305843009213700738" );
@@ -847,8 +854,8 @@ TEST(UTNativeInteger,mod_arithmetic){
 	calculatedResult = m.ModMul(n,q);
 	expectedResult = 66341216340;
 
-	EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
-		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic);  this test is expected to fail in Visual Studio";
+	EXPECT_EQ(expectedResult, calculatedResult)
+		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic)";
   }
 
   {
@@ -859,10 +866,49 @@ TEST(UTNativeInteger,mod_arithmetic){
 	calculatedResult = m.ModMul(n,q);
 	expectedResult = 170;
 
-	EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
-		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic);  this test is expected to fail in Visual Studio";
+	EXPECT_EQ(expectedResult, calculatedResult)
+		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic)";
   }
-#endif
+
+  /************************************************/
+  /* TESTING METHOD MODEXP FOR ALL CONDITIONS     */
+  /************************************************/
+
+  {
+    NativeInteger m("39960");
+    NativeInteger n("9");
+    NativeInteger q("406756");
+
+    NativeInteger calculatedResult = m.ModExp(n,q);
+    uint64_t expectedResult = 96776;
+
+    EXPECT_EQ(expectedResult, calculatedResult)
+      << "Failure testing mod_exp_test";
+  }
+
+  {
+	NativeInteger m( "4611686019217177693" );
+	NativeInteger n( "2305843009213700738" );
+	NativeInteger q( "4611686019217177861" );
+
+	calculatedResult = m.ModExp(n,q);
+	expectedResult = 698541107966207095;
+
+	EXPECT_EQ(expectedResult, calculatedResult)
+		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic);  this test is expected to";
+  }
+
+  {
+	NativeInteger m( "13835058055282163712" );
+	NativeInteger n( "13835058055282163719" );
+	NativeInteger q( "13835058055282163729" );
+
+	calculatedResult = m.ModExp(n,q);
+	expectedResult = 11980874853433928405ULL;
+
+	EXPECT_EQ(expectedResult, calculatedResult)
+		<< "Failure testing really super big numbers (causing overflow in 64-bit arithmetic)";
+  }
 }
 
 TEST(UTNativeInteger,shift){

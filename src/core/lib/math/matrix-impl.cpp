@@ -48,7 +48,7 @@ namespace lbcrypto {
 
   //Macros for convenient definitions of class implementations of special functions
 
-  //Matrix<T>& Matrix<T>::Ones() 
+  //Matrix<T>& Matrix<T>::Ones()
 #define ONES_FOR_TYPE(T)			\
   template<>					\
   Matrix<T>& Matrix<T>::Ones() {		\
@@ -66,7 +66,7 @@ namespace lbcrypto {
   ONES_FOR_TYPE(NativePoly)
   ONES_FOR_TYPE(BigInteger)
   ONES_FOR_TYPE(BigVector)
- 
+
   ONES_FOR_TYPE(Field2n)
 
 //template<>
@@ -103,10 +103,10 @@ namespace lbcrypto {
   IDENTITY_FOR_TYPE(BigVector)
   IDENTITY_FOR_TYPE(Field2n)
 
-  //Matrix<T> Matrix<T>::GadgetVector(int32_t base)
+  //Matrix<T> Matrix<T>::GadgetVector(int64_t base)
 #define GADGET_FOR_TYPE(T)					\
   template<>							\
-  Matrix<T> Matrix<T>::GadgetVector(int32_t base) const {	\
+  Matrix<T> Matrix<T>::GadgetVector(int64_t base) const {	\
     Matrix<T> g(allocZero, rows, cols);				\
     auto base_matrix = allocZero();				\
     *base_matrix = base;					\
@@ -118,6 +118,7 @@ namespace lbcrypto {
   }
 
   GADGET_FOR_TYPE(int32_t)
+  GADGET_FOR_TYPE(int64_t)
   GADGET_FOR_TYPE(double)
   GADGET_FOR_TYPE(Poly)
   GADGET_FOR_TYPE(NativePoly)
@@ -144,7 +145,7 @@ namespace lbcrypto {
   }
 
   NORM_FOR_TYPE(Poly)
- //TODO: note there is no NORM_FOR_TYPE(NativePoly)
+  NORM_FOR_TYPE(NativePoly)
   NORM_FOR_TYPE(DCRTPoly)
 
   //template Matrix<T>::Norm() for types that have NO norm
@@ -178,6 +179,7 @@ namespace lbcrypto {
   }
 
   SPLIT64_FOR_TYPE(Poly)
+  SPLIT64_FOR_TYPE(NativePoly)
   SPLIT64_FOR_TYPE(DCRTPoly)
 
   //  split a vector of BigInteger into a vector of ring elements with ring dimension n
@@ -197,10 +199,40 @@ namespace lbcrypto {
 }
 
   SPLIT32ALT_FOR_TYPE(Poly)
+  SPLIT32ALT_FOR_TYPE(NativePoly)
   SPLIT32ALT_FOR_TYPE(DCRTPoly)
+
+  //  split a vector of BigInteger into a vector of ring elements with ring dimension n
+#define SPLIT64ALT_FOR_TYPE(T)						\
+  template<>								\
+  Matrix<T> SplitInt64AltIntoElements(Matrix<int64_t> const& other, size_t n, const shared_ptr<typename T::Params> params) { \
+  auto zero_alloc = T::MakeAllocator(params, COEFFICIENT);		\
+  size_t rows = other.GetRows();					\
+  Matrix<T> result(zero_alloc, rows, 1);				\
+  for (size_t row = 0; row < rows; ++row) {				\
+  std::vector<int64_t> values(n);					\
+  for (size_t i = 0; i < n; ++i)					\
+    values[i] = other(row, i);						\
+  result(row, 0) = values;						\
+}									\
+  return result;							\
+}
+
+  SPLIT64ALT_FOR_TYPE(Poly)
+  SPLIT64ALT_FOR_TYPE(NativePoly)
+  SPLIT64ALT_FOR_TYPE(DCRTPoly)
 
   template<>
   void Matrix<Poly>::SetFormat(Format format) {
+    for (size_t row = 0; row < rows; ++row) {
+      for (size_t col = 0; col < cols; ++col) {
+	data[row][col]->SetFormat(format);
+      }
+    }
+  }
+
+  template<>
+  void Matrix<NativePoly>::SetFormat(Format format) {
     for (size_t row = 0; row < rows; ++row) {
       for (size_t col = 0; col < cols; ++col) {
 	data[row][col]->SetFormat(format);

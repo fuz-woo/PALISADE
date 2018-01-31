@@ -42,7 +42,7 @@
 #include <initializer_list>
 
 typedef native_int::NativeInteger<uint64_t>			NativeInteger;
-typedef native_int::BigVectorImpl<NativeInteger>	NativeVector;
+typedef native_int::NativeVector<NativeInteger>		NativeVector;
 
 
 /*! Define the underlying default math implementation being used by defining MATHBACKEND */
@@ -130,15 +130,11 @@ typedef uint64_t expdtype;
 #endif
 
 #include "exp_int/ubint.h" //dynamically sized  unsigned big integers or ubints
-#include "exp_int/ubintvec.h" //vectors of experimental ubints
 #include "exp_int/mubintvec.h" //rings of ubints
 
 namespace exp_int {
 /** Define the mapping for ExpBigInteger (experimental) */
 typedef ubint<expdtype> xubint;
-
-/** Define the mapping for Big Integer Vector */
-typedef ubintvec<xubint> xubintvec;
 
 /** Define the mapping for modulo Big Integer Vector */
 typedef mubintvec<xubint> xmubintvec;

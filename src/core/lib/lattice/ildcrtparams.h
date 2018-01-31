@@ -53,6 +53,7 @@ template<typename IntType>
 class ILDCRTParams : public ElemParams<IntType>
 {
 public:
+	typedef IntType Integer;
 
 	/**
 	 * @brief Constructor with basic parameter set.
@@ -70,7 +71,7 @@ public:
 	 * @param &modulus is the modulus for the primary ciphertext.
 	 * @param rootsOfUnity is unused
 	 */
-	ILDCRTParams(const usint cyclotomic_order, const BigInteger &modulus, const BigInteger& rootOfUnity)
+	ILDCRTParams(const usint cyclotomic_order, const IntType &modulus, const IntType& rootOfUnity)
 		: ElemParams<IntType>(cyclotomic_order, modulus, 0, 0, 0) {
 		// note this does not create a tower of native params
 	}

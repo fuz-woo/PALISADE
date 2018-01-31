@@ -237,9 +237,9 @@ const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecTy
 
 		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
 			if (j < len) {
-				this->at(j)= IntType(*(rhs.begin() + j));
+				this->operator[](j)= IntType(*(rhs.begin() + j));
 			} else {
-				this->at(j)= ZERO;
+				this->operator[](j)= ZERO;
 			}
 		}
 
@@ -275,10 +275,10 @@ const PolyImpl<ModType, IntType, VecType, ParmType>& PolyImpl<ModType, IntType, 
 					tempInteger = *(rhs.begin() + j);
 					tempBI = IntType(tempInteger);
 				}
-				at(j)= tempBI;
+				operator[](j)= tempBI;
 			}
 			else {
-				at(j)= ZERO;
+				operator[](j)= ZERO;
 			}
 		}
 
@@ -302,10 +302,10 @@ const PolyImpl<ModType, IntType, VecType, ParmType>& PolyImpl<ModType, IntType, 
 					tempInteger = *(rhs.begin() + j);
 					tempBI = IntType(tempInteger);
 				}
-				temp.at(j)= tempBI;
+				temp.operator[](j)= tempBI;
 			}
 			else {
-				temp.at(j)= ZERO;
+				temp.operator[](j)= ZERO;
 			}
 		}
 		this->SetValues(std::move(temp), m_format);
@@ -336,10 +336,10 @@ const PolyImpl<ModType, IntType, VecType, ParmType>& PolyImpl<ModType, IntType, 
 					tempInteger = *(rhs.begin() + j);
 					tempBI = IntType(tempInteger);
 				}
-				at(j)= tempBI;
+				operator[](j)= tempBI;
 			}
 			else {
-				at(j)= ZERO;
+				operator[](j)= ZERO;
 			}
 		}
 
@@ -363,10 +363,10 @@ const PolyImpl<ModType, IntType, VecType, ParmType>& PolyImpl<ModType, IntType, 
 					tempInteger = *(rhs.begin() + j);
 					tempBI = IntType(tempInteger);
 				}
-				temp.at(j)= tempBI;
+				temp.operator[](j)= tempBI;
 			}
 			else {
-				temp.at(j)= ZERO;
+				temp.operator[](j)= ZERO;
 			}
 		}
 		this->SetValues(std::move(temp), m_format);
@@ -385,9 +385,9 @@ const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecTy
 
 		for (usint j = 0; j < vectorLength; ++j) { // loops within a tower
 			if (j < len) {
-				m_values->at(j)= *(rhs.begin() + j);
+				m_values->operator[](j)= *(rhs.begin() + j);
 			} else {
-				m_values->at(j)= ZERO;
+				m_values->operator[](j)= ZERO;
 			}
 		}
 
@@ -438,7 +438,7 @@ const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecTy
 		m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
 	}
 	for (size_t i = 0; i < m_values->GetLength(); ++i) {
-		this->at(i)= IntType(val);
+		this->operator[](i)= IntType(val);
 	}
 	return *this;
 }
@@ -499,7 +499,7 @@ usint PolyImpl<ModType,IntType,VecType,ParmType>::GetLength() const
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::SetValues(const VecType& values, Format format)
 {
-	if (m_params->GetRootOfUnity() == 0){
+	if (m_params->GetRootOfUnity() == IntType(0)){
 		PALISADE_THROW(type_error, "Polynomial has a 0 root of unity");
 	}
 	if (m_params->GetRingDimension() != values.GetLength() || m_params->GetModulus() != values.GetModulus()) {
@@ -518,11 +518,11 @@ void PolyImpl<ModType,IntType,VecType,ParmType>::SetValuesToZero()
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 void PolyImpl<ModType,IntType,VecType,ParmType>::SetValuesToMax()
 {
-	IntType max = m_params->GetModulus() - 1;
+	IntType max = m_params->GetModulus() - IntType(1);
 	usint size = m_params->GetRingDimension();
 	m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
 	for (usint i = 0; i < size; i++) {
-		m_values->at(i)= IntType(max);
+		m_values->operator[](i)= IntType(max);
 	}
 
 }
@@ -574,7 +574,7 @@ PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,Parm
 	//			throw std::logic_error("Negate for PolyImpl is supported only in EVALUATION format.\n");
 
 	PolyImpl<ModType,IntType,VecType,ParmType> tmp( *this );
-	*tmp.m_values = m_values->ModMul(this->m_params->GetModulus() - 1);
+	*tmp.m_values = m_values->ModMul(this->m_params->GetModulus() - IntType(1));
 	return std::move( tmp );
 }
 
@@ -623,7 +623,9 @@ const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecTy
 		m_values = make_unique<VecType>(*element.m_values);
 		return *this;
 	}
-	SetValues( m_values->ModAdd(*element.m_values), this->m_format );
+
+	m_values->ModAddEq(*element.m_values);
+
 	return *this;
 }
 
@@ -654,7 +656,9 @@ const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecTy
 		m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
 		return *this;
 	}
-	SetValues( m_values->ModMul(*element.m_values), this->m_format );
+
+	m_values->ModMulEq(*element.m_values);
+
 	return *this;
 }
 
@@ -663,9 +667,9 @@ void PolyImpl<ModType,IntType,VecType,ParmType>::AddILElementOne()
 {
 	IntType tempValue;
 	for (usint i = 0; i < m_params->GetRingDimension(); i++) {
-		tempValue = GetValues().at(i) + 1;
+		tempValue = GetValues().operator[](i) + IntType(1);
 		tempValue = tempValue.Mod(m_params->GetModulus());
-		m_values->at(i)= tempValue;
+		m_values->operator[](i)= tempValue;
 	}
 }
 
@@ -677,43 +681,71 @@ PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,Parm
 	usint m = this->m_params->GetCyclotomicOrder();
 	usint n = this->m_params->GetRingDimension();
 
-	if (m_params->OrderIsPowerOfTwo() == false) {
+	if (this->m_format == EVALUATION) {
 
-		//Add a test based on the inverse totient hash table
-		//if (i % 2 == 0)
-		//	throw std::runtime_error("automorphism index should be odd\n");
+		if (m_params->OrderIsPowerOfTwo() == false) {
 
-		const auto &modulus = this->m_params->GetModulus();
+			//Add a test based on the inverse totient hash table
+			//if (i % 2 == 0)
+			//	throw std::runtime_error("automorphism index should be odd\n");
 
-		// All automorphism operations are performed for k coprime to m, which are generated using GetTotientList(m)
-		std::vector<usint> totientList = GetTotientList(m);
+			const auto &modulus = this->m_params->GetModulus();
 
-		// Temporary vector of size m is introduced
-		// This step can be eliminated by using a hash table that looks up the ring index (between 0 and n - 1)
-		// based on the totient index (between 0 and m - 1)
-		VecType expanded(m, modulus);
-		for (usint i = 0; i < n; i++) {
-			expanded.at(totientList.at(i))= m_values->at(i);
+			// All automorphism operations are performed for k coprime to m, which are generated using GetTotientList(m)
+			std::vector<usint> totientList = GetTotientList(m);
+
+			// Temporary vector of size m is introduced
+			// This step can be eliminated by using a hash table that looks up the ring index (between 0 and n - 1)
+			// based on the totient index (between 0 and m - 1)
+			VecType expanded(m, modulus);
+			for (usint i = 0; i < n; i++) {
+				expanded.operator[](totientList.operator[](i))= m_values->operator[](i);
+			}
+
+			for (usint i = 0; i < n; i++) {
+
+				//determines which power of primitive root unity we should switch to
+				usint idx = totientList.operator[](i)*k % m;
+
+				result.m_values->operator[](i)= expanded.operator[](idx);
+
+			}
+		} else { // power of two cyclotomics
+			if (k % 2 == 0)
+				throw std::runtime_error("automorphism index should be odd\n");
+
+			for (usint j = 1; j < m; j = j + 2) {
+
+				//determines which power of primitive root unity we should switch to
+				usint idx = (j*k) % m;
+				result.m_values->operator[]((j + 1) / 2 - 1)= GetValues().operator[]((idx + 1) / 2 - 1);
+
+			}
+
 		}
+	}
+	else // automorphism in coefficient representation
+	{
+		if (m_params->OrderIsPowerOfTwo() == false) {
 
-		for (usint i = 0; i < n; i++) {
-
-			//determines which power of primitive root unity we should switch to
-			usint idx = totientList.at(i)*k % m;
-
-			result.m_values->at(i)= expanded.at(idx);
+			PALISADE_THROW( lbcrypto::math_error, "Automorphism in coefficient representation is not currently supported for non-power-of-two polynomials");
 
 		}
-	} else {
-		if (k % 2 == 0)
-			throw std::runtime_error("automorphism index should be odd\n");
+		else { // power of two cyclotomics
+			if (k % 2 == 0)
+				throw std::runtime_error("automorphism index should be odd\n");
 
-		for (usint j = 1; j < m; j = j + 2) {
+			for (usint j = 1; j < n; j++) {
 
-			//determines which power of primitive root unity we should switch to
-			usint idx = (j*k) % m;
-			result.m_values->at((j + 1) / 2 - 1)= GetValues().at((idx + 1) / 2 - 1);
+				usint temp = j*k;
+				usint newIndex = temp % n;
 
+				if ((temp/n) % 2 == 1)
+					result.m_values->operator[](newIndex) = m_params->GetModulus() - m_values->operator[](j);
+				else
+					result.m_values->operator[](newIndex) = m_values->operator[](j);
+
+			}
 		}
 
 	}
@@ -859,7 +891,7 @@ void PolyImpl<ModType,IntType,VecType,ParmType>::MakeSparse(const uint32_t &wFac
 	if (m_values != 0) {
 		for (usint i = 0; i < m_params->GetRingDimension();i++) {
 			if (i%wFactor != 0) {
-				m_values->at(i)= IntType(0);
+				m_values->operator[](i)= IntType(0);
 			}
 		}
 	}
@@ -889,7 +921,7 @@ void PolyImpl<ModType,IntType,VecType,ParmType>::Decompose()
 	//Interleaving operation.
 	VecType decomposeValues(GetLength() / 2, GetModulus());
 	for (usint i = 0; i < GetLength(); i = i + 2) {
-		decomposeValues.at(i / 2)= GetValues().at(i);
+		decomposeValues.operator[](i / 2)= GetValues().operator[](i);
 	}
 
 	SetValues(decomposeValues, m_format);
@@ -908,7 +940,7 @@ template<typename ModType, typename IntType, typename VecType, typename ParmType
 bool PolyImpl<ModType,IntType,VecType,ParmType>::InverseExists() const
 {
 	for (usint i = 0; i < GetValues().GetLength(); i++) {
-		if (m_values->at(i) == 0)
+		if (m_values->operator[](i) == IntType(0))
 			return false;
 	}
 	return true;
@@ -923,10 +955,10 @@ double PolyImpl<ModType,IntType,VecType,ParmType>::Norm() const
 	const IntType &half = m_params->GetModulus() >> 1;
 
 	for (usint i = 0; i < GetValues().GetLength(); i++) {
-		if (m_values->at(i) > half) 
+		if (m_values->operator[](i) > half)
 			locVal = q - (*m_values)[i];
 		else
-			locVal = m_values->at(i);
+			locVal = m_values->operator[](i);
 
 		if (locVal > retVal)
 			retVal = locVal;

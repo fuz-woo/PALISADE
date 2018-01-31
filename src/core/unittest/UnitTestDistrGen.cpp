@@ -413,7 +413,7 @@ void testParallelDiscreteUniformGenerator(BigInteger &modulus, std::string test_
 	 int32_t sum = 0;
 
 	 for (usint index = 0; index<randBigVector.GetLength(); index++) {
-		 if (randBigVector[index] == modulus - 1)
+		 if (randBigVector[index] == modulus - BigInteger(1))
 			 sum -= 1;
 		 else
 			 sum += randBigVector[index].ConvertToInt();

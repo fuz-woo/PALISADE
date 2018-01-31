@@ -51,7 +51,7 @@ namespace cpu_int {
  */
 
 template <class IntegerType>
-class BigVectorImpl : public lbcrypto::BigVectorInterface<BigVectorImpl<IntegerType>,IntegerType>, lbcrypto::Serializable
+class BigVectorImpl : public lbcrypto::BigVectorInterface<BigVectorImpl<IntegerType>,IntegerType>, public lbcrypto::Serializable
 {
 public:
 	/**
@@ -61,7 +61,7 @@ public:
 
     static inline BigVectorImpl Single(const IntegerType& val, const IntegerType& modulus) {
         BigVectorImpl vec(1, modulus);
-        vec.at(0)= val;
+        vec[0] = val;
         return vec;
     }
 
@@ -123,7 +123,7 @@ public:
 	* @param &&rhs is the big binary vector to be moved.
 	* @return moved BigVectorImpl object  
 	*/
-	BigVectorImpl&  operator=(BigVectorImpl &&rhs);
+	const BigVectorImpl&  operator=(BigVectorImpl &&rhs);
 
 	/**
 	* Initializer list for BigVectorImpl.
@@ -147,8 +147,10 @@ public:
 	* @param val is the value to be assigned at the first entry.
 	* @return Assigned BigVectorImpl.
 	*/
-    inline const BigVectorImpl& operator=(uint64_t val) {
+    const BigVectorImpl& operator=(uint64_t val) {
         this->m_data[0] = val;
+    		if( this->m_modulus != 0 )
+    			this->m_data[0] %= this->m_modulus;
         for (size_t i = 1; i < GetLength(); ++i) {
             this->m_data[i] = 0;
         }
@@ -184,46 +186,46 @@ public:
 	 * Sets/gets a value at an index.
 	 *
 	 * @param index is the index to set a value at.
- */
+	 */
 
 	IntegerType& at(size_t i) {
 	  if(!this->IndexCheck(i)) {
-	    throw std::logic_error("index out of range in BigVector");
+		  PALISADE_THROW(lbcrypto::palisade_error, "BigVector index out of range");
 	  }
 	  return this->m_data[i];
 	  }
 
 	const IntegerType& at(size_t i) const {
  	  if(!this->IndexCheck(i)) {
-	    throw std::logic_error("index out of range in BigVector");
+		  PALISADE_THROW(lbcrypto::palisade_error, "BigVector index out of range");
 	  }
 	  return this->m_data[i];
 	}
 
 	void atMod(size_t i, const IntegerType &val) {
 	  if(!this->IndexCheck(i)) {
-	    throw std::logic_error("index out of range in BigVector");
+		  PALISADE_THROW(lbcrypto::palisade_error, "BigVector index out of range");
 	  }
 	  this->m_data[i]=val%m_modulus;
 	  return;
 	}
 
-	void atMod(size_t i, const std::string& val) const {
+	void atMod(size_t i, const std::string& val) {
  	  if(!this->IndexCheck(i)) {
-	    throw std::logic_error("index out of range in BigVector");
+		  PALISADE_THROW(lbcrypto::palisade_error, "BigVector index out of range");
 	  }
 	  IntegerType tmp(val);
 	  this->m_data[i]=tmp%m_modulus;
 	  return;
 	}
 	
-/**
+	/**
 	* operators to get a value at an index.
 	* @param idx is the index to get a value at.
-	* @return is the value at the index. return NULL if invalid index.
+	* @return is the value at the index.
 	*/
-	inline IntegerType& operator[](size_t idx) { return (this->m_data[idx]); }
-	inline const IntegerType& operator[](size_t idx) const { return (this->m_data[idx]); }
+	IntegerType& operator[](size_t idx) { return (this->m_data[idx]); }
+	const IntegerType& operator[](size_t idx) const { return (this->m_data[idx]); }
 
 	/**
 	 * Sets the vector modulus.
@@ -252,7 +254,7 @@ public:
 	 *
 	 * @return vector length.
 	 */
-	usint GetLength() const { return this->m_length; }
+	size_t GetLength() const { return this->m_length; }
 	
 	//METHODS
 
@@ -264,6 +266,14 @@ public:
 	 */
 	BigVectorImpl Mod(const IntegerType& modulus) const;
 	
+	/**
+	 * Vector Modulus operator.
+	 *
+	 * @param modulus is the modulus to perform on the current vector entries.
+	 * @return a new vector after the modulus operation on current vector.
+	 */
+	const BigVectorImpl& ModEq(const IntegerType& modulus);
+
 	//scalar operations
 
 	/**
@@ -367,6 +377,13 @@ public:
 	* @return a new vector which is the return value of the modulus by 2, also the least significant bit.
 	*/
 	BigVectorImpl ModByTwo() const;
+
+	/**
+	* Perform a modulus by 2 operation.  Returns the least significant bit.
+	*
+	* @return a new vector which is the return value of the modulus by 2, also the least significant bit.
+	*/
+	const BigVectorImpl& ModByTwoEq();
 
 	//component-wise subtraction
 

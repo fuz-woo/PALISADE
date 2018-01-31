@@ -267,7 +267,7 @@ TEST(UTMatrix, rotate_vec_result) {
 	EXPECT_EQ(16U, R.GetCols());
 	EXPECT_EQ(Poly::Vector::Single(1, modulus), R(0,0));
 
-	Poly::Integer negOne = n(0,0).GetModulus() - 1;
+	Poly::Integer negOne = n(0,0).GetModulus() - Poly::Integer(1);
 	Poly::Vector negOneVec = Poly::Vector::Single(negOne, modulus);
 	EXPECT_EQ(negOneVec, R(0,6));
 	EXPECT_EQ(negOneVec, R(1,7));
@@ -288,7 +288,7 @@ TEST(UTMatrix, rotate) {
 	EXPECT_EQ(16U, R.GetCols());
 	EXPECT_EQ(BigInteger(1), R(0,0));
 
-	Poly::Integer negOne = n(0,0).GetModulus() - 1;
+	Poly::Integer negOne = n(0,0).GetModulus() - Poly::Integer(1);
 	EXPECT_EQ(negOne, R(0,6));
 	EXPECT_EQ(negOne, R(1,7));
 

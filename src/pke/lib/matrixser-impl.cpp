@@ -400,7 +400,7 @@ Matrix<RationalCiphertext<Poly>>& Matrix<RationalCiphertext<Poly>>::Identity() {
 }
 
 template<>
-Matrix<RationalCiphertext<Poly>> Matrix<RationalCiphertext<Poly>>::GadgetVector(int32_t base) const {
+Matrix<RationalCiphertext<Poly>> Matrix<RationalCiphertext<Poly>>::GadgetVector(int64_t base) const {
 	throw std::logic_error("Cannot create gadget matrix of ciphertext");
 }
 
@@ -415,7 +415,7 @@ Matrix<RationalCiphertext<NativePoly>>& Matrix<RationalCiphertext<NativePoly>>::
 }
 
 template<>
-Matrix<RationalCiphertext<NativePoly>> Matrix<RationalCiphertext<NativePoly>>::GadgetVector(int32_t base) const {
+Matrix<RationalCiphertext<NativePoly>> Matrix<RationalCiphertext<NativePoly>>::GadgetVector(int64_t base) const {
 	throw std::logic_error("Cannot create gadget matrix of ciphertext");
 }
 

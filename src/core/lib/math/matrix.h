@@ -158,7 +158,7 @@ public:
 	 * @param base is the base the digits of the matrix are represented in
 	 * @return the resulting matrix
 	 */
-	Matrix<Element> GadgetVector(int32_t base = 2) const;
+	Matrix<Element> GadgetVector(int64_t base = 2) const;
 
 	/**
 	 * Computes the infinity norm
@@ -631,5 +631,16 @@ Matrix<Element> SplitInt64IntoElements(Matrix<int64_t> const& other, size_t n, c
  */
 template<typename Element>
 Matrix<Element> SplitInt32AltIntoElements(Matrix<int32_t> const& other, size_t n, const shared_ptr<typename Element::Params> params);
+
+/**
+ * Split a vector of int64_t into a vector of ring elements with ring dimension n
+ *
+ * @param &other the input matrix
+ * @param &n the ring dimension
+ * @param &params Poly element params
+ * @return the resulting matrix of Poly
+ */
+template<typename Element>
+Matrix<Element> SplitInt64AltIntoElements(Matrix<int64_t> const& other, size_t n, const shared_ptr<typename Element::Params> params);
 }
 #endif // LBCRYPTO_MATH_MATRIX_H

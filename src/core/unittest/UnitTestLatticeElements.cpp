@@ -160,7 +160,7 @@ TEST(UTPoly, ops_tests) {
 	Poly::Integer primitiveRootOfUnity("22");
 
 	operators_tests<BigInteger, BigVector, ILParams, Poly>(
-			ElemParamFactory::GenElemParams<ILParams,BigInteger>(m) );
+			ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m) );
 }
 
 TEST(UTNativePoly, ops_tests) {
@@ -169,12 +169,12 @@ TEST(UTNativePoly, ops_tests) {
 	NativeInteger primitiveRootOfUnity("22");
 
 	operators_tests<NativeInteger, NativeVector, ILNativeParams, NativePoly>(
-			ElemParamFactory::GenElemParams<ILNativeParams,NativeInteger>(m) );
+			ElemParamFactory::GenElemParams<ILParamsImpl<NativeInteger>>(m) );
 }
 
 TEST(UTDCRTPoly, ops_tests) {
 	operators_tests<BigInteger, BigVector, ILDCRTParams<BigInteger>, DCRTPoly>(
-			GenerateDCRTParams(8, 3, 20) );
+			GenerateDCRTParams<BigInteger>(8, 3, 20) );
 }
 
 // template for rounding_operations tests
@@ -629,10 +629,10 @@ void other_methods() {
 
 		EXPECT_EQ(2U, ilv.GetLength())<<"Failure: Decompose() length";
 
-		EXPECT_EQ(ilv.at(0), 2)
+		EXPECT_EQ(ilv.at(0), typename Element::Integer(2))
 			<< "Failure: Decompose(): mismatch between original and decomposed elements at index 0.";
 		
-		EXPECT_EQ(ilv.at(1), 3) 					<< "Failure: Decompose(): mismatch between original and decomposed elements at index 1.";
+		EXPECT_EQ(ilv.at(1), typename Element::Integer(3)) 					<< "Failure: Decompose(): mismatch between original and decomposed elements at index 1.";
 	}
 
 	DEBUG("5");
@@ -784,7 +784,7 @@ void other_methods() {
 
 		for (usint i = 0; i < m/2; ++i)
 		{
-			EXPECT_EQ(ilvProduct1.at(i), 1)
+			EXPECT_EQ(ilvProduct1.at(i), typename Element::Integer(1))
 				<<"Failure: ilvProduct1.MultiplicativeInverse() @ index "<<i;
 		}
 	}
@@ -808,7 +808,7 @@ void other_methods() {
 		usint index = 3;
 		Element ilvAuto(ilv.AutomorphismTransform(index));
 		VecType expected(4, primeModulus);
-		expected = {"1","56","2","37"};
+		expected = {"56","2","36","1"};
 		EXPECT_EQ(expected, ilvAuto.GetValues())
 			<<"Failure: AutomorphismTransform()";
 	}
@@ -1479,7 +1479,7 @@ TEST(UTDCRTPoly, decompose_test) {
 	float stdDev = 4;
 	DCRTPoly::DggType dgg(stdDev);
 
-	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams(order, towersize, nBits);
+	shared_ptr<ILDCRTParams<BigInteger>> params = GenerateDCRTParams<BigInteger>(order, towersize, nBits);
 	DCRTPoly DCRTPolyFirst(dgg, params, Format::COEFFICIENT);
 
 	DCRTPoly DCRTPolyOriginal(DCRTPolyFirst);
@@ -1554,7 +1554,7 @@ TEST(UTDCRTPoly, ensures_mod_operation_during_ops_on_two_DCRTPolys){
 	usint nBits = 24;
 	usint towersize = 3;
 
-	shared_ptr<ILDCRTParams<BigInteger>> ildcrtparams = GenerateDCRTParams(order, towersize, nBits);
+	shared_ptr<ILDCRTParams<BigInteger>> ildcrtparams = GenerateDCRTParams<BigInteger>(order, towersize, nBits);
 
 	DCRTPoly::DugType dug;
 
