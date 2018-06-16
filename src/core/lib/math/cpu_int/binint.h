@@ -50,6 +50,7 @@
 #include "../../utils/memory.h"
 #include "../../utils/palisadebase64.h"
 #include "../../utils/serializable.h"
+#include "../../utils/exception.h"
 //#include "../native_int/binint.h"
 
 /**
@@ -304,11 +305,14 @@ namespace cpu_int{
     * Used primarily for debugging
     * @return STL vector of uint_type    
     */
-    vector<uint_type> GetInternalRepresentation(void) const {
-      vector<uint_type> ret;
+    std::string GetInternalRepresentation(void) const {
+      std::string ret("");
       size_t ceilInt = ceilIntByUInt(this->m_MSB); //max limb used
-      for(size_t i=m_nSize-1;i>=(size_t)(m_nSize-ceilInt);i--){
-	ret.push_back(m_value[i]);
+
+      for(size_t i=m_nSize-1; i>=(size_t)(m_nSize-ceilInt);i--){
+	ret += std::to_string(m_value[i]);
+	if (i!=(size_t)(m_nSize-ceilInt))
+	  ret +=" ";
       }
       return ret;
     }
@@ -651,6 +655,30 @@ namespace cpu_int{
     */
     BigInteger ModBarrettMul(const BigInteger& b, const BigInteger& modulus,const BigInteger mu_arr[BARRETT_LEVELS]) const;
 
+	/**
+	 * NTL-optimized modular multiplication using a precomputation for the multiplicand
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+    BigInteger ModMulPreconOptimized(const BigInteger& b, const BigInteger& modulus, const BigInteger& bInv) const {
+		PALISADE_THROW( lbcrypto::math_error, "ModMulPreconOptimized is not implemented for backend 2");
+	}
+
+	/**
+	 * Scalar modulus multiplication.
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	const BigInteger& ModMulPreconOptimizedEq(const BigInteger& b, const BigInteger& modulus, const BigInteger& bInv) {
+		PALISADE_THROW( lbcrypto::math_error, "ModMulPreconOptimized is not implemented for backend 2");
+	}
+
     /**
      * Scalar modular exponentiation. Square-and-multiply algorithm is used.
      *
@@ -879,7 +907,7 @@ namespace cpu_int{
 	/**
 	* A zero allocator that is called by the Matrix class. It is used to initialize a Matrix of BigInteger objects.
 	*/
-	static unique_ptr<BigInteger> Allocator();
+	static BigInteger Allocator() { return 0; }
 
     protected:
     

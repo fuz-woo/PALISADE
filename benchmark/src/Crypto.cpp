@@ -37,6 +37,8 @@ Description:
 
 */
 
+#define PROFILE
+
 #define _USE_MATH_DEFINES
 #include "benchmark/benchmark_api.h"
 

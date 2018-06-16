@@ -35,7 +35,7 @@
 #include <fstream>
 #include "time.h"
 #include <chrono>
-
+#include "../../utils/serializable.h"
 #include "../../utils/debug.h"
 
 #define LimbReserveHint 4  // hint for reservation of limbs
@@ -186,12 +186,6 @@ ubint<limb_t>::ubint(ubint &&rhs){
 	//set state
 	m_state = rhs.m_state;
 }
-
-//this is the zero allocator for the palisade matrix class
-template<typename limb_t>
-unique_ptr<ubint<limb_t>> ubint<limb_t>::Allocator() {
-	return lbcrypto::make_unique<exp_int::ubint<limb_t>>();
-};
 
 template<typename limb_t>
 ubint<limb_t>::~ubint()
@@ -872,10 +866,10 @@ ubint<limb_t> ubint<limb_t>::Minus(const ubint& b) const{
 
 	DEBUG("a ");
 	DEBUGEXP(this->GetInternalRepresentation());
-	DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
+	//DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
 	DEBUG("b ");
 	DEBUGEXP(b.GetInternalRepresentation());
-	DEBUGEXP(std::hex<<b.GetInternalRepresentation()<<std::dec);
+	//DEBUGEXP(std::hex<<b.GetInternalRepresentation()<<std::dec);
 	DEBUGEXP(endValA);
 	DEBUGEXP(endValB);
 
@@ -949,10 +943,10 @@ const ubint<limb_t>& ubint<limb_t>::MinusEq(const ubint& b) {
 
 	DEBUG("a ");
 	DEBUGEXP(this->GetInternalRepresentation());
-	DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
+	//DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
 	DEBUG("b ");
 	DEBUGEXP(b.GetInternalRepresentation());
-	DEBUGEXP(std::hex<<b.GetInternalRepresentation()<<std::dec);
+	//DEBUGEXP(std::hex<<b.GetInternalRepresentation()<<std::dec);
 	DEBUGEXP(endValA);
 	DEBUGEXP(endValB);
 
@@ -1932,7 +1926,7 @@ ubint<limb_t> ubint<limb_t>::Mod(const ubint& modulus) const{
 			DEBUG("j = "<<j);
 		}
 	}
-	DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
+	//DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
 	result.NormalizeLimbs();
 	result.SetMSB();
 	return result;
@@ -2034,7 +2028,7 @@ const ubint<limb_t>& ubint<limb_t>::ModEq(const ubint& modulus) {
 			DEBUG("j = "<<j);
 		}
 	}
-	DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
+	//DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
 	result.NormalizeLimbs();
 	result.SetMSB();
 	return result;
@@ -2641,10 +2635,10 @@ inline int ubint<limb_t>::Compare(const ubint& a) const
 		throw std::logic_error("ERROR Compare() against uninitialized bint\n");
 
 	DEBUG("comparing this "<< this->ToString());
-	DEBUGEXP(std::hex<<this->GetInternalRepresentation()<<std::dec);
+	DEBUGEXP(this->GetInternalRepresentation());
 
 	DEBUG("a "<<a.ToString());
-	DEBUGEXP(std::hex<<a.GetInternalRepresentation()<<std::dec);
+	DEBUGEXP(a.GetInternalRepresentation());
 
 	//check MSBs to get quick answer
 	if(this->m_MSB<a.m_MSB)
@@ -2839,8 +2833,10 @@ const char * ubint<limb_t>::DeserializeFromString(const char *cp, const ubint<li
 template<typename limb_t>
 bool ubint<limb_t>::Serialize(lbcrypto::Serialized* serObj) const{
 
-	if( !serObj->IsObject() )
-		return false;
+	if( !serObj->IsObject() ){
+	 serObj->SetObject();
+    	}
+
 
 	lbcrypto::SerialItem bbiMap(rapidjson::kObjectType);
 
@@ -2859,11 +2855,11 @@ bool ubint<limb_t>::Deserialize(const lbcrypto::Serialized& serObj){
 
 	lbcrypto::SerialItem::ConstMemberIterator vIt; //interator within name
 
-	//is this the correct integer type?
-	if( (vIt = mIter->value.FindMember("IntegerType")) == mIter->value.MemberEnd() )
-		return false;
-	if( IntegerTypeName() != vIt->value.GetString() )
-		return false;
+    //is this the correct integer type?
+    if( (vIt = mIter->value.FindMember("IntegerType")) == mIter->value.MemberEnd() )
+      return false;
+    if( IntegerTypeName() != vIt->value.GetString() )
+      return false;
 
 	//find the value
 	if( (vIt = mIter->value.FindMember("Value")) == mIter->value.MemberEnd() )
@@ -3098,7 +3094,8 @@ void ubint<limb_t>::PrintIntegerConstants(void) {
 
 template class ubint<expdtype>;
 
+#if 0
 //to stream internal representation
 template std::ostream& operator << <expdtype>(std::ostream& os, const std::vector<expdtype>& v);
-
+#endif
 } // namespace exp_int ends

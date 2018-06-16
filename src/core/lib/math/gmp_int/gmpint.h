@@ -114,7 +114,7 @@ public:
 	/**
 	 * A zero allocator that is called by the Matrix class. It is used to initialize a Matrix of myZZ objects.
 	 */
-	static unique_ptr<myZZ> Allocator();
+	static myZZ Allocator() { return 0; }
 
 	//adapter kit that wraps ZZ with BACKEND 2 functionality
 
@@ -312,6 +312,30 @@ public:
 		return res;
 	}; //(this^b)%modulus
 
+	/**
+	 * NTL-optimized modular multiplication using a precomputation for the multiplicand
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	myZZ ModMulPreconOptimized(const myZZ& b, const myZZ& modulus, const myZZ& bInv) const {
+		PALISADE_THROW( lbcrypto::math_error, "ModMulPreconOptimized is not implemented for backend 6");
+	}
+
+	/**
+	 * Scalar modulus multiplication.
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	const myZZ& ModMulPreconOptimizedEq(const myZZ& b, const myZZ& modulus, const myZZ& bInv) {
+		PALISADE_THROW( lbcrypto::math_error, "ModMulPreconOptimized is not implemented for backend 6");
+	}
+
 	myZZ MultiplyAndRound(const myZZ &p, const myZZ &q) const;
 	myZZ DivideAndRound(const myZZ &q) const;
 
@@ -394,12 +418,13 @@ public:
 	usint GetLengthForBase(usint base) const {return GetMSB();};
 
 	/**
-	 * Get the integer value of the of a subfield of bits.
-	 * power-of-2 bases are currently supported.
+	 * Get the integer value of the of a subfield of bits. Where the length of
+	 * the field is specifice by a power of two base
+	 * only power of two bases are currently supported.
 	 *
 	 * @param index is the bit location (lsb)
-	 * @param base is the bitwidth of the subfield
-	 * @return the integer value of the subfield
+	 * @param base such that log2(base)+1 is the bitwidth of the subfield
+	 * @return the unsigned integer value of the subfield
 	 */
 	usint GetDigitAtIndexForBase(usint index, usint base) const;
 
@@ -433,11 +458,19 @@ public:
 
 	static const std::string IntegerTypeName() { return "NTL"; }
 
+	/**
+	 * Gets a subset of bits of a given length with LSB at specified index.
+	 * optimized for speed in backend 6
+	 * @param index of the set of bit to get. LSB=1
+	 * @param length of the set of bits to get. LSB=1
+	 * @return resulting unsigned in formed by set of bits.
+	 */
+	usint GetBitRangeAtIndex(usint index, usint length)const;
 
 	/**
 	 * Gets the bit at the specified index.
 	 *
-	 * @param index is the index of the bit to get.
+	 * @param index of the bit to get. LSB=1
 	 * @return resulting bit.
 	 */
 	uschar GetBitAtIndex(usint index) const;
@@ -445,7 +478,7 @@ public:
 	/**
 	 * Gets 6 bits at the specified index. Right fill with 0
 	 *
-	 * @param index is the index of the bit to get.
+	 * @param index of the bit to get. LSB=1
 	 * @return resulting bits.
 	 */
 	uschar Get6BitsAtIndex(usint index) const;
@@ -454,16 +487,18 @@ public:
 	 * Gets a copy of the  internal limb storage
 	 * Used primarily for debugging
 	 */
-	vector <ZZ_limb_t> GetInternalRepresentation(void) const {
-		vector<ZZ_limb_t> ret;
-		const ZZ_limb_t *zlp = ZZ_limbs_get(*this);
-
-		for (size_t i = 0; i < (size_t)this->size(); i ++){
-			ret.push_back(zlp[i]);
-		}
-		return ret;
+	std::string GetInternalRepresentation(void) const {
+	  std::string ret("");
+	  const ZZ_limb_t *zlp = ZZ_limbs_get(*this);
+	  
+	  for (size_t i = 0; i < (size_t)this->size(); i ++){
+	    ret += std::to_string(zlp[i]);
+	    if (i < ((size_t)this->size()-1))
+	      ret +=" ";
+	  }
+	  return ret;
 	}
-
+	
 private:
 	//adapter kits
 	void SetMSB();

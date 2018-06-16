@@ -55,41 +55,49 @@ protected:
 };
 
 TEST_F(UTEncoding,scalar_encoding) {
-	int64_t value = 47;
+	vector<int64_t> valuev;
 	usint m = 8;
-	PlaintextModulus ptm = 128;
+	vector<PlaintextModulus> ptmv( {128, PlaintextModulus(1)<<25, PlaintextModulus(1)<<40, PlaintextModulus(1)<<60} );
+	for( auto& ptm : ptmv )
+		valuev.push_back( ptm / 8 * 3 - 1 );
 
-	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m);
-	EncodingParams ep( new EncodingParamsImpl( ptm ) );
+	// try for small and large
+	for( size_t i=0; i<valuev.size(); i++ ) {
+		auto value = valuev[i];
+		auto ptm = ptmv[i];
 
-	ScalarEncoding	se(lp, ep, value);
-	se.Encode();
-	EXPECT_EQ( se.GetElement<Poly>()[0].ConvertToInt(), (uint64_t)value ) << "encoding failed";
-	EXPECT_EQ( se.GetElement<Poly>()[1].ConvertToInt(), (uint64_t)0 ) << "encoding failed";
+		shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m);
+		EncodingParams ep( new EncodingParamsImpl( ptm ) );
 
-	se.Decode();
-	EXPECT_EQ( se.GetScalarValue(), value ) << "positive scalar";
+		ScalarEncoding	se(lp, ep, value);
+		se.Encode();
+		EXPECT_EQ( se.GetElement<Poly>()[0].ConvertToInt(), (uint64_t)value ) << "encoding #" << i << ":" << value << " failed";
+		EXPECT_EQ( se.GetElement<Poly>()[1].ConvertToInt(), (uint64_t)0 ) << "encoding 0 failed";
 
-	ScalarEncoding	se2(lp, ep, -value);
-	se2.Encode();
-	se2.Decode();
-	EXPECT_EQ( se2.GetScalarValue(), -value ) << "negative scalar";
+		se.Decode();
+		EXPECT_EQ( se.GetScalarValue(), value ) << "positive #" << i << " scalar failed";
 
-	ScalarEncoding	se3(lp, ep, (ptm/2)+1);
-	EXPECT_THROW( se3.Encode(), config_error ) << "Encode did not throw the proper exception";
+		ScalarEncoding	se2(lp, ep, -value);
+		se2.Encode();
+		se2.Decode();
+		EXPECT_EQ( se2.GetScalarValue(), -value ) << "negative #" << i << " scalar failed";
 
-	ScalarEncoding	se3n(lp, ep, ((-1*(int64_t)ptm)/2));
-	EXPECT_THROW( se3n.Encode(), config_error ) << "Encode did not throw the proper exception";
+		ScalarEncoding	se3(lp, ep, (ptm/2)+1);
+		EXPECT_THROW( se3.Encode(), config_error ) << "Encode did not throw the proper exception";
 
-	ScalarEncoding	se4(lp, ep, ptm/2);
-	se4.Encode();
-	se4.Decode();
-	EXPECT_EQ( se4.GetScalarValue(), (int64_t)ptm/2 ) << "largest number";
+		ScalarEncoding	se3n(lp, ep, ((-1*(int64_t)ptm)/2));
+		EXPECT_THROW( se3n.Encode(), config_error ) << "Encode did not throw the proper exception";
 
-	ScalarEncoding	se5(lp, ep, (-1*(int64_t)ptm)/2 + 1);
-	se5.Encode();
-	se5.Decode();
-	EXPECT_EQ( se5.GetScalarValue(), (-1*(int64_t)ptm)/2 + 1 ) << "smallest number";
+		ScalarEncoding	se4(lp, ep, ptm/2);
+		se4.Encode();
+		se4.Decode();
+		EXPECT_EQ( se4.GetScalarValue(), (int64_t)ptm/2 ) << "largest number";
+
+		ScalarEncoding	se5(lp, ep, (-1*(int64_t)ptm)/2 + 1);
+		se5.Encode();
+		se5.Decode();
+		EXPECT_EQ( se5.GetScalarValue(), (-1*(int64_t)ptm)/2 + 1 ) << "smallest number";
+	}
 }
 
 TEST_F(UTEncoding,coef_packed_encoding) {
@@ -117,10 +125,10 @@ TEST_F(UTEncoding,packed_int_ptxt_encoding) {
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	shared_ptr<ILParams> lp(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 	EncodingParams ep(new EncodingParamsImpl(p,8));
+
+	PackedEncoding::SetParams(m, ep);
 
 	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 	PackedEncoding	se(lp, ep, vectorOfInts1);
@@ -188,4 +196,26 @@ TEST_F(UTEncoding,integer_encoding){
 	EXPECT_THROW( mone.Encode(), config_error ) << "Encode did not throw the proper exception";
 }
 
+TEST_F(UTEncoding,fractional_encoding) {
+	int	m = 64;
+	PlaintextModulus ptm = ((uint64_t)1<<30);
+	shared_ptr<ILParams> lp = ElemParamFactory::GenElemParams<ILParamsImpl<BigInteger>>(m);
+	EncodingParams ep( new EncodingParamsImpl(ptm) );
+
+	int64_t sv = 42;
+	int64_t sv0 = 0;
+
+	// encodes 42
+	FractionalEncoding psn(lp, ep, sv);
+	// encodes 1/2^4
+	FractionalEncoding pst(lp, ep, sv0, 4);
+
+	psn.Encode();
+	pst.Encode();
+	psn.Decode();
+	pst.Decode();
+
+	EXPECT_EQ( psn.GetIntegerValue(), sv) << "small no trunc";
+	EXPECT_EQ( pst.GetIntegerValue(), sv0) << "small trunc";
+}
 

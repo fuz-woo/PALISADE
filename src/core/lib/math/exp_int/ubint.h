@@ -46,6 +46,7 @@
 #include <memory>
 #include "../../utils/inttypes.h"
 #include "../../utils/memory.h"
+#include "../../utils/serializable.h"
 #include "../nbtheory.h"
 
 #ifdef UBINT_64
@@ -363,9 +364,15 @@ public:
 	 * Used primarily for debugging
 	 * @return STL vector of uint_type
 	 */
-	vector<limb_t> GetInternalRepresentation(void) const {
-		vector<limb_t> ret = m_value;
-		return ret;
+	std::string GetInternalRepresentation(void) const {
+	  std::string ret("");
+	  for (size_t i = 0; i<m_value.size(); i++){
+	    ret += std::to_string(m_value[i]);
+	    if (i < (m_value.size()-1))
+	      ret +=" ";
+	    
+	  }
+	  return ret;
 	}
 
 	/**
@@ -666,6 +673,30 @@ public:
 	ubint ModBarrettMul(const ubint& b, const ubint& modulus,const ubint mu_arr[BARRETT_LEVELS]) const;
 
 	/**
+	 * NTL-optimized modular multiplication using a precomputation for the multiplicand
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+    ubint ModMulPreconOptimized(const ubint& b, const ubint& modulus, const ubint& bInv) const {
+		PALISADE_THROW( lbcrypto::math_error, "ModMulPreconOptimized is not implemented for backend 4");
+	}
+
+	/**
+	 * Scalar modulus multiplication.
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	const ubint& ModMulPreconOptimizedEq(const ubint& b, const ubint& modulus, const ubint& bInv) {
+		PALISADE_THROW( lbcrypto::math_error, "ModMulPreconOptimized is not implemented for backend 4");
+	}
+
+	/**
 	 * Scalar modular exponentiation. Square-and-multiply algorithm is used.
 	 *
 	 * @param &b is the scalar to exponentiate.
@@ -879,7 +910,7 @@ public:
 	/**
 	 * A zero allocator that is called by the Matrix class. It is used to initialize a Matrix of ubint objects.
 	 */
-	static unique_ptr<ubint> Allocator();
+	static ubint Allocator() { return 0; }
 
 	/**
 	 * Gets the state of the ubint from the internal value.
@@ -1057,6 +1088,7 @@ private:
 	static void add_bitVal(uschar* a,uschar b);
 };
 
+ #if 0
 // stream helper function for vector of objects
 template < typename limb_t >
 inline std::ostream& operator << (std::ostream& os, const std::vector<limb_t>& v) {
@@ -1067,7 +1099,7 @@ inline std::ostream& operator << (std::ostream& os, const std::vector<limb_t>& v
 	os << " ]";
 	return os;
 };
-
+#endif
 }//namespace ends
 
 #endif //LBCRYPTO_MATH_EXPINT_UBINT_H

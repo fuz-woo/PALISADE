@@ -87,7 +87,7 @@ namespace lbcrypto {
 			 * @param bigRootOfUnity root of unity for bigModulus
 			 * @param bigModulusArb modulus used in polynomial multiplications in EvalMult (for arbitrary cyclotomics)
 			 * @param bigRootOfUnityArb root of unity for bigModulus (for arbitrary cyclotomics)
-			 * @param depth Depth is the depth of computation supprted which is set to 1 by default.  Use the default setting unless you're using SHE, levelled SHE or FHE operations.
+			 * @param depth is the depth of computation circuit supported for these parameters (not used now; for future use).
 			 * @param maxDepth is the maximum homomorphic multiplication depth before performing relinearization
 			 */
 			LPCryptoParametersBFV(shared_ptr<typename Element::Params> params,
@@ -120,7 +120,7 @@ namespace lbcrypto {
 			* @param bigRootOfUnity root of unity for bigModulus
 			* @param bigModulusArb modulus used in polynomial multiplications in EvalMult (arbitrary cyclotomics)
 			* @param bigRootOfUnityArb root of unity for bigModulus (arbitrary cyclotomics)
-			* @param depth depth which is set to 1.
+			* @param depth is the depth of computation circuit supported for these parameters (not used now; for future use).
 			* @param maxDepth is the maximum homomorphic multiplication depth before performing relinearization
 			*/
 			LPCryptoParametersBFV(shared_ptr<typename Element::Params> params,
@@ -295,9 +295,10 @@ namespace lbcrypto {
 		* @param evalAddCount number of EvalAdds assuming no EvalMult and KeySwitch operations are performed.
 		* @param evalMultCount number of EvalMults assuming no EvalAdd and KeySwitch operations are performed.
 		* @param keySwitchCount number of KeySwitch operations assuming no EvalAdd and EvalMult operations are performed.
+		* @param dcrtBits number of bits in each CRT modulus - NOT USED IN BFV
 		*/
 		virtual bool ParamsGen(shared_ptr<LPCryptoParameters<Element>> cryptoParams, int32_t evalAddCount = 0,
-			int32_t evalMultCount = 0, int32_t keySwitchCount = 0) const;
+			int32_t evalMultCount = 0, int32_t keySwitchCount = 0, size_t dcrtBits = 0) const;
 
 		virtual ~LPAlgorithmParamsGenBFV() {}
 
@@ -353,7 +354,7 @@ namespace lbcrypto {
 		* @return the decrypted plaintext returned.
 		*/
 		virtual DecryptResult Decrypt(const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext,
+			ConstCiphertext<Element> ciphertext,
 			NativePoly *plaintext) const;
 
 		/**
@@ -397,8 +398,8 @@ namespace lbcrypto {
 		* @param ct2 second input ciphertext.
 		* @return new ciphertext.
 		*/
-		Ciphertext<Element> EvalAdd(const Ciphertext<Element> ct1, 
-			const Ciphertext<Element> ct2) const;
+		Ciphertext<Element> EvalAdd(ConstCiphertext<Element> ct1,
+				ConstCiphertext<Element> ct2) const;
 
 		/**
 		* Function for homomorphic addition of ciphertext and plaintext.
@@ -407,8 +408,8 @@ namespace lbcrypto {
 		* @param pt  input ciphertext.
 		* @return new ciphertext.
 		*/
-		virtual Ciphertext<Element> EvalAdd(const Ciphertext<Element> ct,
-			const Plaintext pt) const;
+		virtual Ciphertext<Element> EvalAdd(ConstCiphertext<Element> ct,
+				ConstPlaintext pt) const;
 
 		/**
 		* Function for homomorphic subtraction of ciphertexts.
@@ -417,8 +418,8 @@ namespace lbcrypto {
 		* @param ct2 second input ciphertext.
 		* @return new ciphertext.
 		*/
-		Ciphertext<Element> EvalSub(const Ciphertext<Element> ct1, 
-			const Ciphertext<Element> ct2) const;
+		Ciphertext<Element> EvalSub(ConstCiphertext<Element> ct1,
+			ConstCiphertext<Element> ct2) const;
 
 		/**
 		* Function for homomorphic subtraction of ciphertext ans plaintext.
@@ -427,8 +428,8 @@ namespace lbcrypto {
 		* @param pt input ciphertext.
 		* @return new ciphertext.
 		*/
-		virtual Ciphertext<Element> EvalSub(const Ciphertext<Element> ct1,
-				const Plaintext pt) const;
+		virtual Ciphertext<Element> EvalSub(ConstCiphertext<Element> ct1,
+				ConstPlaintext pt) const;
 
 		/**
 		* Function for homomorphic evaluation of ciphertexts.
@@ -439,8 +440,8 @@ namespace lbcrypto {
 		* @param ciphertext2 second input ciphertext.
 		* @return resulting EvalMult ciphertext.
 		*/
-		virtual Ciphertext<Element> EvalMult(const Ciphertext<Element> ct1,
-			const Ciphertext<Element> ct2) const;
+		virtual Ciphertext<Element> EvalMult(ConstCiphertext<Element> ct1,
+			ConstCiphertext<Element> ct2) const;
 
 		/**
 		* Function for multiplying ciphertext by plaintext.
@@ -449,8 +450,8 @@ namespace lbcrypto {
 		* @param plaintext input plaintext embedded in the cryptocontext.
 		* @return result of the multiplication.
 		*/
-		Ciphertext<Element> EvalMult(const Ciphertext<Element> ciphertext,
-			const Plaintext plaintext) const;
+		Ciphertext<Element> EvalMult(ConstCiphertext<Element> ciphertext,
+			ConstPlaintext plaintext) const;
 
 		/**
 		* Function for evaluating multiplication on ciphertext followed by key switching operation.
@@ -462,8 +463,8 @@ namespace lbcrypto {
 		*  decryptable by the same secret key as that of ciphertext1 and ciphertext2.
 		* @return new ciphertext
 		*/
-		Ciphertext<Element> EvalMult(const Ciphertext<Element> ct1,
-			const Ciphertext<Element> ct, const LPEvalKey<Element> ek) const;
+		Ciphertext<Element> EvalMult(ConstCiphertext<Element> ct1,
+			ConstCiphertext<Element> ct, const LPEvalKey<Element> ek) const;
 
 		/**
 		* Function for evaluating multiplication on ciphertext followed by relinearization operation. It computes the
@@ -487,8 +488,8 @@ namespace lbcrypto {
 		*  decryptable by the same secret key as that of ciphertext1 and ciphertext2.
 		* @return new ciphertext
 		*/
-		virtual Ciphertext<Element> EvalMultAndRelinearize(const Ciphertext<Element> ct1,
-			const Ciphertext<Element> ct, const vector<LPEvalKey<Element>> &ek) const;
+		virtual Ciphertext<Element> EvalMultAndRelinearize(ConstCiphertext<Element> ct1,
+			ConstCiphertext<Element> ct, const vector<LPEvalKey<Element>> &ek) const;
 
 		/**
 		* Function for homomorphic negation of ciphertexts.
@@ -496,7 +497,7 @@ namespace lbcrypto {
 		* @param ct first input ciphertext.
 		* @return new ciphertext.
 		*/
-		Ciphertext<Element> EvalNegate(const Ciphertext<Element> ct) const;
+		Ciphertext<Element> EvalNegate(ConstCiphertext<Element> ct) const;
 
 		/**
 		* Method for generating a KeySwitchHint using RLWE relinearization
@@ -516,7 +517,7 @@ namespace lbcrypto {
 		* @return new ciphertext
 		*/
 		virtual Ciphertext<Element> KeySwitch(const LPEvalKey<Element> keySwitchHint,
-			const Ciphertext<Element> cipherText) const;
+			ConstCiphertext<Element> cipherText) const;
 
 		/**
 		* Method for KeySwitching based on RLWE relinearization and NTRU key generation.
@@ -541,7 +542,7 @@ namespace lbcrypto {
 		* @return the resulting Ciphertext
 		*/
 		Ciphertext<Element> KeySwitchRelin(const LPEvalKey<Element> evalKey,
-			const Ciphertext<Element> ciphertext) const {
+			ConstCiphertext<Element> ciphertext) const {
 			std::string errMsg = "LPAlgorithmSHEBFV:KeySwitchRelin is not needed for this scheme as relinearization is the default technique and no NTRU key generation is used.";
 			throw std::runtime_error(errMsg);
 		}
@@ -574,7 +575,7 @@ namespace lbcrypto {
 		* @param &evalKeys - reference to the map of evaluation keys generated by EvalAutomorphismKeyGen.
 		* @return resulting ciphertext
 		*/
-		Ciphertext<Element> EvalAutomorphism(const Ciphertext<Element> ciphertext, usint i,
+		Ciphertext<Element> EvalAutomorphism(ConstCiphertext<Element> ciphertext, usint i,
 			const std::map<usint, LPEvalKey<Element>> &evalKeys) const;
 
 		/**
@@ -650,7 +651,7 @@ namespace lbcrypto {
 		* @return resulting ciphertext after the re-encryption operation.
 		*/
 		Ciphertext<Element> ReEncrypt(const LPEvalKey<Element> evalKey,
-			const Ciphertext<Element> ciphertext) const;
+			ConstCiphertext<Element> ciphertext) const;
 
 	};
 
@@ -713,7 +714,7 @@ namespace lbcrypto {
 		 * @param ciphertext ciphertext id decrypted.
 		 */
 		Ciphertext<Element> MultipartyDecryptMain(const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext) const;
+			ConstCiphertext<Element> ciphertext) const;
 
 		/**
 		 * Method for decryption operation run by the lead decryption client for multiparty homomorphic encryption
@@ -722,7 +723,7 @@ namespace lbcrypto {
 		 * @param ciphertext ciphertext id decrypted.
 		 */
 		Ciphertext<Element> MultipartyDecryptLead(const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext) const;
+			ConstCiphertext<Element> ciphertext) const;
 
 		/**
 		 * Method for fusing the partially decrypted ciphertext.

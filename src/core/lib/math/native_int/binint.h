@@ -43,6 +43,7 @@
 #include <stdexcept>
 #include <functional>
 #include <cstdlib>
+#include <NTL/ZZ.h>
 #include <memory>
 #include "../interface.h"
 #include "../../utils/inttypes.h"
@@ -50,7 +51,9 @@
 #include "../../utils/memory.h"
 #include "../../utils/palisadebase64.h"
 #include "../../utils/exception.h"
+#include "../../utils/debug.h"
 #include "../nbtheory.h"
+
 
 namespace native_int {
 
@@ -231,11 +234,11 @@ public:
 	 * @return result of the addition operation of type BigInteger.
 	 */
 	const NativeInteger& PlusEq(const NativeInteger& b) {
-		uint_type oldv = m_value;
+		//uint_type oldv = m_value;
 		m_value += b.m_value;
-		if( m_value < oldv ) {
-			PALISADE_THROW( lbcrypto::math_error, "Overflow");
-		}
+		//if( m_value < oldv ) {
+		//	PALISADE_THROW( lbcrypto::math_error, "Overflow");
+		//}
 		return *this;
 	}
 
@@ -247,6 +250,7 @@ public:
 	 */
 	NativeInteger Minus(const NativeInteger& b) const {
 		return m_value <= b.m_value ? 0 : m_value - b.m_value;
+		//return m_value - b.m_value;
 	}
 
 	/**
@@ -256,7 +260,8 @@ public:
 	 * @return result of the subtraction operation of type BigInteger.
 	 */
 	const NativeInteger& MinusEq(const NativeInteger& b) {
-		m_value -= m_value <= b.m_value ? m_value : b.m_value;
+		//m_value -= m_value <= b.m_value ? m_value : b.m_value;
+		m_value -= b.m_value;
 		return *this;
 	}
 
@@ -485,12 +490,65 @@ public:
 	inline NativeInteger ModAddFast(const NativeInteger& b, const NativeInteger& modulus) const {
 		Duint_type modsum = (Duint_type)m_value;
 		modsum += b.m_value;
-		modsum %= modulus.m_value;
-		if( modsum > m_uintMax )
-			PALISADE_THROW( lbcrypto::math_error, "Overflow");
+		if (modsum >= modulus.m_value)
+			modsum %= modulus.m_value;
 		return (uint_type)modsum;
 	}
 
+	/**
+	 * In-place Fast scalar modular addition. Minimizes the number of modulo reduction operations.
+	 *
+	 * @param &b is the scalar to add.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus addition operation.
+	 */
+	const NativeInteger& ModAddFastEq(const NativeInteger& b, const NativeInteger& modulus) {
+		Duint_type modsum = (Duint_type)m_value;
+		modsum += b.m_value;
+		if (modsum >= modulus.m_value)
+			modsum %= modulus.m_value;
+		this->m_value = (uint_type)modsum;
+		return *this;
+	}
+
+	/**
+	 * Fast scalar modular addition. NTL-optimized version.
+	 *
+	 * @param &b is the scalar to add.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus addition operation.
+	 */
+	NativeInteger ModAddFastOptimized(const NativeInteger& b, const NativeInteger& modulus) const {
+#if NTL_BITS_PER_LONG==64
+		return (uint_type)NTL::AddMod(this->m_value,b.m_value,modulus.m_value);
+#else
+		Duint_type modsum = (Duint_type)m_value;
+		modsum += b.m_value;
+		if (modsum >= modulus.m_value)
+			modsum %= modulus.m_value;
+		return (uint_type)modsum;
+#endif
+	}
+
+	/**
+	 * In-place fast scalar modular addition. NTL-optimized version.
+	 *
+	 * @param &b is the scalar to add.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus addition operation.
+	 */
+	const NativeInteger& ModAddFastOptimizedEq(const NativeInteger& b, const NativeInteger& modulus) {
+#if NTL_BITS_PER_LONG==64
+		this->m_value = (uint_type)NTL::AddMod(this->m_value,b.m_value,modulus.m_value);
+#else
+		Duint_type modsum = (Duint_type)m_value;
+		modsum += b.m_value;
+		if (modsum >= modulus.m_value)
+			modsum %= modulus.m_value;
+		this->m_value = (uint_type)modsum;
+#endif
+		return *this;
+	}
 
 	/**
 	 * Modular addition where Barrett modulo reduction is used.
@@ -578,25 +636,37 @@ public:
 	}
 
 	/**
-	 * Fast scalar modular subtraction. ModSubFast assumes b < modulus.
+	 * Fast scalar modular subtraction. Assumes both arguments are in [0,modulus-1].
 	 *
 	 * @param &b is the scalar to subtract.
 	 * @param modulus is the modulus to perform operations with.
 	 * @return result of the modulus subtraction operation.
 	 */
 	inline NativeInteger ModSubFast(const NativeInteger& b, const NativeInteger& modulus) const {
-		Duint_type av = m_value;
-		Duint_type bv = b.m_value;
-		Duint_type mod = modulus.m_value;
-	
-		if(av >= bv){
-			return uint_type((av - bv) % mod);
+		if(m_value >= b.m_value){
+			return uint_type(m_value - b.m_value);
 		}
 		else{
-			return uint_type((av + mod) - bv);
+			return uint_type((m_value + modulus.m_value) - b.m_value);
 		}
 	}
 
+	/**
+	 * Scalar modular subtraction (in-place version). Assumes both arguments are in [0,modulus-1].
+	 *
+	 * @param &b is the scalar to subtract.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return result of the modulus subtraction operation.
+	 */
+	const NativeInteger& ModSubFastEq(const NativeInteger& b, const NativeInteger& modulus) {
+		if(m_value >= b.m_value){
+			m_value -= b.m_value;
+		}
+		else{
+			m_value += (modulus.m_value - b.m_value);
+		}
+		return *this;
+	}
 
 	/**
 	 * Scalar modular subtraction where Barrett modular reduction is used.
@@ -671,7 +741,27 @@ public:
 	NativeInteger ModMulFast(const NativeInteger& b, const NativeInteger& modulus) const {
 		Duint_type av = m_value;
 		Duint_type bv = b.m_value;
+
 		return (uint_type)((av*bv)%modulus.m_value);
+	}
+
+	/**
+	 * Scalar modulus multiplication. Optimized NTL version.
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	NativeInteger ModMulFastOptimized(const NativeInteger& b, const NativeInteger& modulus) const {
+#if NTL_BITS_PER_LONG==64
+		return (uint_type)NTL::MulMod(this->m_value,b.m_value,modulus.m_value);
+#else
+		Duint_type av = m_value;
+		Duint_type bv = b.m_value;
+
+		return (uint_type)((av*bv)%modulus.m_value);
+#endif
+
 	}
 
 	/**
@@ -689,6 +779,80 @@ public:
 
 		return *this;
 	}
+
+	/**
+	 * In-place scalar modulus multiplication. Optimized NTL version.
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	const NativeInteger& ModMulFastEqOptimized(const NativeInteger& b, const NativeInteger& modulus) {
+#if NTL_BITS_PER_LONG==64
+		this->m_value = (uint_type)NTL::MulMod(this->m_value,b.m_value,modulus.m_value);
+#else
+		Duint_type av = m_value;
+		Duint_type bv = b.m_value;
+
+		this->m_value = (uint_type)((av*=bv)%=modulus.m_value);
+#endif
+		return *this;
+	}
+
+	/**
+	 * NTL-optimized modular multiplication using a precomputation for the multiplicand
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	NativeInteger ModMulPreconOptimized(const NativeInteger& b, const NativeInteger& modulus, const NativeInteger& bInv) const {
+#if NTL_BITS_PER_LONG==64
+		return (uint_type)NTL::MulModPrecon(this->m_value,b.m_value,modulus.m_value,bInv.m_value);
+#else
+		Duint_type av = m_value;
+		Duint_type bv = b.m_value;
+
+		return (uint_type)((av*bv)%modulus.m_value);
+#endif
+	}
+
+	/**
+	 * Scalar modulus multiplication.
+	 *
+	 * @param &b is the scalar to multiply.
+	 * @param modulus is the modulus to perform operations with.
+	 * @param &bInv NTL precomputation for b.
+	 * @return is the result of the modulus multiplication operation.
+	 */
+	const NativeInteger& ModMulPreconOptimizedEq(const NativeInteger& b, const NativeInteger& modulus, const NativeInteger& bInv) {
+#if NTL_BITS_PER_LONG==64
+		this->m_value = (uint_type)NTL::MulModPrecon(this->m_value,b.m_value,modulus.m_value,bInv.m_value);
+#else
+		Duint_type av = m_value;
+		Duint_type bv = b.m_value;
+
+		this->m_value = (uint_type)((av*=bv)%=modulus.m_value);
+		//this->m_value = (uint_type)((av*bv)%modulus.m_value);
+#endif
+		return *this;
+	}
+
+	/**
+	 * NTL precomputations for a multiplicand
+	 *
+	 * @param modulus is the modulus to perform operations with.
+	 * @return the precomputed factor
+	 */
+	const NativeInteger PrepModMulPreconOptimized(const NativeInteger& modulus) const {
+#if NTL_BITS_PER_LONG==64
+		return (uint_type)NTL::PrepMulModPrecon(this->m_value,modulus.m_value);
+#else
+		return 0;
+#endif
+	}
+
 
 	/**
 	 * Scalar modular multiplication where Barrett modular reduction is used.
@@ -815,14 +979,67 @@ public:
 	const std::string ToString() const {
 		return std::to_string(m_value);
 	}
+#if 0
+	template <typename I> std::string n2hexstr(const I w, size_t hex_len = sizeof(I)<<(8/4)) const{
+	  //note the 8 above is the sizeof byte and the 4 is log2(16) as are the 4's below
+	  //and the 0f below is the 4 bits. each of the following templates follow this pattern
+	  static const char* digits = "0123456789ABCDEF";
 
-	// note that for efficiency, we use [De]Serialize[To|From]String when serializing
+	  std::string rc(hex_len,'0');
+	  for (size_t i=0, j=(hex_len-1)*4 ; i<hex_len; ++i,j-=4)
+	    rc[i] = digits[(w>>j) & 0x0f];
+	  return rc;
+	}
+
+	template <typename I> std::string n2_32str(const I w, size_t hex_len = ceil(sizeof(I)*(8/5.0))) const{
+	  static const char* digits = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
+	  //WXYZabcdefghijklmnopqrstuvwxyz@#
+					 std::string rc(hex_len,'0');
+	  for (size_t i=0, j=(hex_len-1)*5 ; i<hex_len; ++i,j-=5)
+	    rc[i] = digits[(w>>j) & 0x1f];
+	  return rc;
+	}
+	template <typename I> std::string n2_64str(const I w, size_t hex_len = ceil(sizeof(I)*(8/6.0))-1) const{
+	  static const char* digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@#";
+					 std::string rc(hex_len,'0');
+	  for (size_t i=0, j=(hex_len-1)*6 ; i<hex_len; ++i,j-=6)
+	    rc[i] = digits[(w>>j) & 0x3f];
+	  return rc;
+	}
+#endif
+	//this function coverts the type I into 128bit characters. Note they are nonprintable
+	template <typename I> std::string n2_128str(const I w, size_t ohex_len = ceil(sizeof(I)*(8/7.0))) const{
+	  bool dbg_flag = false;
+	  static unsigned char digits[128] =" ";
+
+	  if (digits[0]==' ') { //digits is uninitialized, initialize first time around
+	    //std::cout << "INITIALIZING DIGITS"<<std::endl;
+	    usint firstchar = 35;
+	    for (unsigned int i=0; i < 128; i++){
+	      digits[i] = (char)(i+firstchar);
+	    }
+	  }
+	  std::string rc(ohex_len,' ');
+	  for (size_t i=0, j=(ohex_len-1)*7 ; i<ohex_len; ++i,j-=7){
+	    DEBUGEXP(std::hex<<w);
+	    DEBUGEXP(std::dec<<j);
+	    DEBUGEXP(std::hex<<(w>>j));
+	    DEBUGEXP(std::hex<<((w>>j) & 0x7f));
+	    rc[i] = digits[(w>>j) & 0x7f];
+	    DEBUGEXP(std::hex<<rc[i]);
+	  }
+	  return rc;
+	}
+	    // note that for efficiency, we use [De]Serialize[To|From]String when serializing
 	// BigVectors, and [De]Serialize otherwise (to work the same as all
 	// other serialized objects.
 	// Serialize using the modulus; convert value to signed, then serialize to string
 	const std::string SerializeToString(const NativeInteger& modulus = 0) const {
-		// numbers go from high to low -1, -2, ... +modulus/2, modulus/2 - 1, ... ,1, 0
-		bool isneg = false;
+	  //numbers are straight unsigned int ==> base 128
+	  bool dbg_flag = false;
+        #if 0 //old slow way
+	  // numbers go from high to low -1, -2, ... +modulus/2, modulus/2 - 1, ... ,1, 0
+	    bool isneg = false;
 		NativeInteger signedVal;
 		if( modulus.m_value == 0 || m_value < modulus.m_value/2 )
 			signedVal = m_value;
@@ -838,10 +1055,54 @@ public:
 		for( int i=len; i>0; i-=6 )
 			ser += lbcrypto::value_to_base64(signedVal.Get6BitsAtIndex(i));
 		return ser;
+        #else
+		//std::string ser(n2hexstr<uint_type>(m_value)+"|");
+		//std::string ser(n2_64str<uint_type>(m_value)+"|");
+		DEBUG("---");
+		std::string ser(n2_128str<uint_type>(m_value));
+		DEBUGEXP(m_value);
+		DEBUGEXP(ser);
+		return ser;
+
+        #endif
+	}
+
+	//this function coverts string of 128bit characters into the type I 
+        template <typename I> const char* str128_2n( I* w, const char * &s, size_t ohex_len = ceil(sizeof(I)*(8/7.0))) {
+	  static unsigned char digits[128] =" ";
+	  bool dbg_flag = false;
+	  usint firstchar = 35;
+	    
+	  if (digits[0]==' ') { //digits is uninitialized, initialize first time around
+	    //std::cout << "INITIALIZING DIGITS"<<std::endl;
+	    for (unsigned int i=0; i < 128; i++){
+	       digits[i] = (char)(i+firstchar);
+	    }
+	  }
+
+	  DEBUGEXP(*w);
+	  *w=0;
+	  DEBUGEXP(*w);	  
+	  I d(0);
+	  for (size_t i=0, j=(ohex_len-1)*7 ; i<ohex_len; ++i,j-=7) {
+	    //d = (unsigned char)s[ohex_len-i-1] - firstchar;
+	    d = (unsigned char)s[i] - firstchar;
+	    DEBUGEXP(std::hex<<(unsigned int)d);
+	    DEBUGEXP(std::dec<<j);
+	    DEBUGEXP(std::hex<<(d<<j));
+	    *w|= (d<<j);
+	    
+	    DEBUGEXP(std::hex<<w);	    
+	  }
+	  DEBUGEXP(s);
+	  s+=ohex_len;
+	  DEBUGEXP(s);
+	  return s;
 	}
 
 	//deserialize from string
 	const char * DeserializeFromString(const char * str, const NativeInteger& modulus = 0) {
+        #if 0 //old slow way
 		bool isneg = false;
 		if( *str == '-' ) {
 			++str;
@@ -863,6 +1124,15 @@ public:
 
 		m_value = value;
 		return str;
+           #else		
+
+		bool dbg_flag = false;
+		DEBUG("===");
+		DEBUGEXP(m_value);
+		DEBUGEXP(str);
+		
+		return str128_2n<uint_type>(&m_value, str);
+           #endif
 	}
 	/**
 	* Serialize the object into a Serialized
@@ -871,8 +1141,10 @@ public:
 	*/
 	bool Serialize(lbcrypto::Serialized* serObj) const{
 
-	  if( !serObj->IsObject() )
-	    return false;
+	  if( !serObj->IsObject() ){
+	    serObj->SetObject();
+	  }
+
 	  
 	  lbcrypto::SerialItem bbiMap(rapidjson::kObjectType);
 	  
@@ -1107,7 +1379,15 @@ public:
 	 * A zero allocator that is called by the Matrix class.
 	 * It is used to initialize a Matrix of NativeInteger objects.
 	 */
-	static unique_ptr<NativeInteger<uint_type>> Allocator();
+	static NativeInteger<uint_type> Allocator() { return 0; }
+
+	inline bool operator==(const NativeInteger& b) {return this->m_value==b.m_value; }
+	inline bool operator!=(const NativeInteger& b) {return this->m_value!=b.m_value;}
+
+	inline bool operator> (const NativeInteger& b) {return this->m_value > b.m_value;}
+	inline bool operator>=(const NativeInteger& b) {return this->m_value >= b.m_value; }
+	inline bool operator< (const NativeInteger& b) {return this->m_value < b.m_value;}
+	inline bool operator<=(const NativeInteger& b) {return this->m_value <= b.m_value;}
 
 protected:
 

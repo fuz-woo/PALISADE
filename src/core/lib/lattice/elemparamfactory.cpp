@@ -30,8 +30,8 @@ namespace lbcrypto {
 
 struct ElemParamFactory::ElemParmSet ElemParamFactory::DefaultSet[] = {
 		{ 16, 8,
-				"34359738641",
-				"5688225070"
+				"1099511627873",
+				"108163207722"
 		},
 		{ 1024, 512,
 				"525313",

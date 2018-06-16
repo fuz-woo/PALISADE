@@ -43,9 +43,10 @@ namespace lbcrypto
 template<typename IntType>
 bool ILParamsImpl<IntType>::Serialize(Serialized* serObj) const
 {
-
-	if( !serObj->IsObject() )
-		return false;
+  
+        if( !serObj->IsObject() ){
+	  serObj->SetObject();
+	}
 
 	SerialItem ser(rapidjson::kObjectType);
 	ser.AddMember("Order", std::to_string(this->cyclotomicOrder), serObj->GetAllocator());

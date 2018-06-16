@@ -44,14 +44,14 @@ template class LPLeveledSHEAlgorithmLTV<NativePoly>;
 
 template <>
 bool LPAlgorithmParamsGenLTV<Poly>::ParamsGen(shared_ptr<LPCryptoParameters<Poly>> cryptoParams,
-		int32_t evalAddCount, int32_t evalMultCount, int32_t keySwitchCount) const
+		int32_t evalAddCount, int32_t evalMultCount, int32_t keySwitchCount, size_t dcrtBits) const
 {
 	return false;
 }
 
 template <>
 bool LPAlgorithmParamsGenLTV<NativePoly>::ParamsGen(shared_ptr<LPCryptoParameters<NativePoly>> cryptoParams,
-		int32_t evalAddCount, int32_t evalMultCount, int32_t keySwitchCount) const
+		int32_t evalAddCount, int32_t evalMultCount, int32_t keySwitchCount, size_t dcrtBits) const
 {
 	return false;
 }

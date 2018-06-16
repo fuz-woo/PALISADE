@@ -54,7 +54,7 @@ namespace lbcrypto {
   Matrix<T>& Matrix<T>::Ones() {		\
     for (size_t row = 0; row < rows; ++row) {	\
       for (size_t col = 0; col < cols; ++col) { \
-	*data[row][col] = 1;			\
+    	  	  data[row][col] = 1;			\
       }						\
     }						\
     return *this;				\
@@ -86,9 +86,9 @@ namespace lbcrypto {
     for (size_t row = 0; row < rows; ++row) {	\
       for (size_t col = 0; col < cols; ++col) { \
 	if (row == col) {			\
-	  *data[row][col] = 1;			\
+	  data[row][col] = 1;			\
 	} else {				\
-	  *data[row][col] = 0;			\
+	  data[row][col] = 0;			\
 	}					\
       }						\
     }						\
@@ -109,10 +109,10 @@ namespace lbcrypto {
   Matrix<T> Matrix<T>::GadgetVector(int64_t base) const {	\
     Matrix<T> g(allocZero, rows, cols);				\
     auto base_matrix = allocZero();				\
-    *base_matrix = base;					\
+    base_matrix = base;					\
     g(0, 0) = 1;						\
     for (size_t col = 1; col < cols; ++col) {			\
-      g(0, col) = g(0, col-1) * *base_matrix;			\
+      g(0, col) = g(0, col-1) * base_matrix;			\
     }								\
     return g;							\
   }
@@ -135,7 +135,7 @@ namespace lbcrypto {
     double locVal = 0.0;			\
     for (size_t row = 0; row < rows; ++row) {	\
       for (size_t col = 0; col < cols; ++col) { \
-	locVal = data[row][col]->Norm();	\
+	locVal = data[row][col].Norm();	\
 	if (locVal > retVal) {			\
 	  retVal = locVal;			\
 	}					\
@@ -166,7 +166,7 @@ namespace lbcrypto {
 #define SPLIT64_FOR_TYPE(T)						\
   template<>								\
   Matrix<T> SplitInt64IntoElements(Matrix<int64_t> const& other, size_t n, const shared_ptr<typename T::Params> params) { \
-    auto zero_alloc = T::MakeAllocator(params, COEFFICIENT);		\
+    auto zero_alloc = T::Allocator(params, COEFFICIENT);		\
     size_t rows = other.GetRows() / n;					\
     Matrix<T> result(zero_alloc, rows, 1);				\
     for (size_t row = 0; row < rows; ++row) {				\
@@ -186,7 +186,7 @@ namespace lbcrypto {
 #define SPLIT32ALT_FOR_TYPE(T)						\
   template<>								\
   Matrix<T> SplitInt32AltIntoElements(Matrix<int32_t> const& other, size_t n, const shared_ptr<typename T::Params> params) { \
-  auto zero_alloc = T::MakeAllocator(params, COEFFICIENT);		\
+  auto zero_alloc = T::Allocator(params, COEFFICIENT);		\
   size_t rows = other.GetRows();					\
   Matrix<T> result(zero_alloc, rows, 1);				\
   for (size_t row = 0; row < rows; ++row) {				\
@@ -206,7 +206,7 @@ namespace lbcrypto {
 #define SPLIT64ALT_FOR_TYPE(T)						\
   template<>								\
   Matrix<T> SplitInt64AltIntoElements(Matrix<int64_t> const& other, size_t n, const shared_ptr<typename T::Params> params) { \
-  auto zero_alloc = T::MakeAllocator(params, COEFFICIENT);		\
+  auto zero_alloc = T::Allocator(params, COEFFICIENT);		\
   size_t rows = other.GetRows();					\
   Matrix<T> result(zero_alloc, rows, 1);				\
   for (size_t row = 0; row < rows; ++row) {				\
@@ -226,7 +226,7 @@ namespace lbcrypto {
   void Matrix<Poly>::SetFormat(Format format) {
     for (size_t row = 0; row < rows; ++row) {
       for (size_t col = 0; col < cols; ++col) {
-	data[row][col]->SetFormat(format);
+    	  	  data[row][col].SetFormat(format);
       }
     }
   }
@@ -235,7 +235,7 @@ namespace lbcrypto {
   void Matrix<NativePoly>::SetFormat(Format format) {
     for (size_t row = 0; row < rows; ++row) {
       for (size_t col = 0; col < cols; ++col) {
-	data[row][col]->SetFormat(format);
+    	  	  data[row][col].SetFormat(format);
       }
     }
   }
@@ -280,7 +280,7 @@ namespace lbcrypto {
     BigVector zero(1, modulus);
     size_t rows = mat.GetRows() * n;
     size_t cols = mat.GetCols() * n;
-    auto singleElemBinVecAlloc = [=](){ return make_unique<BigVector>(1, modulus); };
+    auto singleElemBinVecAlloc = [=](){ return BigVector(1, modulus); };
     Matrix<BigVector> result(singleElemBinVecAlloc, rows, cols);
     for (size_t row = 0; row < mat.GetRows(); ++row) {
       for (size_t col = 0; col < mat.GetCols(); ++col) {
@@ -311,7 +311,7 @@ namespace lbcrypto {
 #pragma omp parallel for
 #endif
 	  for (size_t col = 0; col < cols; ++col) {
-	    data[row][col]->SwitchFormat();
+	    data[row][col].SwitchFormat();
 	  }
 	}
       }
@@ -322,7 +322,7 @@ namespace lbcrypto {
 #pragma omp parallel for
 #endif
 	  for (size_t row = 0; row < rows; ++row) {
-	    data[row][col]->SwitchFormat();
+	    data[row][col].SwitchFormat();
 	  }
 	}
       }
@@ -338,7 +338,7 @@ namespace lbcrypto {
 #pragma omp parallel for
 #endif
 			for (size_t col = 0; col < cols; ++col) {
-				data[row][col]->SwitchFormat();
+				data[row][col].SwitchFormat();
 			}
 		}
 	}
@@ -349,7 +349,7 @@ namespace lbcrypto {
 #pragma omp parallel for
 #endif
 			for (size_t row = 0; row < rows; ++row) {
-				data[row][col]->SwitchFormat();
+				data[row][col].SwitchFormat();
 			}
 		}
 	}
@@ -365,7 +365,7 @@ template<>
 #pragma omp parallel for
 #endif
 	  for (size_t col = 0; col < cols; ++col) {
-	    data[row][col]->SwitchFormat();
+	    data[row][col].SwitchFormat();
 	  }
 	}
       }
@@ -376,7 +376,7 @@ template<>
 #pragma omp parallel for
 #endif
 	  for (size_t row = 0; row < rows; ++row) {
-	    data[row][col]->SwitchFormat();
+	    data[row][col].SwitchFormat();
 	  }
 	}
       }
@@ -393,7 +393,7 @@ template<>
       throw invalid_argument("not square");
     }
     size_t rows = input.GetRows();
-    Matrix<double> result([]() { return make_unique<double>(); }, rows, rows);
+    Matrix<double> result([]() { return 0; }, rows, rows);
 
     for (size_t i = 0; i < rows; ++i) {
       for (size_t j = 0; j < rows; ++j) {
@@ -465,7 +465,7 @@ template<>
     size_t rows = input.GetRows();
     size_t cols = input.GetCols();
     BigInteger negativeThreshold(modulus / BigInteger(2));
-    Matrix<int32_t> result([](){ return make_unique<int32_t>(); }, rows, cols);
+    Matrix<int32_t> result([](){ return 0; }, rows, cols);
     for (size_t i = 0; i < rows; ++i) {
       for (size_t j = 0; j < cols; ++j) {
 	if (input(i,j) > negativeThreshold) {
@@ -482,7 +482,7 @@ template<>
     size_t rows = input.GetRows();
     size_t cols = input.GetCols();
     BigInteger negativeThreshold(modulus / BigInteger(2));
-    Matrix<int32_t> result([](){ return make_unique<int32_t>(); }, rows, cols);
+    Matrix<int32_t> result([](){ return 0; }, rows, cols);
     for (size_t i = 0; i < rows; ++i) {
       for (size_t j = 0; j < cols; ++j) {
             const BigInteger& elem = input(i,j).at(0);

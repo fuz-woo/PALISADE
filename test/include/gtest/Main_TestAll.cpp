@@ -26,7 +26,6 @@
 
 #include <iostream>
 
-#include "../lib/lattice/dcrtpoly.h"
 #include "include/gtest/gtest.h"
 #include "include/gtest/gtest-all.cc"
 
@@ -39,6 +38,7 @@
 #include "lattice/ilelement.h"
 #include "math/distrgen.h"
 #include "lattice/poly.h"
+#include "lattice/dcrtpoly.h"
 #include "utils/utilities.h"
 
 using namespace std;
@@ -51,6 +51,7 @@ class MinimalistPrinter : public EmptyTestEventListener {
 
 public:
 	void OnTestProgramStart(const ::testing::UnitTest& unit_test) {
+		cout << lead << "PALISADE Version " << GetPALISADEVersion() << endl;
 		cout << lead << "Date " <<
 			testing::internal::FormatEpochTimeInMillisAsIso8601(unit_test.start_timestamp()) << endl;
 
@@ -142,11 +143,9 @@ int main(int argc, char **argv) {
 
 	// if there are no filters used, default to omitting VERY_LONG tests
 	// otherwise we lose control over which tests we can run
-	//::testing::GTEST_FLAG(filter) = "*CRT_polynomial_multiplication_small";
 
 	if (::testing::GTEST_FLAG(filter) == "*") {
 		::testing::GTEST_FLAG(filter) = "-*_VERY_LONG";
-		//::testing::GTEST_FLAG(filter) = "*BFVrns*";
 	}
 
 	::testing::TestEventListeners& listeners =
@@ -158,7 +157,8 @@ int main(int argc, char **argv) {
 		listeners.Append(new MinimalistPrinter);
 	}
 	else {
-		std::cout << GetMathBackendParameters() << std::endl;
+		cout << "PALISADE Version " << GetPALISADEVersion() << endl;
+		cout << GetMathBackendParameters() << endl;
 	}
 
 	return RUN_ALL_TESTS();

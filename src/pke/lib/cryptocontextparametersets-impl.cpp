@@ -173,6 +173,18 @@ map<string, map<string,string>> CryptoContextParameterSets = {
 				{ "securityLevel", "1.006" }
 		} },
 
+		{ "BFVrnsB1", {
+				{ "parameters", "BFVrnsB" },
+				{ "plaintextModulus", "4" },
+				{ "securityLevel", "1.006" },
+		} },
+
+		{ "BFVrnsB2", {
+				{ "parameters", "BFVrnsB" },
+				{ "plaintextModulus", "16" },
+				{ "securityLevel", "1.006" }
+		} },
+
 		{ "BGV1", {
 				{ "parameters", "BGV" },
 				{ "plaintextModulus", "2" },

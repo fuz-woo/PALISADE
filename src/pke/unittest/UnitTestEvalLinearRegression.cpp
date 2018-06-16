@@ -98,8 +98,6 @@ rationalInt ArbBGVLinearRegressionPackedArray() {
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -107,6 +105,8 @@ rationalInt ArbBGVLinearRegressionPackedArray() {
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev, OPTIMIZED);
 
@@ -120,7 +120,7 @@ rationalInt ArbBGVLinearRegressionPackedArray() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
+	auto zeroAlloc = [=]() { return cc->MakePackedPlaintext({0}); };
 
 	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 1, 2);
 
@@ -190,11 +190,11 @@ rationalInt ArbBFVLinearRegressionPackedArray() {
 	auto cycloPolyBig = GetCyclotomicPolynomial<BigVector, BigInteger>(m, bigEvalMultModulus);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPolyBig, bigEvalMultModulus);
 
-	PackedEncoding::SetParams(m, p);
-
 	usint batchSize = 8;
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	BigInteger delta(modulusQ.DividedBy(modulusP));
 
@@ -218,7 +218,7 @@ rationalInt ArbBFVLinearRegressionPackedArray() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
+	auto zeroAlloc = [=]() { return cc->MakePackedPlaintext({0}); };
 
 	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 1, 2);
 

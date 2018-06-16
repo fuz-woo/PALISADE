@@ -8,7 +8,7 @@ TAR ?= tar
 
 #note change the following directory to the correct one on your install
 
-PALISADE_DIR := $(PWD)
+PALISADE_DIR := $(CURDIR)
 GMP_VER :=6.1.2
 
 #check if the palisade directory is correct
@@ -83,4 +83,4 @@ clean_gmp:
 	cd $(DISTROS_DIR);\
 	$(RM) -rf gmp-$(GMP_VER)
 	cd $(THIRD_PARTY_DIR); \
-	$(RM) -rf include lib share
+	$(RM) -rf include/gmp.h lib share

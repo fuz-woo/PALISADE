@@ -18,9 +18,9 @@ do
 	then
 		(
 			# set paths for mac or linux or win
-		export DYLD_LIBRARY_PATH=$lib:$DYLD_LIBRARY_PATH
-		export LD_LIBRARY_PATH=$lib:$LD_LIBRARY_PATH
-		export PATH=$lib:$PATH
+		export DYLD_LIBRARY_PATH=$lib:third-party/lib:$DYLD_LIBRARY_PATH
+		export LD_LIBRARY_PATH=$lib:third-party/lib:$LD_LIBRARY_PATH
+		export PATH=$lib:third-party/lib:$PATH
 		$ex -t
 
 		lcov -q --capture --directory bin/backend-${i}-cov -o bin/backend-${i}-cov/coverage.full.out

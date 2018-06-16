@@ -34,6 +34,7 @@
     #define thread_local __thread
 #endif
 
+#include <chrono>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -67,7 +68,7 @@ public:
 
 #else			
 			//m_prng.reset(new std::mt19937(rd()));
-			m_prng.reset(new std::mt19937(time(0)));
+			m_prng.reset(new std::mt19937(std::chrono::high_resolution_clock::now().time_since_epoch().count()+std::hash<std::thread::id>{}(std::this_thread::get_id())));
 #endif		
 
 		});

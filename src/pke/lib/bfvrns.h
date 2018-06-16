@@ -1,5 +1,5 @@
 /**
- * @file bfvrns.h -- Operations for the RNS variant of the BFV cryptoscheme.
+ * @file bfvrns.h -- Operations for the HPS RNS variant of the BFV cryptoscheme.
  * @author  TPOC: palisade@njit.edu
  *
  * @copyright Copyright (c) 2017, New Jersey Institute of Technology (NJIT)
@@ -32,9 +32,10 @@
  *   - Junfeng Fan and Frederik Vercauteren (2012). Somewhat Practical Fully Homomorphic Encryption.  Cryptology ePrint Archive, Report 2012/144. (https://eprint.iacr.org/2012/144.pdf)
  *
  * Our implementation builds from the designs here:
- *   - Halevi S. and Polyakov Y. (in preparation, 2018) A Simpler, Faster RNS Variant of the BFV Homomorphic Encryption Scheme.
+ *   - Halevi S., Polyakov Y., and Shoup V. An Improved RNS Variant of the BFV Homomorphic Encryption Scheme. Cryptology ePrint Archive, Report 2018/117. (https://eprint.iacr.org/2018/117)
  *   - Lepoint T., Naehrig M. (2014) A Comparison of the Homomorphic Encryption Schemes FV and YASHE. In: Pointcheval D., Vergnaud D. (eds) Progress in Cryptology – AFRICACRYPT 2014. AFRICACRYPT 2014. Lecture Notes in Computer Science, vol 8469. Springer, Cham. (https://eprint.iacr.org/2014/062.pdf)
  *	 - Jean-Claude Bajard and Julien Eynard and Anwar Hasan and Vincent Zucca (2016). A Full RNS Variant of FV like Somewhat Homomorphic Encryption Schemes. Cryptology ePrint Archive, Report 2016/510. (https://eprint.iacr.org/2016/510)
+ *	 - Ahmad Al Badawi and Yuriy Polyakov and Khin Mi Mi Aung and Bharadwaj Veeravalli and Kurt Rohloff (2018). Implementation and Performance Evaluation of RNS Variants of the BFV Homomorphic Encryption Scheme. Cryptology ePrint Archive, Report 2018/589. {https://eprint.iacr.org/2018/589}
  */
 
 #ifndef LBCRYPTO_CRYPTO_BFVRNS_H
@@ -46,12 +47,6 @@ namespace lbcrypto {
 
 	/**
  	* @brief This is the parameters class for the BFVrns encryption scheme.  This scheme is also referred to as the FVrns scheme.
- 	*
- 	* The BFV scheme parameter guidelines are introduced here:
- 	*   - Junfeng Fan and Frederik Vercauteren. Somewhat Practical Fully Homomorphic Encryption.  Cryptology ePrint Archive, Report 2012/144. (https://eprint.iacr.org/2012/144.pdf)
- 	*
- 	* We used the optimized parameter selection from the designs here:
- 	*   - Lepoint T., Naehrig M. (2014) A Comparison of the Homomorphic Encryption Schemes FV and YASHE. In: Pointcheval D., Vergnaud D. (eds) Progress in Cryptology – AFRICACRYPT 2014. AFRICACRYPT 2014. Lecture Notes in Computer Science, vol 8469. Springer, Cham. (https://eprint.iacr.org/2014/062.pdf)
  	*
  	* @tparam Element a ring element type.
  	*/
@@ -84,7 +79,7 @@ namespace lbcrypto {
 			 * @param securityLevel Security level as Root Hermite Factor.  We use the Root Hermite Factor representation of the security level to better conform with US ITAR and EAR export regulations.  This is typically represented as /delta in the literature.  Typically a Root Hermite Factor of 1.006 or less provides reasonable security for RLWE crypto schemes, although extra care is need for the LTV scheme because LTV makes an additional security assumption that make it suceptible to subfield lattice attacks.
 			 * @param relinWindow The size of the relinearization window.  This is relevant when using this scheme for proxy re-encryption, and the value is denoted as r in the literature.
 			 * @param mode optimization setting (RLWE vs OPTIMIZED)
-			 * @param depth Depth is the depth of computation supported which is set to 1 by default.  Use the default setting unless you're using SHE, levelled SHE or FHE operations.
+			 * @param depth is the depth of computation circuit supported for these parameters (not used now; for future use).
 			 * @param maxDepth is the maximum homomorphic multiplication depth before performing relinearization
 			 */
 			LPCryptoParametersBFVrns(shared_ptr<typename Element::Params> params,
@@ -107,7 +102,7 @@ namespace lbcrypto {
 			* @param securityLevel security level (root Hermite factor).
 			* @param relinWindow the size of the relinearization window.
 			* @param mode optimization setting (RLWE vs OPTIMIZED)
-			* @param depth depth which is set to 1.
+			* @param depth is the depth of computation circuit supported for these parameters (not used now; for future use).
 			* @param maxDepth is the maximum homomorphic multiplication depth before performing relinearization
 			*/
 			LPCryptoParametersBFVrns(shared_ptr<typename Element::Params> params,
@@ -160,11 +155,39 @@ namespace lbcrypto {
 			const shared_ptr<ILDCRTParams<BigInteger>> GetDCRTParamsQS() const { return m_paramsQS; }
 
 			/**
-			* Gets the precomputed table of ((p*[(Q/qi)^{-1}]_qi)%qi)/qi
+			* Gets the Barrett modulo reduction precomputations for Q
+			*
+			* @return the precomputed table
+			*/
+			std::vector<DoubleNativeInteger> const &GetDCRTParamsQModulimu() const { return m_qModulimu; }
+
+			/**
+			* Gets the Barrett modulo reduction precomputations for S
+			*
+			* @return the precomputed table
+			*/
+			std::vector<DoubleNativeInteger> const &GetDCRTParamsSModulimu() const { return m_sModulimu; }
+
+			/**
+			* Gets the precomputed table of ((p*[(Q/qi)^{-1}]_qi)%qi)/qi; CRT modulus < 45 bits
 			*
 			* @return the precomputed table
 			*/
 			const std::vector<double>& GetCRTDecryptionFloatTable() const { return m_CRTDecryptionFloatTable; }
+
+			/**
+			* Gets the precomputed table of ((p*[(Q/qi)^{-1}]_qi)%qi)/qi; CRT modulus is betweeen 45 and 57 bits
+			*
+			* @return the precomputed table
+			*/
+			const std::vector<long double>& GetCRTDecryptionExtFloatTable() const { return m_CRTDecryptionExtFloatTable; }
+
+			/**
+			* Gets the precomputed table of ((p*[(Q/qi)^{-1}]_qi)%qi)/qi; CRT modulus has 58..60 bits
+			*
+			* @return the precomputed table
+			*/
+			const std::vector<QuadFloat>& GetCRTDecryptionQuadFloatTable() const { return m_CRTDecryptionQuadFloatTable; }
 
 			/**
 			* Gets the precomputed table of floor[(p*[(Q/qi)^{-1}]_qi)/qi]_p
@@ -172,6 +195,13 @@ namespace lbcrypto {
 			* @return the precomputed table
 			*/
 			const std::vector<NativeInteger>& GetCRTDecryptionIntTable() const { return m_CRTDecryptionIntTable; }
+
+			/**
+			* Gets the NTL precomputation for the precomputed table of floor[(p*[(Q/qi)^{-1}]_qi)/qi]_p
+			*
+			* @return the precomputed table
+			*/
+			const std::vector<NativeInteger>& GetCRTDecryptionIntPreconTable() const { return m_CRTDecryptionIntPreconTable; }
 
 			/**
 			* Gets the precomputed table of floor(Q/p) mod qi
@@ -188,11 +218,11 @@ namespace lbcrypto {
 			const std::vector<NativeInteger>& GetCRTInverseTable() const { return m_CRTInverseTable; }
 
 			/**
-			* Gets the precomputed table of (Q/qi) mod qi
+			* Gets the NTL precomputation for the precomputed table of (Q/qi)^{-1} mod qi
 			*
 			* @return the precomputed table
 			*/
-			const std::vector<NativeInteger>& GetCRTqDivqiTable() const { return m_CRTqDivqiTable; }
+			const std::vector<NativeInteger>& GetCRTInversePreconTable() const { return m_CRTInversePreconTable; }
 
 			/**
 			* Gets the precomputed table of (Q/qi) mod si
@@ -213,7 +243,7 @@ namespace lbcrypto {
 			*
 			* @return the precomputed table
 			*/
-			const std::vector<double>& GetCRTMultFloatTable() const { return m_CRTMultFloatTable; }
+			const std::vector<long double>& GetCRTMultFloatTable() const { return m_CRTMultFloatTable; }
 
 			/**
 			* Gets the precomputed table of floor[p*S*[(Q*S/vi)^{-1}]_vi/vi] mod si
@@ -228,6 +258,13 @@ namespace lbcrypto {
 			* @return the precomputed table
 			*/
 			const std::vector<NativeInteger>& GetCRTSInverseTable() const { return m_CRTSInverseTable; }
+
+			/**
+			* Gets the NTL precomputation for the precomputed table of (S/si)^{-1} mod si
+			*
+			* @return the precomputed table
+			*/
+			const std::vector<NativeInteger>& GetCRTSInversePreconTable() const { return m_CRTSInversePreconTable; }
 
 			/**
 			* Gets the precomputed table of (S/si) mod qi table
@@ -268,8 +305,23 @@ namespace lbcrypto {
 			// Auxiliary expanded CRT basis Q*S = v1*v2*...*vn used in homomorphic multiplication
 			shared_ptr<ILDCRTParams<BigInteger>> m_paramsQS;
 
+			// Barrett modulo reduction precomputation
+			std::vector<DoubleNativeInteger> m_qModulimu;
+
+			// Barrett modulo reduction precomputation
+			std::vector<DoubleNativeInteger> m_sModulimu;
+
+			// when log2 qi <= 44 bits
 			// Stores a precomputed table of ((p*[(Q/qi)^{-1}]_qi)%qi)/qi
 			std::vector<double> m_CRTDecryptionFloatTable;
+
+			// when 44 < log2 qi <= 57  bits
+			// Stores a precomputed table of ((p*[(Q/qi)^{-1}]_qi)%qi)/qi
+			std::vector<long double> m_CRTDecryptionExtFloatTable;
+
+			// when log2 qi = 58..60 bits
+			// Stores a precomputed table of ((p*[(Q/qi)^{-1}]_qi)%qi)/qi
+			std::vector<QuadFloat> m_CRTDecryptionQuadFloatTable;
 
 			// Stores a precomputed table of floor[(p*[(Q/qi)^{-1}]_qi)/qi]_p
 			std::vector<NativeInteger> m_CRTDecryptionIntTable;
@@ -280,8 +332,8 @@ namespace lbcrypto {
 			// Stores a precomputed table of (Q/qi)^{-1} mod qi
 			std::vector<NativeInteger> m_CRTInverseTable;
 
-			// Stores a precomputed table of (Q/qi) mod qi
-			std::vector<NativeInteger> m_CRTqDivqiTable;
+			// Stores an NTL precomputation for the precomputed table of (Q/qi)^{-1} mod qi
+			std::vector<NativeInteger> m_CRTInversePreconTable;
 
 			// Stores a precomputed table of (Q/qi) mod si
 			std::vector<std::vector<NativeInteger>> m_CRTqDivqiModsiTable;
@@ -293,10 +345,13 @@ namespace lbcrypto {
 			std::vector<std::vector<NativeInteger>> m_CRTMultIntTable;
 
 			// Stores a precomputed table of [p*S*(Q*S/vi)^{-1}]_vi / vi
-			std::vector<double> m_CRTMultFloatTable;
+			std::vector<long double> m_CRTMultFloatTable;
 
 			// Stores a precomputed table of (S/si)^{-1} mod si
 			std::vector<NativeInteger> m_CRTSInverseTable;
+
+			// Stores an NTL precomputation for the precomputed table of (S/si)^{-1} mod si
+			std::vector<NativeInteger> m_CRTSInversePreconTable;
 
 			// Stores a precomputed table of (S/si) mod qi table
 			std::vector<std::vector<NativeInteger>> m_CRTsDivsiModqiTable;
@@ -304,17 +359,14 @@ namespace lbcrypto {
 			// Stores a precomputed table of S mod qi table
 			std::vector<NativeInteger> m_CRTsModqiTable;
 
+			// Stores an NTL precomputation for the precomputed table of floor[(p*[(Q/qi)^{-1}]_qi)/qi]_p
+			std::vector<NativeInteger> m_CRTDecryptionIntPreconTable;
+
 	};
 
 	/**
 	* @brief Parameter generation for BFVrns.  This scheme is also referred to as the FV scheme.
 	*
- 	* The BFV scheme parameter guidelines are introduced here:
- 	*   - Junfeng Fan and Frederik Vercauteren. Somewhat Practical Fully Homomorphic Encryption.  Cryptology ePrint Archive, Report 2012/144. (https://eprint.iacr.org/2012/144.pdf)
- 	*
- 	* We used the optimized parameter selection from the designs here:
- 	*   - Lepoint T., Naehrig M. (2014) A Comparison of the Homomorphic Encryption Schemes FV and YASHE. In: Pointcheval D., Vergnaud D. (eds) Progress in Cryptology – AFRICACRYPT 2014. AFRICACRYPT 2014. Lecture Notes in Computer Science, vol 8469. Springer, Cham. (https://eprint.iacr.org/2014/062.pdf)
- 	*
 	* @tparam Element a ring element.
 	*/
 	template <class Element>
@@ -333,9 +385,10 @@ namespace lbcrypto {
 		* @param evalAddCount number of EvalAdds assuming no EvalMult and KeySwitch operations are performed.
 		* @param evalMultCount number of EvalMults assuming no EvalAdd and KeySwitch operations are performed.
 		* @param keySwitchCount number of KeySwitch operations assuming no EvalAdd and EvalMult operations are performed.
+		* @param dcrtBits number of bits in each CRT modulus
 		*/
 		bool ParamsGen(shared_ptr<LPCryptoParameters<Element>> cryptoParams, int32_t evalAddCount = 0,
-			int32_t evalMultCount = 0, int32_t keySwitchCount = 0) const;
+			int32_t evalMultCount = 0, int32_t keySwitchCount = 0, size_t dcrBits = 60) const;
 
 	};
 
@@ -386,7 +439,7 @@ namespace lbcrypto {
 		* @return the decrypted plaintext returned.
 		*/
 		DecryptResult Decrypt(const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext,
+			ConstCiphertext<Element> ciphertext,
 			NativePoly *plaintext) const;
 
 
@@ -413,8 +466,8 @@ namespace lbcrypto {
 		* @param pt  input ciphertext.
 		* @return new ciphertext.
 		*/
-		Ciphertext<Element> EvalAdd(const Ciphertext<Element> ct,
-			const Plaintext pt) const;
+		Ciphertext<Element> EvalAdd(ConstCiphertext<Element> ct,
+			ConstPlaintext pt) const;
 
 		/**
 		* Function for homomorphic subtraction of ciphertext ans plaintext.
@@ -423,8 +476,8 @@ namespace lbcrypto {
 		* @param pt input ciphertext.
 		* @return new ciphertext.
 		*/
-		Ciphertext<Element> EvalSub(const Ciphertext<Element> ct1,
-			const Plaintext pt) const;
+		Ciphertext<Element> EvalSub(ConstCiphertext<Element> ct1,
+			ConstPlaintext pt) const;
 
 		/**
 		* Function for homomorphic evaluation of ciphertexts.
@@ -435,8 +488,8 @@ namespace lbcrypto {
 		* @param ciphertext2 second input ciphertext.
 		* @return resulting EvalMult ciphertext.
 		*/
-		Ciphertext<Element> EvalMult(const Ciphertext<Element> ct1,
-			const Ciphertext<Element> ct2) const;
+		Ciphertext<Element> EvalMult(ConstCiphertext<Element> ct1,
+			ConstCiphertext<Element> ct2) const;
 
 		/**
 		* Method for generating a KeySwitchHint using RLWE relinearization
@@ -456,7 +509,7 @@ namespace lbcrypto {
 		* @return new ciphertext
 		*/
 		Ciphertext<Element> KeySwitch(const LPEvalKey<Element> keySwitchHint,
-			const Ciphertext<Element> cipherText) const;
+			ConstCiphertext<Element> cipherText) const;
 
 		/**
 		* Function for evaluating multiplication on ciphertext followed by relinearization operation.
@@ -468,8 +521,8 @@ namespace lbcrypto {
 		*  decryptable by the same secret key as that of ciphertext1 and ciphertext2.
 		* @return new ciphertext
 		*/
-		Ciphertext<Element> EvalMultAndRelinearize(const Ciphertext<Element> ct1,
-			const Ciphertext<Element> ct, const vector<LPEvalKey<Element>> &ek) const;
+		Ciphertext<Element> EvalMultAndRelinearize(ConstCiphertext<Element> ct1,
+			ConstCiphertext<Element> ct, const vector<LPEvalKey<Element>> &ek) const;
 
 
 	};

@@ -29,7 +29,7 @@
 #include "cryptocontext.h"
 #include "cryptocontexthelper.h"
 #include "utils/parmfactory.h"
-#include "utils/rapidjson/filewritestream.h"
+#include "rapidjson/filewritestream.h"
 
 namespace lbcrypto {
 
@@ -105,7 +105,16 @@ buildContextFromSerialized(const map<string,string>& s, shared_ptr<typename Elem
 			return 0;
 
 		return CryptoContextFactory<Element>::genCryptoContextBFVrns(stoul(plaintextModulus), stof(secLevel), 4,
-				0, 0, 1);
+				0, 1, 0);
+
+	}
+	else if( parmtype == "BFVrnsB" ) {
+		if( !getValueForName(s, "plaintextModulus", plaintextModulus) ||
+				!getValueForName(s, "securityLevel", secLevel) )
+			return 0;
+
+		return CryptoContextFactory<Element>::genCryptoContextBFVrnsB(stoul(plaintextModulus), stof(secLevel), 4,
+				0, 1, 0);
 
 	}
 	else if( parmtype == "BGV" ) {
@@ -180,6 +189,9 @@ inline shared_ptr<LPCryptoParameters<Element>> DeserializeCryptoParameters(const
 	else if (type == "LPCryptoParametersBFVrns") {
 		parmPtr = new LPCryptoParametersBFVrns<Element>();
 	}
+	else if (type == "LPCryptoParametersBFVrnsB") {
+		parmPtr = new LPCryptoParametersBFVrnsB<Element>();
+	}
 	else
 		return 0;
 
@@ -241,7 +253,7 @@ CryptoContextHelper::getNewContext(const string& parmset, EncodingParams ep)
 
 	// BFV uses parm generation so we skip this code for BFV
 	shared_ptr<typename Poly::Params> parms;
-	if(( parmtype != "BFV" ) && ( parmtype != "BFVrns" )) {
+	if(( parmtype != "BFV" ) && ( parmtype != "BFVrns" ) && ( parmtype != "BFVrnsB" )) {
 		if( !getValueForName(it->second, "ring", ring) ||
 				!getValueForName(it->second, "modulus", modulus) ||
 				!getValueForName(it->second, "rootOfUnity", rootOfUnity) ) {
@@ -276,7 +288,7 @@ CryptoContextHelper::getNewDCRTContext(const string& parmset, usint numTowers, u
 
 	// BFV uses parm generation so we skip this code for BFV
 	shared_ptr<DCRTPoly::Params> parms;
-	if(( parmtype != "BFV" ) && ( parmtype != "BFVrns" )) {
+	if(( parmtype != "BFV" ) && ( parmtype != "BFVrns" ) && ( parmtype != "BFVrnsB" )) {
 		if( !getValueForName(it->second, "ring", ring) ||
 				!getValueForName(it->second, "plaintextModulus", plaintextModulus) ) {
 			return 0;

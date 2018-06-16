@@ -1,5 +1,5 @@
 /**
- * @file packedencoding.h Represents and defines plaintext encodings in Palisade with bit packing capabilities.
+ * @file packedencoding.h Represents and defines plaintext encodings in Palisade with packing capabilities.
  * @author  TPOC: palisade@njit.edu
  *
  * @copyright Copyright (c) 2017, New Jersey Institute of Technology (NJIT)
@@ -138,7 +138,7 @@ public:
 	* @param m the encoding cyclotomic order.
 	* @params modulus is the plaintext modulus
 	*/
-	static void SetParams(usint m, const PlaintextModulus &modulus);
+	static void SetParams(usint m, const PlaintextModulus &modulus) __attribute__ ((deprecated("use SetParams(usint m, EncodingParams p)")));
 
 	/**
 	 * SetLength of the plaintext to the given size
@@ -166,10 +166,17 @@ public:
 	static void Destroy();
 
 	void PrintValue(std::ostream& out) const {
-		size_t i;
-		for (i = 0; i<value.size()-1; i++)
-			out << value[i] << ",";
-		out << value[i];
+		// for sanity's sake, trailing zeros get elided into "..."
+		out << "(";
+		size_t i = value.size();
+		while( --i > 0 )
+			if( value[i] != 0 )
+				break;
+
+		for( size_t j = 0; j <= i; j++ )
+			out << ' ' << value[j];
+
+		out << " ... )";
 	}
 
 private:

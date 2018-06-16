@@ -147,8 +147,6 @@ usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -156,6 +154,8 @@ usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, encodingParams, 16, stdDev);
 
@@ -198,8 +198,6 @@ usint ArbBGVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -207,6 +205,8 @@ usint ArbBGVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev);
 
@@ -247,8 +247,6 @@ usint ArbBGVEvalSumPackedArrayPrime(std::vector<uint64_t> &clearVector, Plaintex
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -256,6 +254,8 @@ usint ArbBGVEvalSumPackedArrayPrime(std::vector<uint64_t> &clearVector, Plaintex
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev);
 
@@ -296,8 +296,6 @@ usint ArbBFVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -305,6 +303,8 @@ usint ArbBFVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	BigInteger delta(modulusQ.DividedBy(modulusP));
 

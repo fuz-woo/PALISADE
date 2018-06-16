@@ -106,7 +106,7 @@ namespace exp_int {
   // Basic constructor for specifying the length of the vector and modulus with initializer list of usint
 
   template<class ubint_el_t>
-  mubintvec<ubint_el_t>::mubintvec(const usint length, const ubint_el_t &modulus, std::initializer_list<usint>rhs){
+  mubintvec<ubint_el_t>::mubintvec(const usint length, const ubint_el_t &modulus, std::initializer_list<uint64_t>rhs){
     bool dbg_flag = false;
     this->m_data.resize(length);
     m_modulus = modulus;
@@ -781,10 +781,9 @@ template<class ubint_el_t>
   bool mubintvec<ubint_el_t>::Serialize(lbcrypto::Serialized* serObj) const {
 
     bool dbg_flag = false;
-    if( !serObj->IsObject() ){
-      std::cerr<<"myVecP::Serialize failed bad object"<<std::endl;
-      return false;
-    }
+  if( !serObj->IsObject() ){
+    serObj->SetObject();
+  }
     //serialize the modulus or mark as unknown
     std::string modstring ="";
     DEBUG("in vector Serialize");

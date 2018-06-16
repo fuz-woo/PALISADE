@@ -58,7 +58,7 @@ public:
 	 * All of the private members will be initialized to zero.
 	 */
 	ILParamsImpl()
-		: ElemParams<IntType>(0, 0, 0, 0, 0) {}
+		: ElemParams<IntType>(0, 0) {}
 
 	/**
 	 * @brief Constructor for the case of partially pre-computed parameters.

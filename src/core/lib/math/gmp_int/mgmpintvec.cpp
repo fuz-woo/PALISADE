@@ -722,23 +722,22 @@ myVecP<myT> myVecP<myT>::GetDigitAtIndexForBase(size_t index, usint base) const
 	return ans;
 }
 
-// serialize and deserialise operations
-template<class myT>
-bool myVecP<myT>::Serialize(lbcrypto::Serialized* serObj) const {
-	bool dbg_flag = false;
-	if( !serObj->IsObject() ){
-		std::cerr<<"myVecP::Serialize failed bad object"<<std::endl;
-		return false;
-	}
-	//serialize the modulus or mark as unknown
-	std::string modstring ="";
-	DEBUG("in vector Serialize");
-	if (this->isModulusSet()){
-		modstring = this->GetModulus().ToString();
-	}else{
-		modstring = "undefined";
-	}
-	DEBUG("modstring "<<modstring);
+  // serialize and deserialise operations
+  template<class myT>
+  bool myVecP<myT>::Serialize(lbcrypto::Serialized* serObj) const {
+    bool dbg_flag = false;
+    if( !serObj->IsObject() ){
+            serObj->SetObject();
+    }
+    //serialize the modulus or mark as unknown
+    std::string modstring ="";
+    DEBUG("in vector Serialize");
+    if (this->isModulusSet()){
+      modstring = this->GetModulus().ToString();
+    }else{
+      modstring = "undefined";
+    }
+    DEBUG("modstring "<<modstring);
 
 	//build the map for the serialization
 	lbcrypto::SerialItem bbvMap(rapidjson::kObjectType);

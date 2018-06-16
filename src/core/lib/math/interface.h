@@ -279,6 +279,26 @@ namespace lbcrypto {
 		T ModBarrettMul(const T& b, const T& modulus,const T& mu) const;
 			// FIXME there is no ModBarrettMulEq -- is it needed?
 
+		/**
+		 * NTL-optimized modular multiplication using a precomputation for the multiplicand
+		 *
+		 * @param &b is the scalar to multiply.
+		 * @param modulus is the modulus to perform operations with.
+		 * @param &bInv NTL precomputation for b.
+		 * @return is the result of the modulus multiplication operation.
+		 */
+		T ModMulPreconOptimized(const T& b, const T& modulus, const T& bInv) const;
+
+		/**
+		 * Scalar modulus multiplication.
+		 *
+		 * @param &b is the scalar to multiply.
+		 * @param modulus is the modulus to perform operations with.
+		 * @param &bInv NTL precomputation for b.
+		 * @return is the result of the modulus multiplication operation.
+		 */
+		const T& ModMulPreconOptimizedEq(const T& b, const T& modulus, const T& bInv);
+
 		////bit shifting operators
 
 		/**
@@ -494,7 +514,7 @@ namespace lbcrypto {
 		 *
 		 * @return vector length.
 		 */
-		virtual size_t GetLength() const = 0;
+		size_t GetLength() const;
 
 		/**
 		 * Scalar modulus addition.

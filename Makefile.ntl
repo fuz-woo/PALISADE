@@ -4,7 +4,7 @@ TAR ?= tar
 
 #note change the following directory to the correct one on your install
 
-PALISADE_DIR := $(PWD)
+PALISADE_DIR := $(CURDIR)
 NTL_VER:= 10.5.0
 
 #check if the palisade directory is correct
@@ -87,4 +87,4 @@ clean_ntl:
 	cd $(DISTROS_DIR);\
 	$(RM) -rf ntl-$(NTL_VER)
 	cd $(THIRD_PARTY_DIR); \
-	$(RM) -rf include lib share includels
+	$(RM) -rf include/NTL lib share includels

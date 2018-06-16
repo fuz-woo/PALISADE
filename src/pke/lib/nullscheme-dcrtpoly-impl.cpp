@@ -30,8 +30,8 @@
 namespace lbcrypto {
 
 template<>
-Ciphertext<DCRTPoly> LPAlgorithmSHENull<DCRTPoly>::EvalMult(const Ciphertext<DCRTPoly> ciphertext1,
-	const Ciphertext<DCRTPoly> ciphertext2) const {
+Ciphertext<DCRTPoly> LPAlgorithmSHENull<DCRTPoly>::EvalMult(ConstCiphertext<DCRTPoly> ciphertext1,
+	ConstCiphertext<DCRTPoly> ciphertext2) const {
 
 	Ciphertext<DCRTPoly> newCiphertext = ciphertext1->CloneEmpty();
 
@@ -58,13 +58,13 @@ Ciphertext<DCRTPoly> LPAlgorithmSHENull<DCRTPoly>::EvalMult(const Ciphertext<DCR
 }
 
 template<>
-Ciphertext<DCRTPoly> LPAlgorithmSHENull<DCRTPoly>::EvalMult(const Ciphertext<DCRTPoly> ciphertext1,
-	const Plaintext plaintext) const {
+Ciphertext<DCRTPoly> LPAlgorithmSHENull<DCRTPoly>::EvalMult(ConstCiphertext<DCRTPoly> ciphertext1,
+	ConstPlaintext plaintext) const {
 
 	Ciphertext<DCRTPoly> newCiphertext = ciphertext1->CloneEmpty();
 
 	const DCRTPoly& c1 = ciphertext1->GetElement();
-	const DCRTPoly& c2 = plaintext->GetEncodedElement<DCRTPoly>();
+	const DCRTPoly& c2 = plaintext->GetElement<DCRTPoly>();
 
 	const vector<typename DCRTPoly::PolyType>& c1e = c1.GetAllElements();
 	const vector<typename DCRTPoly::PolyType>& c2e = c2.GetAllElements();

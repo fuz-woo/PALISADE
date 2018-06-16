@@ -76,7 +76,7 @@ BMLIB_LIBSRCDIR := google/benchmark-master/include
 ########### PALISADE BENCHMARKS BUILD HERE
 
 #this is is the Include directive for the palisade code being benchmarked
-BM_IFLAG := -Isrc/core/lib -Isrc/pke/lib $(BMLIB_IFLAG) $(NTLINCLUDE) $(GMPINCLUDE)
+BM_IFLAG := -Isrc -Isrc/core/lib -Isrc/pke/lib $(BMLIB_IFLAG) $(THIRDPARTYINCLUDE)
 
 PLIBS := $(EXTLIBDIR)/$(PALISADEPKELIB) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
 
@@ -97,7 +97,7 @@ $(BMARK_BUILD)/%.o: $(BMARK_SRC)/%.cpp
 	$(CC) $(CPPFLAGS) $(BM_IFLAG) $(LIBBENCHMARK_FLAGS)  $(BM_IFLAG) -c -o $@ $(patsubst $(BMARK_BUILD)/%,$(BMARK_SRC)/%,$(patsubst %.o,%.cpp,$@))
 
 #this target is usesd to cleanup, it is called from the top Makefile
-.PHONEY: cleanbenchmark
+.PHONY: cleanbenchmark
 cleanbenchmark:
 	@echo " Cleaning Benchmarks...";
 	$(RM) -r $(BMARK_BIN) $(BMARK_BUILD) $(BMLIB_OBJ) $(BMLIB_LIB)

@@ -115,7 +115,7 @@ public:
    * @param modulus ubint associated with entries in the vector.
    * @param rhs initialier list of usints
    */
-  explicit mubintvec(const usint length, const ubint_el_t & modulus, std::initializer_list<usint> rhs);
+  explicit mubintvec(const usint length, const ubint_el_t & modulus, std::initializer_list<uint64_t> rhs);
 
 
   /**

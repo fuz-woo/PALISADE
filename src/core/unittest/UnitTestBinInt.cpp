@@ -62,6 +62,16 @@ protected:
 /*	TESTING METHODS OF BININT CLASS		*/
 /************************************************/
 
+TEST(UTBinInt,assign) {
+	BigInteger v;
+	vector<uint64_t> vals( {27, uint64_t(1)<<10, uint64_t(1)<<25, uint64_t(1)<<35, uint64_t(1)<<55, } );
+
+	for( auto tv : vals ) {
+		v = uint64_t(tv);
+		EXPECT_EQ(v.ConvertToInt(), tv);
+	}
+}
+
 inline void identity_test(BigInteger& a) {
 	BigInteger ZERO(0);
 	BigInteger ONE(1);
@@ -1204,7 +1214,7 @@ TEST(UTBinInt, method_GetBitAtIndex){
 
   DEBUG("x "<<x);
   DEBUG(x.GetInternalRepresentation());
-  DEBUG(std::hex <<x.GetInternalRepresentation()<<std::dec); 
+  //DEBUG(std::hex <<x.GetInternalRepresentation()<<std::dec); 
 
   // index is 1 for lsb!
   EXPECT_EQ(x.GetBitAtIndex(1), 0);
@@ -1228,7 +1238,10 @@ TEST(UTBinInt, method_GetInternalRepresentation){
   auto x_limbs = x.GetInternalRepresentation();
 
   if (dbg_flag) {
-    DEBUG(std::hex <<x.GetInternalRepresentation()<<std::dec); 
+
+
+
+    //DEBUG(std::hex <<x.GetInternalRepresentation()<<std::dec); 
     DEBUG(x_limbs);
     DEBUG("x_limbs "<< x_limbs);
     DEBUG("x "<<x);
@@ -1236,13 +1249,13 @@ TEST(UTBinInt, method_GetInternalRepresentation){
 
   //define what is correct based on math backend selected
 #if MATHBACKEND == 2
-  vector<uint32_t> correct={2,0,0,16};
+  std::string correct("2 0 0 16");
 #elif MATHBACKEND == 4 && defined(UBINT_32)
-  vector<uint32_t> correct={2,0,0,16};
+  std::string correct("2 0 0 16");
 #elif MATHBACKEND == 4 && defined(UBINT_64)
   //this configuration is not supported yet
 #elif MATHBACKEND == 6
-  vector<NTL::ZZ_limb_t> correct={2,68719476736};
+  std::string correct("2 68719476736");
 #endif
   EXPECT_EQ(correct, x_limbs);
 }

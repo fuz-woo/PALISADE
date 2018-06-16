@@ -98,7 +98,7 @@ namespace lbcrypto {
 			 * @param securityLevel security level.
 			 * @param relinWindow the size of the relinearization window.
 			 * @param mode sets the mode of operation: RLWE or OPTIMIZED
-			 * @param depth depth which is set to 1.
+			 * @param depth of supported computation circuit (not used; for future use)
 			 */
 			LPCryptoParametersBGV(
 				shared_ptr<typename Element::Params> params,
@@ -130,7 +130,7 @@ namespace lbcrypto {
 			* @param securityLevel security level.
 			* @param relinWindow the size of the relinearization window.
 			* @param mode sets the mode of operation: RLWE or OPTIMIZED
-			* @param depth depth which is set to 1.
+			* @param depth of supported computation circuit (not used; for future use)
 			*/
 			LPCryptoParametersBGV(
 				shared_ptr<typename Element::Params> params,
@@ -245,7 +245,7 @@ namespace lbcrypto {
 		* @return the success/fail result
 		*/
 		DecryptResult Decrypt(const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext,
+			ConstCiphertext<Element> ciphertext,
 			NativePoly *plaintext) const;
 
 		/**
@@ -291,8 +291,8 @@ namespace lbcrypto {
 		* @param ciphertext2 second input ciphertext.
 		* @return result of homomorphic addition of input ciphertexts.
 		*/
-		Ciphertext<Element> EvalAdd(const Ciphertext<Element> ciphertext1,
-			const Ciphertext<Element> ciphertext2) const;
+		Ciphertext<Element> EvalAdd(ConstCiphertext<Element> ciphertext1,
+				ConstCiphertext<Element> ciphertext2) const;
 
 		/**
 		* Function for homomorphic addition of ciphertexts.
@@ -301,8 +301,8 @@ namespace lbcrypto {
 		* @param plaintext input plaintext.
 		* @return result of homomorphic addition of input ciphertexts.
 		*/
-		Ciphertext<Element> EvalAdd(const Ciphertext<Element> ciphertext,
-			const Plaintext plaintext) const;
+		Ciphertext<Element> EvalAdd(ConstCiphertext<Element> ciphertext,
+				ConstPlaintext plaintext) const;
 
 		/**
 		* Function for homomorphic subtraction of ciphertexts.
@@ -311,8 +311,8 @@ namespace lbcrypto {
 		* @param ciphertext2 the input ciphertext.
 		* @return result of homomorphic subtraction of input ciphertexts.
 		*/
-		Ciphertext<Element> EvalSub(const Ciphertext<Element> ciphertext1, 
-			const Ciphertext<Element> ciphertext2) const;
+		Ciphertext<Element> EvalSub(ConstCiphertext<Element> ciphertext1,
+			ConstCiphertext<Element> ciphertext2) const;
 
 		/**
 		* Function for homomorphic subtraction of ciphertexts.
@@ -321,8 +321,8 @@ namespace lbcrypto {
 		* @param plaintext the input plaintext.
 		* @return result of homomorphic subtraction of input ciphertexts.
 		*/
-		Ciphertext<Element> EvalSub(const Ciphertext<Element> ciphertext1,
-				const Plaintext plaintext) const;
+		Ciphertext<Element> EvalSub(ConstCiphertext<Element> ciphertext1,
+				ConstPlaintext plaintext) const;
 
 		/**
 		* Function for homomorphic multiplication of ciphertexts without key switching. 
@@ -332,8 +332,8 @@ namespace lbcrypto {
 		* @param ciphertext2 second input ciphertext.
 		* @return result of homomorphic multiplication of input ciphertexts.
 		*/
-		Ciphertext<Element> EvalMult(const Ciphertext<Element> ciphertext1,
-			const Ciphertext<Element> ciphertext2) const;
+		Ciphertext<Element> EvalMult(ConstCiphertext<Element> ciphertext1,
+			ConstCiphertext<Element> ciphertext2) const;
 
 		/**
 		* Function for multiplying ciphertext by plaintext.
@@ -342,8 +342,8 @@ namespace lbcrypto {
 		* @param plaintext input plaintext embedded in the cryptocontext.
 		* @return result of the multiplication.
 		*/
-		Ciphertext<Element> EvalMult(const Ciphertext<Element> ciphertext,
-			const Plaintext plaintext) const;
+		Ciphertext<Element> EvalMult(ConstCiphertext<Element> ciphertext,
+			ConstPlaintext plaintext) const;
 
 		/**
 		* Function for homomorphic multiplication of ciphertexts followed by key switching operation.
@@ -354,8 +354,8 @@ namespace lbcrypto {
 		* @param ek is the evaluation key to make the newCiphertext decryptable by the same secret key as that of ciphertext1 and ciphertext2.
 		* @return result of homomorphic multiplication of input ciphertexts.
 		*/
-		Ciphertext<Element> EvalMult(const Ciphertext<Element> ciphertext1,
-			const Ciphertext<Element> ciphertext2,
+		Ciphertext<Element> EvalMult(ConstCiphertext<Element> ciphertext1,
+			ConstCiphertext<Element> ciphertext2,
 			const LPEvalKey<Element> ek) const;
 
 		/**
@@ -366,22 +366,10 @@ namespace lbcrypto {
 		* @param evalKey The evaluation key input.
 		* @return A shared pointer to the ciphertext which is the EvalMult of the two inputs.
 		*/
-		Ciphertext<Element> EvalMultAndRelinearize(const Ciphertext<Element> ciphertext1,
-			const Ciphertext<Element> ciphertext2,
+		Ciphertext<Element> EvalMultAndRelinearize(ConstCiphertext<Element> ciphertext1,
+			ConstCiphertext<Element> ciphertext2,
 			const vector<LPEvalKey<Element>> &ek) const {
 			std::string errMsg = "LPAlgorithmSHEBGV::EvalMultAndRelinearize is not implemented for the BGV Scheme.";
-			throw std::runtime_error(errMsg);
-		}
-
-		/**
-		* Unimplemented function to support multiplication of a list of ciphertexts with depth larger than 2 for the BGV scheme.
-		*
-		* @param cipCount is the number of input ciphertext.
-		* @param evalKey The evaluation key input.
-		* @return A shared pointer to the ciphertext which is the result of the multiplication.
-		*/
-		Ciphertext<Element> EvalMultMany(const vector<Ciphertext<Element>>& cipherTextList, const vector<LPEvalKey<Element>> &evalKeys) const {
-			std::string errMsg = "LPAlgorithmSHEBGV::EvalMultMany is not implemented for the BGV Scheme.";
 			throw std::runtime_error(errMsg);
 		}
 
@@ -391,7 +379,7 @@ namespace lbcrypto {
 		* @param ct first input ciphertext.
 		* @return new ciphertext.
 		*/
-		Ciphertext<Element> EvalNegate(const Ciphertext<Element> ct) const;
+		Ciphertext<Element> EvalNegate(ConstCiphertext<Element> ct) const;
 
 		/**
 		* Method for generating a KeySwitchHint using RLWE relinearization (based on the RLWE assumption only)
@@ -411,7 +399,7 @@ namespace lbcrypto {
 		* @return cipherText decryptable by new private key.
 		*/
 		Ciphertext<Element> KeySwitch(const LPEvalKey<Element> keySwitchHint, 
-			const Ciphertext<Element> cipherText) const;
+			ConstCiphertext<Element> cipherText) const;
 
 		/**
 		* Method for KeySwitching based on NTRU key generation and RLWE relinearization. Not used for BGV.
@@ -434,7 +422,7 @@ namespace lbcrypto {
 		* @return the resulting Ciphertext
 		*/
 		Ciphertext<Element> KeySwitchRelin(const LPEvalKey<Element> evalKey,
-			const Ciphertext<Element> ciphertext) const {
+			ConstCiphertext<Element> ciphertext) const {
 			std::string errMsg = "LPAlgorithmSHEBGV:KeySwitchRelin is not implemented for BGV as relinearization is the default technique and no NTRU key generation is used in BGV.";
 			throw std::runtime_error(errMsg);
 		}
@@ -467,7 +455,7 @@ namespace lbcrypto {
 		* @param &evalKeys - reference to the map of evaluation keys generated by EvalAutomorphismKeyGen.
 		* @return resulting ciphertext
 		*/
-		Ciphertext<Element> EvalAutomorphism(const Ciphertext<Element> ciphertext, usint i,
+		Ciphertext<Element> EvalAutomorphism(ConstCiphertext<Element> ciphertext, usint i,
 			const std::map<usint,LPEvalKey<Element>> &evalKeys) const;
 
 
@@ -554,7 +542,7 @@ namespace lbcrypto {
 		* @return resulting ciphertext after the re-encryption operation.
 		*/
 		Ciphertext<Element> ReEncrypt(const LPEvalKey<Element> evalKey,
-			const Ciphertext<Element> ciphertext) const;
+			ConstCiphertext<Element> ciphertext) const;
 
 	};
 
@@ -615,7 +603,7 @@ namespace lbcrypto {
 		 * @param ciphertext ciphertext id decrypted.
 		 */
 		Ciphertext<Element> MultipartyDecryptMain(const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext) const;
+			ConstCiphertext<Element> ciphertext) const;
 
 		/**
 		 * Method for decryption operation run by the lead decryption client for multiparty homomorphic encryption
@@ -624,7 +612,7 @@ namespace lbcrypto {
 		 * @param ciphertext ciphertext id decrypted.
 		 */
 		Ciphertext<Element> MultipartyDecryptLead(const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext) const;
+			ConstCiphertext<Element> ciphertext) const;
 
 		/**
 		 * Method for fusing the partially decrypted ciphertext.
@@ -663,7 +651,7 @@ namespace lbcrypto {
 		* @param cipherText is the ciphertext to perform modreduce on.
 		* @return ciphertext after the modulus reduction performed.
 		*/
-		virtual Ciphertext<Element> ModReduce(Ciphertext<Element> cipherText) const;
+		virtual Ciphertext<Element> ModReduce(ConstCiphertext<Element> cipherText) const;
 
 		/**
 		* Method for RingReducing CipherText. Not implemented for the BGV/BGV scheme.
@@ -671,7 +659,7 @@ namespace lbcrypto {
 		* @param cipherText is the ciphertext to perform ringreduce on.
 		* @param keySwitchHint is the keyswitchhint to switch the ciphertext from original private key to a sparse private key.
 		*/
-		virtual Ciphertext<Element> RingReduce(Ciphertext<Element> cipherText, const LPEvalKey<Element> keySwitchHint) const {
+		virtual Ciphertext<Element> RingReduce(ConstCiphertext<Element> cipherText, const LPEvalKey<Element> keySwitchHint) const {
 
 			std::string errMsg = "LPAlgorithmSHEBGV::RindReduce is not currently implemented for the BGV/BGV Scheme.";
 			throw std::runtime_error(errMsg);
@@ -686,8 +674,8 @@ namespace lbcrypto {
 		* @return resulting ciphertext.
 		*/
 		virtual Ciphertext<Element> ComposedEvalMult(
-			const Ciphertext<Element> cipherText1,
-			const Ciphertext<Element> cipherText2,
+			ConstCiphertext<Element> cipherText1,
+			ConstCiphertext<Element> cipherText2,
 			const LPEvalKey<Element> quadKeySwitchHint) const
 		{
 			std::string errMsg = "LPAlgorithmSHEBGV::ComposedEvalMult is not currently implemented for the BGV/BGV Scheme.";
@@ -702,7 +690,7 @@ namespace lbcrypto {
 		* @param linearKeySwitchHint is the linear key switch hint to perform the key switch operation.
 		* @return resulting ciphertext.
 		*/
-		virtual Ciphertext<Element> LevelReduce(const Ciphertext<Element> cipherText1,
+		virtual Ciphertext<Element> LevelReduce(ConstCiphertext<Element> cipherText1,
 			const LPEvalKey<Element> linearKeySwitchHint) const 
 		{
 			std::string errMsg = "LPAlgorithmSHEBGV::LevelReduce is not currently implemented for the BGV/BGV Scheme.";

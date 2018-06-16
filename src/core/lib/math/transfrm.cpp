@@ -29,13 +29,6 @@
 namespace lbcrypto {
 
 
-//static Initializations
-template<typename IntType, typename VecType>
-VecType* ChineseRemainderTransform<IntType,VecType>::m_rootOfUnityInverseTable = 0;
-
-template<typename IntType, typename VecType>
-VecType* ChineseRemainderTransform<IntType,VecType>::m_rootOfUnityTable = 0;
-
 template<typename IntType, typename VecType>
 std::map<IntType, VecType> ChineseRemainderTransformFTT<IntType,VecType>::m_rootOfUnityTableByModulus;
 
@@ -43,43 +36,49 @@ template<typename IntType, typename VecType>
 std::map<IntType, VecType> ChineseRemainderTransformFTT<IntType,VecType>::m_rootOfUnityInverseTableByModulus;
 
 template<typename IntType, typename VecType>
+std::map<IntType,NativeVector> ChineseRemainderTransformFTT<IntType,VecType>::m_rootOfUnityPreconTableByModulus;
+
+template<typename IntType, typename VecType>
+std::map<IntType,NativeVector> ChineseRemainderTransformFTT<IntType,VecType>::m_rootOfUnityInversePreconTableByModulus;
+
+template<typename IntType, typename VecType>
 std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_cyclotomicPolyMap;
 
 template<typename IntType, typename VecType>
-	std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_cyclotomicPolyReverseNTTMap;
+std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_cyclotomicPolyReverseNTTMap;
 
-	template<typename IntType, typename VecType>
-	std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_cyclotomicPolyNTTMap;
+template<typename IntType, typename VecType>
+std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_cyclotomicPolyNTTMap;
 
-	template<typename IntType, typename VecType>
+template<typename IntType, typename VecType>
 std::map<ModulusRoot<IntType>, VecType> BluesteinFFT<IntType, VecType>::m_rootOfUnityTableByModulusRoot;
 
 template<typename IntType, typename VecType>
 std::map<ModulusRoot<IntType>, VecType> BluesteinFFT<IntType, VecType>::m_rootOfUnityInverseTableByModulusRoot;
 
 template<typename IntType, typename VecType>
-	std::map<ModulusRoot<IntType>, VecType> BluesteinFFT<IntType, VecType>::m_powersTableByModulusRoot;
+std::map<ModulusRoot<IntType>, VecType> BluesteinFFT<IntType, VecType>::m_powersTableByModulusRoot;
 
 template<typename IntType, typename VecType>
-	std::map<ModulusRootPair<IntType>, VecType> BluesteinFFT<IntType, VecType>::m_RBTableByModulusRootPair;
+std::map<ModulusRootPair<IntType>, VecType> BluesteinFFT<IntType, VecType>::m_RBTableByModulusRootPair;
 
 template<typename IntType, typename VecType>
 std::map<IntType, ModulusRoot<IntType>> BluesteinFFT<IntType, VecType>::m_defaultNTTModulusRoot;
 
-	template<typename IntType, typename VecType>
-	std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_rootOfUnityDivisionTableByModulus;
+template<typename IntType, typename VecType>
+std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_rootOfUnityDivisionTableByModulus;
 
-	template<typename IntType, typename VecType>
-	std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_rootOfUnityDivisionInverseTableByModulus;
+template<typename IntType, typename VecType>
+std::map<IntType, VecType> ChineseRemainderTransformArb<IntType, VecType>::m_rootOfUnityDivisionInverseTableByModulus;
 
-	template<typename IntType, typename VecType>
-	std::map<IntType, IntType> ChineseRemainderTransformArb<IntType, VecType>::m_DivisionNTTModulus;
+template<typename IntType, typename VecType>
+std::map<IntType, IntType> ChineseRemainderTransformArb<IntType, VecType>::m_DivisionNTTModulus;
 
-	template<typename IntType, typename VecType>
-	std::map<IntType, IntType> ChineseRemainderTransformArb<IntType, VecType>::m_DivisionNTTRootOfUnity;
+template<typename IntType, typename VecType>
+std::map<IntType, IntType> ChineseRemainderTransformArb<IntType, VecType>::m_DivisionNTTRootOfUnity;
 
-	template<typename IntType, typename VecType>
-	std::map<usint, usint> ChineseRemainderTransformArb<IntType, VecType>::m_nttDivisionDim;
+template<typename IntType, typename VecType>
+std::map<usint, usint> ChineseRemainderTransformArb<IntType, VecType>::m_nttDivisionDim;
 
 std::complex<double>* DiscreteFourierTransform::rootOfUnityTable = 0;
 
@@ -96,92 +95,24 @@ void NumberTheoreticTransform<IntType,VecType>::InverseTransformIterative(const 
 	return;
 }
 
-//main CRT Transform - uses iterative FFT as a subroutine
-//includes precomputation of twidle factor table
+//Number Theoretic Transform - ITERATIVE IMPLEMENTATION -  twiddle factor table precomputed
 template<typename IntType, typename VecType>
-void ChineseRemainderTransform<IntType,VecType>::ForwardTransform(const VecType& element, const IntType& rootOfUnity, const usint CycloOrder, VecType *ans) {
+void NumberTheoreticTransform<IntType,VecType>::InverseTransformIterative(const VecType& element, const VecType& rootOfUnityInverseTable,
+		const NativeVector& preconRootOfUnityInverseTable, const usint cycloOrder, VecType *ans) {
 
-	if( ans->GetLength() != CycloOrder/2 )
-		throw std::logic_error("Vector for ChineseRemainderTransform::ForwardTransform size must be == CyclotomicOrder/2");
+	if (typeid(IntType) == typeid(NativeInteger))
+	{
 
-	if (!IsPowerOfTwo(CycloOrder)) {
-		throw std::logic_error("CyclotomicOrder for ChineseRemainderTransform::ForwardTransform is not a power of two");
+		ans->SetModulus(element.GetModulus());
+
+		NumberTheoreticTransform<IntType,VecType>::ForwardTransformIterative(element, rootOfUnityInverseTable,
+				preconRootOfUnityInverseTable, cycloOrder, ans);
+
+		//TODO:: note this could be stored
+		*ans *= (IntType(cycloOrder).ModInverse(element.GetModulus()));
 	}
-
-	if (!IsPowerOfTwo(element.GetLength()))
-		throw std::logic_error("Input to ChineseRemainderTransform::ForwardTransform length is not a power of two");
-
-#pragma omp critical
-	if (m_rootOfUnityTable == NULL) {
-		m_rootOfUnityTable = new VecType(CycloOrder + 1);  //We may be able to change length to CycloOrder/2
-		IntType x(IntType::ONE);
-		for (usint i = 0; i<CycloOrder / 2; i++) {
-		  (*m_rootOfUnityTable)[i]= x;
-		  *m_rootOfUnityTable[i + CycloOrder/2]= element.GetModulus() - x;
-			x = x.ModMul(rootOfUnity, element.GetModulus());
-		}
-
-		*m_rootOfUnityTable[CycloOrder]= IntType::ONE;
-
-	}
-
-	VecType OpFFT(CycloOrder);
-	VecType InputToFFT = ZeroPadForward(element, CycloOrder);
-
-	NumberTheoreticTransform<IntType,VecType>::ForwardTransformIterative(InputToFFT, *m_rootOfUnityTable, CycloOrder, &OpFFT);
-
-	for (usint i = 0; i<CycloOrder / 2; i++)
-	  *ans[i]= OpFFT[2 * i + 1];
-
-	ans->SetModulus(OpFFT.GetModulus());
-
-	return;
-}
-
-//main CRT Transform - uses iterative FFT as a subroutine
-//includes precomputation of inverse twidle factor table
-template<typename IntType, typename VecType>
-void ChineseRemainderTransform<IntType,VecType>::InverseTransform(const VecType& element, const IntType& rootOfUnity, const usint CycloOrder, VecType *ans) {
-
-	IntType rootOfUnityInverse = rootOfUnity.ModInverse(element.GetModulus());
-
-	if (!IsPowerOfTwo(CycloOrder)) {
-		throw std::logic_error("CyclotomicOrder for ChineseRemainderTransform::InverseTransform is not a power of two");
-	}
-
-	if (!IsPowerOfTwo(element.GetLength()))
-		throw std::logic_error("Input to ChineseRemainderTransform::InverseTransform length is not a power of two");
-
-#pragma omp critical
-	if (m_rootOfUnityInverseTable == NULL) {
-		m_rootOfUnityInverseTable = new VecType(CycloOrder + 1);
-		IntType x(IntType::ONE);
-		for (usint i = 0; i<CycloOrder / 2; i++) {
-		  *m_rootOfUnityInverseTable[i]= x;
-		  *m_rootOfUnityInverseTable[i + CycloOrder / 2]= element.GetModulus() - x;
-			x = x.ModMul(rootOfUnityInverse, element.GetModulus());
-		}
-
-		*m_rootOfUnityInverseTable[CycloOrder]= IntType::ONE;
-
-	}
-
-	VecType OpIFFT(CycloOrder);
-	VecType InputToFFT = ZeroPadInverse(element, CycloOrder);
-
-//	if (!IsPowerOfTwo(element.GetLength())) {
-//		//HERE IS WHERE WE NEED ADD additional table of modinverse etc.
-//		OpIFFT = NumberTheoreticTransform<IntType,VecType>::InverseTransformIterative(InputToFFT, *m_rootOfUnityInverseTable, CycloOrder);
-//	}
-//	else {
-		OpIFFT = NumberTheoreticTransform<IntType,VecType>::InverseTransformIterative(InputToFFT, *m_rootOfUnityInverseTable, CycloOrder);
-//	}
-
-	//TODO:: can this be done quicker?
-	for (usint i = 0; i<CycloOrder / 2; i++)
-	  *ans[i]= OpIFFT[i].ModMul(IntType::TWO, OpIFFT.GetModulus());
-
-	ans->SetModulus(OpIFFT.GetModulus());
+	else
+		PALISADE_THROW(math_error, "This NTT method only works with NativeInteger");
 
 	return;
 }
@@ -189,13 +120,20 @@ void ChineseRemainderTransform<IntType,VecType>::InverseTransform(const VecType&
 //main Forward CRT Transform - implements FTT - uses iterative NTT as a subroutine
 //includes precomputation of twidle factor table
 template<typename IntType, typename VecType>
-void ChineseRemainderTransformFTT<IntType,VecType>::ForwardTransform(const VecType& element, const IntType& rootOfUnity, const usint CycloOrder, VecType *OpFFT) {
+void ChineseRemainderTransformFTT<IntType,VecType>::ForwardTransform(const VecType& element, const IntType& rootOfUnity,
+		const usint CycloOrder, VecType *OpFFT) {
 
 	if( OpFFT->GetLength() != CycloOrder/2 )
 		throw std::logic_error("Vector for ChineseRemainderTransformFTT::ForwardTransform size must be == CyclotomicOrder/2");
 
-	if (rootOfUnity == IntType(1) || rootOfUnity == IntType(0))
-		throw std::logic_error("Root of unity for ChineseRemainderTransformFTT::ForwardTransform cannot be zero or one");
+	if (rootOfUnity == IntType(1) || rootOfUnity == IntType(0)) {
+		// No transform, just copy in to out
+
+		*OpFFT = element;
+		return;
+
+		//throw std::logic_error("Root of unity for ChineseRemainderTransformFTT::ForwardTransform cannot be zero or one");
+	}
 
 	if (!IsPowerOfTwo(CycloOrder))
 		throw std::logic_error("CyclotomicOrder for ChineseRemainderTransformFTT::ForwardTransform is not a power of two");
@@ -210,31 +148,74 @@ void ChineseRemainderTransformFTT<IntType,VecType>::ForwardTransform(const VecTy
 	if( mapSearch == m_rootOfUnityTableByModulus.end() || mapSearch->second[1] != rootOfUnity ) {
 #pragma omp critical
 		{
-			VecType rTable(CycloOrder / 2);
 			IntType modulus(element.GetModulus());
+			VecType rTable(CycloOrder / 2,modulus);
 			IntType x(1);
 
 			for (usint i = 0; i<CycloOrder / 2; i++) {
- 			        rTable[i]= x;
-				x.ModBarrettMulInPlace(rootOfUnity, modulus, mu);
+ 			    rTable[i]= x;
+			    x.ModBarrettMulInPlace(rootOfUnity, modulus, mu);
 			}
-
 			rootOfUnityTable = &(m_rootOfUnityTableByModulus[modulus] = std::move(rTable));
+
+			if (typeid(IntType) == typeid(NativeInteger)) {
+				NativeInteger nativeModulus = modulus.ConvertToInt();
+				NativeVector preconTable(CycloOrder/2,nativeModulus);
+				if(nativeModulus.GetMSB() < NTL_SP_NBITS + 1)
+				{
+					for (usint i = 0; i<CycloOrder / 2; i++) {
+						preconTable[i] = NativeInteger(rootOfUnityTable->operator[](i).ConvertToInt()).PrepModMulPreconOptimized(nativeModulus);
+					}
+				}
+				else{
+					for (usint i = 0; i<CycloOrder / 2; i++) {
+						preconTable[i] = 0;
+					}
+				}
+				m_rootOfUnityPreconTableByModulus[modulus] = std::move(preconTable);
+			}
 		}
 	}
 	else {
 		rootOfUnityTable = &mapSearch->second;
 	}
 
-	VecType InputToFFT(element);
+	VecType InputToFFT(element.GetLength(),element.GetModulus());
 
 	usint ringDimensionFactor = rootOfUnityTable->GetLength() / (CycloOrder / 2);
 
 	//Fermat Theoretic Transform (FTT)
-	for (usint i = 0; i<CycloOrder / 2; i++)
-	  InputToFFT[i]= element[i].ModBarrettMul((*rootOfUnityTable)[i*ringDimensionFactor], element.GetModulus(), mu);
+	if (typeid(IntType) == typeid(NativeInteger)) {
+		const NativeVector &preconTable = m_rootOfUnityPreconTableByModulus[element.GetModulus()];
+		NativeInteger modulus = element.GetModulus().ConvertToInt();
+		if(element.GetModulus().GetMSB() < NTL_SP_NBITS + 1){
+			if (ringDimensionFactor == 1)
+					for (usint i = 0; i<CycloOrder / 2; i++)
+							InputToFFT[i]=element[i].ModMulPreconOptimized((*rootOfUnityTable)[i],modulus,preconTable[i]);
+					else
+						for (usint i = 0; i<CycloOrder / 2; i++)
+							InputToFFT[i]=element[i].ModMulPreconOptimized((*rootOfUnityTable)[i*ringDimensionFactor],modulus,preconTable[i*ringDimensionFactor]);
+		}
+		else{
+			if (ringDimensionFactor == 1)
+								for (usint i = 0; i<CycloOrder / 2; i++)
+										InputToFFT[i]=element[i].ModMulFast((*rootOfUnityTable)[i],modulus);
+								else
+									for (usint i = 0; i<CycloOrder / 2; i++)
+										InputToFFT[i]=element[i].ModMulFast((*rootOfUnityTable)[i*ringDimensionFactor],modulus);
 
-	NumberTheoreticTransform<IntType,VecType>::ForwardTransformIterative(InputToFFT, *rootOfUnityTable, CycloOrder / 2, OpFFT);
+		}
+
+	} else {
+		for (usint i = 0; i<CycloOrder / 2; i++)
+			InputToFFT[i]= element[i].ModBarrettMul((*rootOfUnityTable)[i*ringDimensionFactor], element.GetModulus(), mu);
+	}
+
+	if (typeid(IntType) == typeid(NativeInteger))
+		NumberTheoreticTransform<IntType,VecType>::ForwardTransformIterative(InputToFFT, *rootOfUnityTable,
+				m_rootOfUnityPreconTableByModulus[element.GetModulus()], CycloOrder / 2, OpFFT);
+	else
+		NumberTheoreticTransform<IntType,VecType>::ForwardTransformIterative(InputToFFT, *rootOfUnityTable, CycloOrder / 2, OpFFT);
 
 	return;
 }
@@ -247,8 +228,14 @@ void ChineseRemainderTransformFTT<IntType,VecType>::InverseTransform(const VecTy
 	if( OpIFFT->GetLength() != CycloOrder/2 )
 		throw std::logic_error("Vector for ChineseRemainderTransformFTT::InverseTransform size must be == CyclotomicOrder/2");
 
-	if (rootOfUnity == IntType(1) || rootOfUnity == IntType(0))
-		throw std::logic_error("Root of unity for ChineseRemainderTransformFTT::InverseTransform cannot be zero or one");
+	if (rootOfUnity == IntType(1) || rootOfUnity == IntType(0)) {
+		// just copy, no transform
+
+		*OpIFFT = element;
+		return;
+
+		//throw std::logic_error("Root of unity for ChineseRemainderTransformFTT::InverseTransform cannot be zero or one");
+	}
 
 	if (!IsPowerOfTwo(CycloOrder))
 		throw std::logic_error("CyclotomicOrder for ChineseRemainderTransformFTT::InverseTransform is not a power of two");
@@ -261,7 +248,8 @@ void ChineseRemainderTransformFTT<IntType,VecType>::InverseTransform(const VecTy
 
 	IntType rootofUnityInverse;
 
-	//TODO: is there a reason this isn't checked oly initially when the table is made? 
+	auto mSearch = m_rootOfUnityInverseTableByModulus.find(element.GetModulus());
+
 	try {
 		rootofUnityInverse = rootOfUnity.ModInverse(element.GetModulus());
 	}
@@ -270,41 +258,79 @@ void ChineseRemainderTransformFTT<IntType,VecType>::InverseTransform(const VecTy
 	}
 
 	// check to see if the modulus is in the table
+	if( mSearch == m_rootOfUnityInverseTableByModulus.end() || mSearch->second.GetLength() == 0 || mSearch->second[1] != rootofUnityInverse ) {
 #pragma omp critical
-	{
-		bool recompute = false;
-		auto mSearch = m_rootOfUnityInverseTableByModulus.find(element.GetModulus());
+			{
 
-		if( mSearch != m_rootOfUnityInverseTableByModulus.end() ) {
-			// i found it... make sure it's kosher
-			if( mSearch->second.GetLength() == 0 || mSearch->second[1] != rootofUnityInverse ) {
-				recompute = true;
+				VecType TableI(CycloOrder / 2);
+
+				IntType x(1);
+
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+					TableI[i]= x;
+					x.ModBarrettMulInPlace(rootofUnityInverse, element.GetModulus(), mu);
+				}
+
+				rootOfUnityITable = &(m_rootOfUnityInverseTableByModulus[element.GetModulus()] = std::move(TableI));
+
+				if (typeid(IntType) == typeid(NativeInteger)) {
+					NativeInteger nativeModulus = element.GetModulus().ConvertToInt();
+					NativeVector preconTableI(CycloOrder / 2, nativeModulus);
+					if(element.GetModulus().GetMSB() < NTL_SP_NBITS+1){
+						for (usint i = 0; i<CycloOrder / 2; i++) {
+											preconTableI[i] = NativeInteger(rootOfUnityITable->operator[](i).ConvertToInt()).PrepModMulPreconOptimized(nativeModulus);
+										}
+					}
+					else{
+
+						for (usint i = 0; i<CycloOrder / 2; i++) {
+											preconTableI[i] = 0;
+										}
+
+					}
+
+					m_rootOfUnityInversePreconTableByModulus[element.GetModulus()] = std::move(preconTableI);
+				}
 			}
-			else
-				rootOfUnityITable = &mSearch->second;
 		}
 
-		if( mSearch == m_rootOfUnityInverseTableByModulus.end() || recompute ) {
-			VecType TableI(CycloOrder / 2);
-
-			IntType x(1);
-
-			for (usint i = 0; i<CycloOrder / 2; i++) {
-			  TableI[i]= x;
-				x.ModBarrettMulInPlace(rootofUnityInverse, element.GetModulus(), mu);
-			}
-
-			rootOfUnityITable = &(m_rootOfUnityInverseTableByModulus[element.GetModulus()] = std::move(TableI));
-		}
+	else {
+		rootOfUnityITable = &mSearch->second;
 	}
 
-	NumberTheoreticTransform<IntType,VecType>::InverseTransformIterative(element, *rootOfUnityITable, CycloOrder / 2, OpIFFT);
+	if (typeid(IntType) == typeid(NativeInteger))
+		NumberTheoreticTransform<IntType,VecType>::InverseTransformIterative(element, *rootOfUnityITable,
+				m_rootOfUnityInversePreconTableByModulus[element.GetModulus()], CycloOrder / 2, OpIFFT);
+	else
+		NumberTheoreticTransform<IntType,VecType>::InverseTransformIterative(element, *rootOfUnityITable, CycloOrder / 2, OpIFFT);
 
 	usint ringDimensionFactor = rootOfUnityITable->GetLength() / (CycloOrder / 2);
 
-	VecType rInvTable(*rootOfUnityITable);
-	for (usint i = 0; i<CycloOrder / 2; i++)
-	  (*OpIFFT)[i].ModBarrettMulInPlace(rInvTable[i*ringDimensionFactor], element.GetModulus(), mu);
+	if (typeid(IntType) == typeid(NativeInteger)) {
+		const NativeVector &preconTable = m_rootOfUnityInversePreconTableByModulus[element.GetModulus()];
+		NativeInteger nativeModulus = element.GetModulus().ConvertToInt();
+		if(element.GetModulus().GetMSB() < NTL_SP_NBITS + 1){
+			if (ringDimensionFactor == 1)
+						for (usint i = 0; i<CycloOrder / 2; i++)
+							(*OpIFFT)[i].ModMulPreconOptimizedEq((*rootOfUnityITable)[i],nativeModulus,preconTable[i]);
+					else
+						for (usint i = 0; i<CycloOrder / 2; i++)
+							(*OpIFFT)[i].ModMulPreconOptimizedEq((*rootOfUnityITable)[i*ringDimensionFactor],nativeModulus,preconTable[i*ringDimensionFactor]);
+		}
+		else{
+			if (ringDimensionFactor == 1)
+						for (usint i = 0; i<CycloOrder / 2; i++)
+							(*OpIFFT)[i].ModMulEq((*rootOfUnityITable)[i],nativeModulus);
+					else
+						for (usint i = 0; i<CycloOrder / 2; i++)
+							(*OpIFFT)[i].ModMulEq((*rootOfUnityITable)[i*ringDimensionFactor],nativeModulus);
+		}
+
+	}
+	else {
+		for (usint i = 0; i<CycloOrder / 2; i++)
+			(*OpIFFT)[i].ModBarrettMulInPlace((*rootOfUnityITable)[i*ringDimensionFactor], element.GetModulus(), mu);
+	}
 	return;
 }
 
@@ -318,34 +344,73 @@ void ChineseRemainderTransformFTT<IntType,VecType>::PreCompute(const IntType& ro
 
 
 	VecType *rootOfUnityTableCheck = NULL;
+
 	rootOfUnityTableCheck = &m_rootOfUnityTableByModulus[modulus];
 	//Precomputes twiddle factor omega and FTT parameter phi for Forward Transform
 	if (rootOfUnityTableCheck->GetLength() == 0) {
-		VecType Table(CycloOrder / 2);
-
+#pragma omp critical
+{
+		VecType Table(CycloOrder / 2, modulus);
 
 		for (usint i = 0; i<CycloOrder / 2; i++) {
-		  Table[i]= x;
+			Table[i]= x;
 			x.ModBarrettMulInPlace(rootOfUnity, modulus, mu);
 		}
-
 		m_rootOfUnityTableByModulus[modulus] = std::move(Table);
+
+		if (typeid(IntType) == typeid(NativeInteger)) {
+			NativeInteger nativeModulus = modulus.ConvertToInt();
+			NativeVector preconTable(CycloOrder/2,nativeModulus);
+			if(modulus.GetMSB()<NTL_SP_NBITS+1){
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+						preconTable[i] = NativeInteger(m_rootOfUnityTableByModulus[modulus].operator[](i).ConvertToInt()).PrepModMulPreconOptimized(nativeModulus);
+					}
+			}
+			else{
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+						preconTable[i] = 0;
+					}
+			}
+
+			m_rootOfUnityPreconTableByModulus[modulus] = std::move(preconTable);
+		}
+}
+
 	}
 
 	//Precomputes twiddle factor omega and FTT parameter phi for Inverse Transform
 	VecType  *rootOfUnityInverseTableCheck = &m_rootOfUnityInverseTableByModulus[modulus];
 	if (rootOfUnityInverseTableCheck->GetLength() == 0) {
-		VecType TableI(CycloOrder / 2);
+#pragma omp critical
+{
+		VecType TableI(CycloOrder / 2, modulus);
 		IntType rootOfUnityInverse = rootOfUnity.ModInverse(modulus);
 
 		x = 1;
 
 		for (usint i = 0; i<CycloOrder / 2; i++) {
-		  TableI[i]= x;
+			TableI[i]= x;
 			x.ModBarrettMulInPlace(rootOfUnityInverse, modulus, mu);
 		}
-
 		m_rootOfUnityInverseTableByModulus[modulus] = std::move(TableI);
+
+		if (typeid(IntType) == typeid(NativeInteger)) {
+			NativeInteger nativeModulus = modulus.ConvertToInt();
+			NativeVector preconTableI(CycloOrder/2,nativeModulus);
+			if(modulus.GetMSB()<NTL_SP_NBITS+1){
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+								preconTableI[i] = NativeInteger(m_rootOfUnityInverseTableByModulus[modulus].operator[](i).ConvertToInt()).PrepModMulPreconOptimized(nativeModulus);
+						}
+			}
+			else{
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+								preconTableI[i] = 0;
+				}
+			}
+
+			m_rootOfUnityInversePreconTableByModulus[modulus] = std::move(preconTableI);
+		}
+}
 
 	}
 
@@ -361,7 +426,8 @@ void ChineseRemainderTransformFTT<IntType,VecType>::PreCompute(std::vector<IntTy
 		throw std::logic_error("size of root of unity and size of moduli chain not of same size");
 	}
 
-	for (usint i = numOfRootU; i<numOfRootU; ++i) {
+#pragma omp critical
+	for (usint i = 0; i<numOfRootU; ++i) {
 
 		IntType currentRoot(rootOfUnity[i]);
 		IntType currentMod(moduliiChain[i]);
@@ -372,36 +438,63 @@ void ChineseRemainderTransformFTT<IntType,VecType>::PreCompute(std::vector<IntTy
 		if (m_rootOfUnityTableByModulus[moduliiChain[i]].GetLength() != 0)
 			continue;
 
-
-
 		IntType x(1);
 
-
 		//computation of root of unity table
-		VecType rTable(CycloOrder / 2);
-
+		VecType rTable(CycloOrder / 2, currentMod);
 
 		for (usint i = 0; i<CycloOrder / 2; i++) {
 		  rTable[i]= x;
-			x.ModBarrettMulInPlace(currentRoot, currentMod, mu);
+		  x.ModBarrettMulInPlace(currentRoot, currentMod, mu);
 		}
-
 		m_rootOfUnityTableByModulus[currentMod] = std::move(rTable);
+
+		if (typeid(x) == typeid(NativeInteger)) {
+			NativeInteger nativeModulus = currentMod.ConvertToInt();
+			NativeVector preconTable(CycloOrder/2,nativeModulus);
+			if(currentMod.GetMSB()<NTL_SP_NBITS+1){
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+						  preconTable[i] = NativeInteger(m_rootOfUnityTableByModulus[currentMod].operator[](i).ConvertToInt()).PrepModMulPreconOptimized(nativeModulus);
+						}
+			}
+			else{
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+						  preconTable[i] = 0;
+						}
+			}
+
+			m_rootOfUnityPreconTableByModulus[currentMod] = std::move(preconTable);
+		}
 
 		//computation of root of unity inverse table
 		x = 1;
 
 		IntType rootOfUnityInverse = currentRoot.ModInverse(currentMod);
 
-		VecType rTableI(CycloOrder / 2);
-
+		VecType rTableI(CycloOrder / 2,currentMod);
 
 		for (usint i = 0; i<CycloOrder / 2; i++) {
 			rTableI[i]= x;
 			x.ModBarrettMulInPlace(rootOfUnityInverse, currentMod, mu);
 		}
-
 		m_rootOfUnityInverseTableByModulus[currentMod] = std::move(rTableI);
+
+		if (typeid(x) == typeid(NativeInteger)) {
+			NativeInteger nativeModulus = currentMod.ConvertToInt();
+			NativeVector preconTableI(CycloOrder/2,nativeModulus);
+			if(currentMod.GetMSB()<NTL_SP_NBITS+1){
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+								preconTableI[i] = NativeInteger(m_rootOfUnityInverseTableByModulus[currentMod].operator[](i).ConvertToInt()).PrepModMulPreconOptimized(nativeModulus);
+							}
+			}
+			else{
+				for (usint i = 0; i<CycloOrder / 2; i++) {
+								preconTableI[i] = 0;
+							}
+			}
+
+			m_rootOfUnityInversePreconTableByModulus[currentMod] = std::move(preconTableI);
+		}
 	}
 }
 
@@ -409,12 +502,8 @@ template<typename IntType, typename VecType>
 void ChineseRemainderTransformFTT<IntType,VecType>::Reset() {
 	m_rootOfUnityTableByModulus.clear();
 	m_rootOfUnityInverseTableByModulus.clear();
-}
-
-template<typename IntType, typename VecType>
-void ChineseRemainderTransform<IntType,VecType>::Reset() {
-	if( m_rootOfUnityTable ) delete m_rootOfUnityTable;
-	if( m_rootOfUnityInverseTable ) delete m_rootOfUnityInverseTable;
+	m_rootOfUnityPreconTableByModulus.clear();
+	m_rootOfUnityInversePreconTableByModulus.clear();
 }
 	
 	void DiscreteFourierTransform::Reset() {
@@ -434,28 +523,41 @@ void ChineseRemainderTransform<IntType,VecType>::Reset() {
 	}
 
 	std::vector<std::complex<double>> DiscreteFourierTransform::FFTForwardTransform(std::vector<std::complex<double>> & A) {
-		int m = A.size();
+		usint m = A.size();
 		std::vector<std::complex<double>> B(A);
-		int levels = floor(log2(m));
+		usint l = floor(log2(m));
 
-		static int cachedM;
-		static std::vector<double> cosTable;
-		static std::vector<double> sinTable;
+
+		static usint maxMCached (8192);
+		static usint LOGM_MAX(13);
+		static std::vector<usint> cachedM(LOGM_MAX, 0);
+		static std::vector<std::vector<double>> cosTable(LOGM_MAX);
+		static std::vector<std::vector<double>> sinTable(LOGM_MAX);;
 
 #pragma omp critical
-		if( m != cachedM ) {
-			cachedM = m;
-			sinTable.resize(m/2);
-			cosTable.resize(m/2);
-			for (int i = 0; i < m / 2; i++) {
-				cosTable[i] = cos(2 * M_PI * i / m);
-				sinTable[i] = sin(2 * M_PI * i / m);
-			}
+		if( m != cachedM[l] ) {
+		  if (m>maxMCached){
+		     //need to grow cachedM and the tables
+		    cachedM.resize(l);
+		    cosTable.resize(l);
+		    cosTable.resize(l);
+		    maxMCached = m;
+		  }
+		  //std::cout<<"miss m "<<m<<" != M "<<cachedM[l]<<std::endl;
+		  cachedM[l] = m;
+
+		  sinTable[l].resize(m/2);
+		  cosTable[l].resize(m/2);
+		  for (usint i = 0; i < m / 2; i++) {
+		    cosTable[l][i] = cos(2 * M_PI * i / m);
+		    sinTable[l][i] = sin(2 * M_PI * i / m);
+		  }
+		  
 		}
 
 		// Bit-reversed addressing permutation
-		for (int i = 0; i < m; i++) {
-			int j = ReverseBits(i,32) >> (32-levels);
+		for (usint i = 0; i < m; i++) {
+			usint j = ReverseBits(i,32) >> (32-l);
 			if (j > i) {
 				double temp = B[i].real();
 				B[i].real( B[j].real() );
@@ -467,13 +569,13 @@ void ChineseRemainderTransform<IntType,VecType>::Reset() {
 		}
 
 		// Cooley-Tukey decimation-in-time radix-2 FFT
-		for (int size = 2; size <= m; size *= 2) {
-			int halfsize = size / 2;
-			int tablestep = m / size;
-			for (int i = 0; i < m; i += size) {
-				for (int j = i, k = 0; j < i + halfsize; j++, k += tablestep) {
-					double tpre =  B[j+halfsize].real() * cosTable[k] + B[j+halfsize].imag() * sinTable[k];
-					double tpim = -B[j+halfsize].real() * sinTable[k] + B[j+halfsize].imag() * cosTable[k];
+		for (usint size = 2; size <= m; size *= 2) {
+			usint halfsize = size / 2;
+			usint tablestep = m / size;
+			for (usint i = 0; i < m; i += size) {
+				for (usint j = i, k = 0; j < i + halfsize; j++, k += tablestep) {
+					double tpre =  B[j+halfsize].real() * cosTable[l][k] + B[j+halfsize].imag() * sinTable[l][k];
+					double tpim = -B[j+halfsize].real() * sinTable[l][k] + B[j+halfsize].imag() * cosTable[l][k];
 					B[j + halfsize].real( B[j].real() - tpre );
 					B[j + halfsize].imag( B[j].imag() - tpim );
 					B[j].real( B[j].real() + tpre );
@@ -504,9 +606,9 @@ void ChineseRemainderTransform<IntType,VecType>::Reset() {
 			A[n + i] = 0;
 			//A.push_back(0);
 		}
-		if (rootOfUnityTable == NULL) {
-			PreComputeTable(2 * n);
-		}
+		// if (rootOfUnityTable == NULL) {
+		// 	PreComputeTable(2 * n);
+		// }
 		std::vector<std::complex<double>> dft = FFTForwardTransform(A);
 		std::vector<std::complex<double>> dftRemainder(dft.size()/2);
 		size_t k = 0;
