@@ -63,6 +63,8 @@ GENERATE_PKE_TEST_CASE(x, y, Poly, BFV_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, Poly, BFV_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrns_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrnsB_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrnsB_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, Null, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, LTV, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, StSt, ORD, PTM) \
@@ -72,13 +74,17 @@ GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFV_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFV_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrns_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrnsB_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrnsB_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, Null, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, LTV, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, StSt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BGV_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BGV_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_rlwe, ORD, PTM) \
-GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_opt, ORD, PTM)
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrnsB_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrnsB_opt, ORD, PTM)
 
 template<typename Element>
 static void EncryptionScalar(const CryptoContext<Element> cc, const string& failmsg) {

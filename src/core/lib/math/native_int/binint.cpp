@@ -29,10 +29,6 @@ namespace native_int
 {
 template class NativeInteger<uint64_t>;
 
-template<> unique_ptr<NativeInteger<uint64_t>> NativeInteger<uint64_t>::Allocator() {
-	return lbcrypto::make_unique<NativeInteger<uint64_t>>();
-};
-
 //helper template to stream vector contents provided T has an stream operator<< 
 template < typename T >
 std::ostream& operator << (std::ostream& os, const std::vector<T>& v)

@@ -141,9 +141,9 @@ public:
 	 * @param params the params to use.
 	 * @param format - EVALUATION or COEFFICIENT
 	 */
-	inline static function<unique_ptr<PolyType>()> MakeAllocator(const shared_ptr<ParmType> params, Format format) {
+	inline static function<PolyType()> Allocator(const shared_ptr<ParmType> params, Format format) {
 		return [=]() {
-			return lbcrypto::make_unique<PolyType>(params, format, true);
+			return PolyType(params, format, true);
 		};
 	}
 
@@ -155,11 +155,11 @@ public:
 	 * @param stddev standard deviation for the discrete gaussian generator.
 	 * @return the resulting vector.
 	 */
-	inline static function<unique_ptr<PolyType>()> MakeDiscreteGaussianCoefficientAllocator(shared_ptr<ParmType> params, Format resultFormat, int stddev) {
+	inline static function<PolyType()> MakeDiscreteGaussianCoefficientAllocator(shared_ptr<ParmType> params, Format resultFormat, int stddev) {
 		return [=]() {
 			DiscreteGaussianGeneratorImpl<IntType,VecType> dgg(stddev);
-			auto ilvec = lbcrypto::make_unique<PolyType>(dgg, params, COEFFICIENT);
-			ilvec->SetFormat(resultFormat);
+			PolyType ilvec(dgg, params, COEFFICIENT);
+			ilvec.SetFormat(resultFormat);
 			return ilvec;
 		};
 	}
@@ -171,11 +171,11 @@ public:
 	 * @param format format for the polynomials generated.
 	 * @return the resulting vector.
 	 */
-	inline static function<unique_ptr<PolyType>()> MakeDiscreteUniformAllocator(shared_ptr<ParmType> params, Format format) {
+	inline static function<PolyType()> MakeDiscreteUniformAllocator(shared_ptr<ParmType> params, Format format) {
 		return [=]() {
 			DiscreteUniformGeneratorImpl<IntType,VecType> dug;
 			dug.SetModulus(params->GetModulus());
-			return lbcrypto::make_unique<PolyType>(dug, params, format);
+			return PolyType(dug, params, format);
 		};
 	}
 
@@ -483,7 +483,7 @@ public:
 	 * @return is the result of the subtraction.
 	 */
 	const PolyImpl& operator-=(const IntType &element) {
-		SetValues( GetValues().ModSub(element), this->m_format );
+		m_values->ModSubEq(element);
 		return *this;
 	}
 
@@ -494,7 +494,7 @@ public:
 	 * @return is the result of the multiplication.
 	 */
 	const PolyImpl& operator*=(const IntType &element) {
-		SetValues( GetValues().ModMul(element), this->m_format );
+		m_values->ModMulEq(element);
 		return *this;
 	}
 

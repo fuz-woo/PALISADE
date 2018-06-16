@@ -98,7 +98,7 @@ public:
 	 * @param assuranceMeasure Assurance level, typically denoted as w in most applications.  This is oftern perceived as a fudge factor in the literature, with a typical value of 9.
 	 * @param securityLevel Security level as Root Hermite Factor.  We use the Root Hermite Factor representation of the security level to better conform with US ITAR and EAR export regulations.  This is typically represented as /delta in the literature.  Typically a Root Hermite Factor of 1.006 or less provides reasonable security for RLWE crypto schemes, although extra care is need for the LTV scheme because LTV makes an additional security assumption that make it suceptible to subfield lattice attacks.
 	 * @param relinWindow The size of the relinearization window.  This is relevant when using this scheme for proxy re-encryption, and the value is denoted as r in the literature.
-	 * @param depth Depth is the depth of computation supprted which is set to 1 by default.  Use the default setting unless you're using SHE, levelled SHE or FHE operations.
+	 * @param depth of supported computation circuit (not used; for future use)
 	 */
 	LPCryptoParametersStehleSteinfeld(
 			shared_ptr<typename Element::Params> params,
@@ -134,7 +134,7 @@ public:
 	* @param assuranceMeasure Assurance level, typically denoted as w in most applications.  This is oftern perceived as a fudge factor in the literature, with a typical value of 9.
 	* @param securityLevel Security level as Root Hermite Factor.  We use the Root Hermite Factor representation of the security level to better conform with US ITAR and EAR export regulations.  This is typically represented as /delta in the literature.  Typically a Root Hermite Factor of 1.006 or less provides reasonable security for RLWE crypto schemes, although extra care is need for the LTV scheme because LTV makes an additional security assumption that make it suceptible to subfield lattice attacks.
 	* @param relinWindow The size of the relinearization window.  This is relevant when using this scheme for proxy re-encryption, and the value is denoted as r in the literature.
-	* @param depth Depth is the depth of computation supprted which is set to 1 by default.  Use the default setting unless you're using SHE, levelled SHE or FHE operations.
+	* @param depth of supported computation circuit (not used; for future use)
 	*/
 	LPCryptoParametersStehleSteinfeld(
 		shared_ptr<typename Element::Params> params,
@@ -363,8 +363,8 @@ public:
 	* @param evalKey The evaluation key input.
 	* @return A shared pointer to the ciphertext which is the EvalMult of the two inputs.
 	*/
-	Ciphertext<Element> EvalMultAndRelinearize(const Ciphertext<Element> ciphertext1,
-		const Ciphertext<Element> ciphertext2,
+	Ciphertext<Element> EvalMultAndRelinearize(ConstCiphertext<Element> ciphertext1,
+		ConstCiphertext<Element> ciphertext2,
 		const vector<LPEvalKey<Element>> &ek) const {
 		std::string errMsg = "LPAlgorithmStSt::EvalMultAndRelinearize is not implemented for the Stehle-Steinfeld Scheme.";
 		throw std::runtime_error(errMsg);

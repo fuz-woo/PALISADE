@@ -98,7 +98,8 @@ void UnitTestContext(CryptoContext<T> cc) {
 
 	EXPECT_EQ( cc->GetEncryptionAlgorithm()->GetEnabled(), (usint)(ENCRYPTION|SHE) ) << "Enabled features mismatch after ser/deser";
 
-	EXPECT_EQ( *cc->GetCryptoParameters(), *newcc->GetCryptoParameters() ) << "Mismatch after ser/deser";
+	EXPECT_EQ( *cc->GetCryptoParameters(), *newcc->GetCryptoParameters() ) << "Crypto parms mismatch after ser/deser";
+	EXPECT_EQ( *cc->GetEncodingParams(), *newcc->GetEncodingParams() ) << "Encoding parms mismatch after ser/deser";
 
 	Serialized serK;
 	ASSERT_TRUE( kp.publicKey->Serialize(&serK) ) << "Key serialization failed";
@@ -165,6 +166,11 @@ TEST_F(UTPKESer, BFVrns_DCRTPoly_Serial) {
 	UnitTestContext<DCRTPoly>(cc);
 }
 
+TEST_F(UTPKESer, BFVrnsB_DCRTPoly_Serial) {
+	CryptoContext<DCRTPoly> cc = GenerateTestDCRTCryptoContext("BFVrnsB2", 3, 20);
+	UnitTestContext<DCRTPoly>(cc);
+}
+
 // REMAINDER OF THE TESTS USE BGV AS A REPRESENTITIVE CONTEXT
 TEST_F(UTPKESer, Keys_and_ciphertext) {
         bool dbg_flag = false;
@@ -181,8 +187,6 @@ TEST_F(UTPKESer, Keys_and_ciphertext) {
     	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
     	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-    	PackedEncoding::SetParams(m, p);
-
     	float stdDev = 4;
 
     	usint batchSize = 8;
@@ -191,9 +195,22 @@ TEST_F(UTPKESer, Keys_and_ciphertext) {
 
     	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
 
+    	PackedEncoding::SetParams(m, encodingParams);
+
     	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev, OPTIMIZED);
 
     	cc->Enable(ENCRYPTION|SHE);
+
+    	DEBUG("step 0");
+    	{
+    		Serialized ser;
+    		ser.SetObject();
+		ASSERT_TRUE( cc->Serialize(&ser) ) << "Context serialization failed";
+		CryptoContextFactory<Poly>::ReleaseAllContexts();
+
+		cc = CryptoContextFactory<Poly>::DeserializeAndCreateContext(ser);
+		EXPECT_EQ( *cc->GetEncodingParams(), *encodingParams ) << "Encoding parms mismatch after ser/deser";
+    	}
 
     	CryptoContext<Poly> cc2 = GenerateTestCryptoContext("LTV4");
 

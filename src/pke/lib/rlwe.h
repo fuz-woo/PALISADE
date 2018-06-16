@@ -80,7 +80,8 @@ public:
 	* @param assuranceMeasure assurance level.
 	* @param securityLevel security level.
 	* @param relinWindow the size of the relinearization window.
-	* @param depth depth which defaults to 1.
+	* @param depth is the depth of computation circuit supported for these parameters (not used now; for future use).
+	* @param maxDepth is the maximum homomorphic multiplication depth before performing relinearization
 	* @param mode mode for secret polynomial, defaults to RLWE.
 	*/
 	LPCryptoParametersRLWE(
@@ -138,14 +139,14 @@ public:
 	usint GetRelinWindow() const { return m_relinWindow; }
 
 	/**
-	 * Returns the value of computation depth d
+	 * Returns the depth of computation circuit supported for these parameters (not used now; for future use).
 	 *
 	 * @return the computation depth supported d.
 	 */
 	int GetDepth() const {return m_depth;}
 
 	/**
-	 * Returns the value of computation depth d
+	 * Returns the maximum homomorphic multiplication depth before performing relinearization
 	 *
 	 * @return the computation depth supported d.
 	 */
@@ -195,13 +196,13 @@ public:
 	void SetRelinWindow(usint relinWindow) { m_relinWindow = relinWindow; }
 
 	/**
-	 * Sets the value of supported computation depth d
+	 * Sets the depth of computation circuit supported for these parameters (not used now; for future use).
 	 * @param depth
 	 */
 	void SetDepth(int depth) {m_depth = depth;}
 
 	/**
-	 * Sets the value of supported computation depth d
+	 * Sets the value of maximum homomorphic multiplication depth before performing relinearization
 	 * @param depth
 	 */
 	void SetMaxDepth(size_t maxDepth) {m_maxDepth = maxDepth;}
@@ -282,6 +283,7 @@ protected:
 		cryptoParamsMap.AddMember("SecurityLevel", std::to_string(this->GetSecurityLevel()), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("RelinWindow", std::to_string(this->GetRelinWindow()), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("Depth", std::to_string(this->GetDepth()), serObj->GetAllocator());
+		cryptoParamsMap.AddMember("MaxDepth", std::to_string(this->GetMaxDepth()), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("Mode", std::to_string(m_mode), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("PlaintextModulus", std::to_string(this->GetPlaintextModulus()), serObj->GetAllocator());
 
@@ -352,6 +354,10 @@ protected:
 			return false;
 		int depth = atoi(pIt->value.GetString());
 
+		if( (pIt = mIter->value.FindMember("MaxDepth")) == mIter->value.MemberEnd() )
+			return false;
+		int maxDepth = atoi(pIt->value.GetString());
+
 		if ((pIt = mIter->value.FindMember("Mode")) == mIter->value.MemberEnd())
 			return false;
 		MODE mode = (MODE)atoi(pIt->value.GetString());
@@ -362,6 +368,7 @@ protected:
 		this->SetSecurityLevel(securityLevel);
 		this->SetRelinWindow(relinWindow);
 		this->SetDepth(depth);
+		this->SetMaxDepth(maxDepth);
 		this->SetMode(mode);
 
 		return true;

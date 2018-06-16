@@ -129,11 +129,6 @@ BigInteger<uint_type,BITLENGTH>::BigInteger(BigInteger&& bigInteger){
 	}
 }
 
-template<typename uint_type,usint BITLENGTH>
-unique_ptr<BigInteger<uint_type,BITLENGTH>> BigInteger<uint_type,BITLENGTH>::Allocator() {
-	return lbcrypto::make_unique<cpu_int::BigInteger<uint_type,BITLENGTH>>();
-};
-
 /*
 *Converts the BigInteger to unsigned integer or returns the first 32 bits of the BigInteger.
 *Splits the BigInteger into bit length of uint data type and then uses shift and add to form the 32 bit unsigned integer.
@@ -150,7 +145,7 @@ uint64_t BigInteger<uint_type, BITLENGTH>::ConvertToInt() const{
 	for (usint i = 0; i < num && (m_nSize - i - 1) >= ceilInt; i++){
 		result += ((uint64_t)this->m_value[m_nSize - i - 1] << (m_uintBitLength*i));
 	}
-	if (this->m_MSB >= 64) {
+	if (this->m_MSB > 64) {
 		throw std::logic_error("Convert To Int");
 		std::cerr<<"BBI::Warning ConvertToInt() Loss of precision. "<<std::endl;
 		std::cerr<<"input  "<< *this<<std::endl;			
@@ -534,17 +529,18 @@ const char *BigInteger<uint_type, BITLENGTH>::DeserializeFromString(const char *
 template<typename uint_type, usint BITLENGTH>
 bool BigInteger<uint_type, BITLENGTH>::Serialize(lbcrypto::Serialized* serObj) const{
     
-    if( !serObj->IsObject() )
-      return false;
-    
-    lbcrypto::SerialItem bbiMap(rapidjson::kObjectType);
-    
-    bbiMap.AddMember("IntegerType", IntegerTypeName(), serObj->GetAllocator());
-    bbiMap.AddMember("Value", this->ToString(), serObj->GetAllocator());
-    serObj->AddMember("BigIntegerImpl", bbiMap, serObj->GetAllocator());
-    return true;
-    
+  if( !serObj->IsObject() ){
+    serObj->SetObject();
   }
+  
+  lbcrypto::SerialItem bbiMap(rapidjson::kObjectType);
+  
+  bbiMap.AddMember("IntegerType", IntegerTypeName(), serObj->GetAllocator());
+  bbiMap.AddMember("Value", this->ToString(), serObj->GetAllocator());
+  serObj->AddMember("BigIntegerImpl", bbiMap, serObj->GetAllocator());
+  return true;
+    
+}
   
 template<typename uint_type, usint BITLENGTH>
 bool BigInteger<uint_type, BITLENGTH>::Deserialize(const lbcrypto::Serialized& serObj){
@@ -906,7 +902,7 @@ BigInteger<uint_type,BITLENGTH> BigInteger<uint_type,BITLENGTH>::DividedBy(const
 	if(b==0)
 		throw std::logic_error("DIVISION BY ZERO");
 
-	if(b.m_MSB>this->m_MSB)
+	if(b>*this)
 		return 0;
 	else if(b==*this)
 		return 1;
@@ -1021,7 +1017,7 @@ const BigInteger<uint_type,BITLENGTH>& BigInteger<uint_type,BITLENGTH>::DividedB
 	if(b==0)
 		throw std::logic_error("DIVISION BY ZERO");
 
-	if(b.m_MSB>this->m_MSB) {
+	if(b>*this) {
 		*this = 0;
 		return *this;
 	}
@@ -1646,7 +1642,7 @@ const BigInteger<uint_type,BITLENGTH>& BigInteger<uint_type,BITLENGTH>::ModSubEq
 	}
 
 	if(*this >= b_op){
-		this->ModEq(b_op);
+		this->MinusEq(b_op);
 		this->ModEq(modulus);
 	}
 	else{

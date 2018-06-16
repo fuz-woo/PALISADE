@@ -37,14 +37,18 @@ using namespace std;
 using namespace lbcrypto;
 
 enum CmdMode { INTMODE, BYTEMODE } CommandMode = BYTEMODE;
+enum ElMode { POLY, DCRT } ElementMode = POLY;
+
 usint	IntVectorLen = 10; // default value
 
 void usage(const string& cmd, const string& msg = "");
 
-typedef void (*cmdparser)(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]);
+template<typename Element>
+using cmdparser = void (*)(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]);
 
+template<typename Element>
 void
-reencrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
+reencrypter(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -60,7 +64,7 @@ reencrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		return;
 	}
 
-	LPEvalKey<Poly> evalKey = ctx->deserializeEvalKey(kser);
+	LPEvalKey<Element> evalKey = ctx->deserializeEvalKey(kser);
 	if( evalKey == NULL ) {
 		cerr << "Could not deserialize re encryption key" << endl;
 		return;
@@ -86,8 +90,9 @@ reencrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	return;
 }
 
+template<typename Element>
 void
-decrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
+decrypter(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -103,7 +108,7 @@ decrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		return;
 	}
 
-	LPPrivateKey<Poly> sk = ctx->deserializeSecretKey(kser);
+	LPPrivateKey<Element> sk = ctx->deserializeSecretKey(kser);
 	if( !sk ) {
 		cerr << "Could not decrypt private key" << endl;
 		return;
@@ -133,7 +138,7 @@ decrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		}
 
 		// Initialize the public key containers.
-		Ciphertext<Poly> ct = ctx->deserializeCiphertext(kser);
+		Ciphertext<Element> ct = ctx->deserializeCiphertext(kser);
 		if( ct == NULL ) {
 			cerr << "Could not deserialize ciphertext" << endl;
 			return;
@@ -145,7 +150,9 @@ decrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		// now decrypt iPlaintext
 		ctx->Decrypt(sk, ct, &iPlaintext);
 
-		outF << iPlaintext << endl;
+		for( size_t i=0; i<IntVectorLen; i++ )
+			outF << iPlaintext->GetCoefPackedValue()[i] << " ";
+		outF << endl;
 	}
 
 	inCt.close();
@@ -154,8 +161,9 @@ decrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	return;
 }
 
+template<typename Element>
 void
-encrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
+encrypter(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -178,7 +186,7 @@ encrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	}
 
 	// Initialize the public key containers.
-	LPPublicKey<Poly> pk = ctx->deserializePublicKey(kser);
+	LPPublicKey<Element> pk = ctx->deserializePublicKey(kser);
 
 	if( !pk ) {
 		cerr << "Could not deserialize public key" << endl;
@@ -216,7 +224,7 @@ encrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		Plaintext iPlaintext = ctx->MakeCoefPackedPlaintext(intVector);
 
 		// now encrypt iPlaintext
-		Ciphertext<Poly> ciphertext = ctx->Encrypt(pk, iPlaintext);
+		Ciphertext<Element> ciphertext = ctx->Encrypt(pk, iPlaintext);
 
 		Serialized cSer;
 		if( ciphertext->Serialize(&cSer) ) {
@@ -236,8 +244,9 @@ encrypter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	return;
 }
 
+template<typename Element>
 void
-rekeymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
+rekeymaker(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -254,7 +263,7 @@ rekeymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	}
 
 	// Initialize the public key containers.
-	LPPublicKey<Poly> pk = ctx->deserializePublicKey(kser);
+	LPPublicKey<Element> pk = ctx->deserializePublicKey(kser);
 
 	Serialized	kser2;
 	if( SerializableHelper::ReadSerializationFromFile(privname, &kser2) == false ) {
@@ -262,7 +271,7 @@ rekeymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		return;
 	}
 
-	LPPrivateKey<Poly> sk = ctx->deserializeSecretKey(kser2);
+	LPPrivateKey<Element> sk = ctx->deserializeSecretKey(kser2);
 
 	if( !pk ) {
 		cerr << "Could not deserialize public key" << endl;
@@ -274,7 +283,7 @@ rekeymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		return;
 	}
 
-	LPEvalKey<Poly> evalKey = ctx->ReKeyGen(pk, sk);
+	LPEvalKey<Element> evalKey = ctx->ReKeyGen(pk, sk);
 
 	if( evalKey ) {
 		Serialized evalK;
@@ -296,8 +305,9 @@ rekeymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	return;
 }
 
+template<typename Element>
 void
-keymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
+keymaker(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 1 ) {
 		usage(cmd, "missing keyname");
 		return;
@@ -306,14 +316,40 @@ keymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	string keyname(argv[0]);
 
 	// Initialize the public key containers.
-	LPKeyPair<Poly> kp = ctx->KeyGen();
+	LPKeyPair<Element> kp = ctx->KeyGen();
 
 	if( kp.publicKey && kp.secretKey ) {
+		ctx->EvalMultKeyGen(kp.secretKey);
+
+		Serialized ctxSer;
+		if( ctx->Serialize(&ctxSer) ) {
+			if( !SerializableHelper::WriteSerializationToFile(ctxSer, keyname + "CTXT") ) {
+				cerr << "Error writing serialization of cryptocontext to " + keyname + "CTXT" << endl;
+				return;
+			}
+		}
+		else {
+			cerr << "Could not serialize crypto context" << endl;
+			return;
+		}
+
+		Serialized emKeys;
+		if( ctx->SerializeEvalMultKey(&emKeys) ) {
+			if( !SerializableHelper::WriteSerializationToFile(emKeys, keyname + "EMK") ) {
+				cerr << "Error writing serialization of eval mult keys to " + keyname + "EMK" << endl;
+				return;
+			}
+		}
+		else {
+			cerr << "Could not serialize eval mult keys" << endl;
+			return;
+		}
+
 		Serialized pubK, privK;
 
 		if( kp.publicKey->Serialize(&pubK) ) {
-			if( !SerializableHelper::WriteSerializationToFile(pubK, keyname + "PUB.txt") ) {
-				cerr << "Error writing serialization of public key to " + keyname + "PUB.txt" << endl;
+			if( !SerializableHelper::WriteSerializationToFile(pubK, keyname + "PUB") ) {
+				cerr << "Error writing serialization of public key to " + keyname + "PUB" << endl;
 				return;
 			}
 		}
@@ -323,8 +359,8 @@ keymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		}
 
 		if( kp.secretKey->Serialize(&privK) ) {
-			if( !SerializableHelper::WriteSerializationToFile(privK, keyname + "PRI.txt") ) {
-				cerr << "Error writing serialization of private key to " + keyname + "PRI.txt" << endl;
+			if( !SerializableHelper::WriteSerializationToFile(privK, keyname + "PRI") ) {
+				cerr << "Error writing serialization of private key to " + keyname + "PRI" << endl;
 				return;
 			}
 		}
@@ -339,8 +375,9 @@ keymaker(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	return;
 }
 
+template<typename Element>
 void
-evaladder(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
+evaladder(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -357,7 +394,7 @@ evaladder(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	}
 
 	// Initialize the public key containers.
-	Ciphertext<Poly> c1 = ctx->deserializeCiphertext(kser);
+	Ciphertext<Element> c1 = ctx->deserializeCiphertext(kser);
 
 	if( !c1 ) {
 		cerr << "Could not deserialize cipher1" << endl;
@@ -371,22 +408,14 @@ evaladder(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	}
 
 	// Initialize the public key containers.
-	Ciphertext<Poly> c2 = ctx->deserializeCiphertext(kser2);
+	Ciphertext<Element> c2 = ctx->deserializeCiphertext(kser2);
 
 	if( !c2 ) {
 		cerr << "Could not deserialize cipher2" << endl;
 		return;
 	}
 
-	cout << "EvalAdd-ing:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c1->GetElement().at(i) << " ";
-	cout << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c2->GetElement().at(i) << " ";
-	cout << endl;
-	Ciphertext<Poly> cdsum = ctx->EvalAdd(c1, c2);
-	cout << "Result:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << cdsum->GetElement().at(i) << " ";
-	cout << endl;
+	Ciphertext<Element> cdsum = ctx->EvalAdd(c1, c2);
 
 	Serialized cSer;
 	if( cdsum->Serialize(&cSer) ) {
@@ -400,15 +429,12 @@ evaladder(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		return;
 	}
 
-//	if( !er.isValid ) {
-//		cerr << "failed to encrypt" << endl;
-//	}
-
 	return;
 }
 
+template<typename Element>
 void
-evalmulter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
+evalmulter(CryptoContext<Element> ctx, string cmd, int argc, char *argv[]) {
 	if( argc != 3 ) {
 		usage(cmd, "missing arguments");
 		return;
@@ -425,7 +451,7 @@ evalmulter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	}
 
 	// Initialize the public key containers.
-	Ciphertext<Poly> c1 = ctx->deserializeCiphertext(kser);
+	Ciphertext<Element> c1 = ctx->deserializeCiphertext(kser);
 
 	if( !c1 ) {
 		cerr << "Could not deserialize cipher1" << endl;
@@ -439,22 +465,14 @@ evalmulter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 	}
 
 	// Initialize the public key containers.
-	Ciphertext<Poly> c2 = ctx->deserializeCiphertext(kser2);
+	Ciphertext<Element> c2 = ctx->deserializeCiphertext(kser2);
 
 	if( !c2 ) {
 		cerr << "Could not deserialize cipher2" << endl;
 		return;
 	}
 
-	cout << "EvalMult-ing:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c1->GetElement().at(i) << " ";
-	cout << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << c2->GetElement().at(i) << " ";
-	cout << endl;
-	Ciphertext<Poly> cdsum = ctx->EvalMult(c1, c2);
-	cout << "Result:" << endl;
-	for( size_t i=0; i<IntVectorLen; i++ ) cout << cdsum->GetElement().at(i) << " ";
-	cout << endl;
+	Ciphertext<Element> cdsum = ctx->EvalMult(c1, c2);
 
 	Serialized cSer;
 	if( cdsum->Serialize(&cSer) ) {
@@ -468,33 +486,30 @@ evalmulter(CryptoContext<Poly> ctx, string cmd, int argc, char *argv[]) {
 		return;
 	}
 
-//	if( !er.isValid ) {
-//		cerr << "failed to encrypt" << endl;
-//	}
-
 	return;
 }
 
 
 struct {
-	string		command;
-	cmdparser	func;
-	string		helpline;
+	string				command;
+	cmdparser<Poly>		func;
+	cmdparser<DCRTPoly>	dfunc;
+	string				helpline;
 } cmds[] = {
-		{"makekey", keymaker, " [optional parms] keyname\n"
-		"\tcreate a new keypair and save in keyfilePUB.txt and keyfilePRI.txt"},
-		{"makerekey", rekeymaker, " [optional parms] pubkey_file secretkey_file rekey_file\n"
-		"\tcreate a re-encryption key from the contents of pubkey_file and secretkey_file, save in rekey_file"},
-		{"encrypt", encrypter, " [optional parms] plaintext_file pubkey_file ciphertext_file\n"
-		"\tencrypt the contents of plaintext_file using the contents of pubkey_file, save results in ciphertext_file"},
-		{"reencrypt", reencrypter, " [optional parms] encrypted_file rekey_file reencrypted_file\n"
-		"\treencrypt the contents of encrypted_file using the contents of rekey_file, save results in reencrypted_file"},
-		{"decrypt", decrypter,  " [optional parms] ciphertext_file prikey_file cleartext_file\n"
-		"\tdecrypt the contents of ciphertext_file using the contents of prikey_file, save results in cleartext_file"},
-		{"evaladd", evaladder, " [optional parms] ciphertext1 ciphertext2 addresult\n"
-		"\teval-add both ciphertexts\n"},
-		{"evalmult", evalmulter, " [optional parms] ciphertext1 ciphertext2 addresult\n"
-		"\teval-mult both ciphertexts\n"},
+		{"makekey", keymaker<Poly>, keymaker<DCRTPoly>, " [optional parms] keyname\n"
+		"\tcreate a new keypair\n\t\tsave keynamePUB, keynamePRI, keynameCTXT and keynameEMK"},
+		{"makerekey", rekeymaker<Poly>, rekeymaker<DCRTPoly>, " [optional parms] pubkey_file secretkey_file rekey_file\n"
+		"\tcreate a re-encryption key from the contents of pubkey_file and secretkey_file\n\tsave in rekey_file"},
+		{"encrypt", encrypter<Poly>, encrypter<DCRTPoly>, " [optional parms] plaintext_file pubkey_file ciphertext_file\n"
+		"\tencrypt the contents of plaintext_file using the contents of pubkey_file\n\tsave results in ciphertext_file"},
+		{"reencrypt", reencrypter<Poly>, reencrypter<DCRTPoly>, " [optional parms] encrypted_file rekey_file reencrypted_file\n"
+		"\treencrypt the contents of encrypted_file using the contents of rekey_file\n\tsave results in reencrypted_file"},
+		{"decrypt", decrypter<Poly>, decrypter<DCRTPoly>, " [optional parms] ciphertext_file prikey_file cleartext_file\n"
+		"\tdecrypt the contents of ciphertext_file using the contents of prikey_file\n\tsave results in cleartext_file"},
+		{"evaladd", evaladder<Poly>, evaladder<DCRTPoly>, " [optional parms] ciphertext1 ciphertext2 addresult\n"
+		"\teval-add both ciphertexts\n\tsave result in addresult"},
+		{"evalmult", evalmulter<Poly>, evalmulter<DCRTPoly>, " [optional parms] ciphertext1 ciphertext2 multresult\n"
+		"\teval-mult both ciphertexts\n\tsave result in multresult"},
 };
 
 void
@@ -510,11 +525,13 @@ usage(const string& cmd, const string& msg)
 
 	cerr << endl;
 	cerr << "[optional params] are:" << endl;
-	cerr << "-integers: indicates system should use int plaintext instead of byte plaintext: plaintext file is ascii ints delimited by whitespace" << endl;
-	cerr << "-intlen N: when using integers, indicates number of integers in the int plaintext; default is 5. activates -integers mode" << endl;
-	cerr << "-list filename: list all the parameter sets in the file filename, then exit" << endl;
-	cerr << "-use filename parmset: use the parameter set named parmset from the parameter file" << endl;
-	cerr << "-from filename: use the deserialization of filename to set the crypto context" << endl;
+	cerr << "-poly: (default) use Poly" << endl;
+	cerr << "-dcrt: use DCRTPoly instead of Poly" << endl;
+	cerr << "-integers: use integer plaintext with " << IntVectorLen << " integers\n\tplaintext file is ascii ints delimited by whitespace" << endl;
+	cerr << "-intlen N: use integer plaintext with N integers; default is " << IntVectorLen << endl;
+	cerr << "-list: list all the parameter sets, then exit" << endl;
+	cerr << "-use parmset: use the parameter set named parmset from the parameter file" << endl;
+	cerr << "-from keyname: use the serialization of keynameCTXT and EMK for the crypto context" << endl;
 }
 
 int
@@ -525,54 +542,100 @@ main( int argc, char *argv[] )
 		return 1;
 	}
 
-	if( string(argv[1]) == "-list" && argc == 3) {
-		CryptoContextHelper::printAllParmSets(cout);
+	if( string(argv[1]) == "-list" ) {
+		CryptoContextHelper::printAllParmSetNames(cout);
 		return 0;
 	}
 
 	CryptoContext<Poly> ctx;
+	CryptoContext<DCRTPoly> dctx;
 
 	int cmdidx = 1;
 	while( cmdidx < argc ) {
-		if( string(argv[cmdidx]) == "-integers" ) {
+		string arg(argv[cmdidx]);
+		if( arg == "-integers" ) {
 			CommandMode = INTMODE;
 			cmdidx++;
 		}
 
-		else if( string(argv[cmdidx]) == "-intlen" && cmdidx+1 < argc ) {
+		else if( arg == "-intlen" && cmdidx+1 < argc ) {
 			CommandMode = INTMODE;
 			IntVectorLen = stoi( string(argv[cmdidx + 1]) );
 			cmdidx+= 2;
 		}
 
-		else if( string(argv[cmdidx]) == "-use" && cmdidx+1 < argc) {
-			ctx = CryptoContextHelper::getNewContext( string(argv[cmdidx+1]) );
-			if( !ctx ) {
-				usage("ALL", "Could not construct a crypto context");
+		else if( arg == "-use" && cmdidx+1 < argc) {
+			if( ElementMode == POLY ) {
+				ctx = CryptoContextHelper::getNewContext( string(argv[cmdidx+1]) );
+				if( !ctx ) {
+					cerr << "Could not construct a crypto context" << endl;
+					return 1;
+				}
+			}
+			else if( ElementMode == DCRT ) {
+				dctx = CryptoContextHelper::getNewDCRTContext( string(argv[cmdidx+1]), 5, 32 );
+				if( !dctx ) {
+					cerr << "Could not construct a dcrt crypto context" << endl;
+					return 1;
+				}
+			}
+
+			cmdidx += 2;
+		}
+		else if( arg == "-from" && cmdidx+1 < argc ) {
+			Serialized	cser;
+			string cfile( string(argv[cmdidx+1])+"CTXT" );
+			if( SerializableHelper::ReadSerializationFromFile(cfile, &cser) ) {
+				if( ElementMode == POLY )
+					ctx = CryptoContextFactory<Poly>::DeserializeAndCreateContext(cser);
+				else if( ElementMode == DCRT )
+					dctx = CryptoContextFactory<DCRTPoly>::DeserializeAndCreateContext(cser);
+			}
+			else {
+				cerr << "Could not construct a crypto context from the file " << cfile << endl;
+				return 1;
+			}
+
+			// now get the keys
+			Serialized kser;
+			bool result = false;
+			string kfile( string(argv[cmdidx+1])+"EMK" );
+			if( SerializableHelper::ReadSerializationFromFile(kfile, &kser) ) {
+				if( ElementMode == POLY )
+					result = ctx->DeserializeEvalMultKey(kser);
+				else if( ElementMode == DCRT )
+					result = dctx->DeserializeEvalMultKey(kser);
+			}
+
+			if( !result ) {
+				cerr << "Could not get evalmult keys from the file " << kfile << endl;
 				return 1;
 			}
 
 			cmdidx += 2;
 		}
-		else if( string(argv[cmdidx]) == "-from" && cmdidx+1 < argc ) {
-			Serialized	kser;
-			if( SerializableHelper::ReadSerializationFromFile(string(argv[cmdidx+1]), &kser) ) {
-				ctx = CryptoContextFactory<Poly>::DeserializeAndCreateContext(kser);
-			}
-
-			cmdidx += 2;
+		else if( arg == "-dcrt" ) {
+			ElementMode = DCRT;
+			cmdidx++;
+		}
+		else if( arg == "-poly" ) {
+			ElementMode = POLY;
+			cmdidx++;
 		}
 		else
 			break;
 	}
 
-	if( !ctx ) {
+	if( !ctx && !dctx ) {
 		cout << "Defaulting to LTV5" << endl;
-		ctx = CryptoContextHelper::getNewContext( "LTV5" );
+		if( ElementMode == POLY )
+			ctx = CryptoContextHelper::getNewContext( "LTV5" );
+		else if( ElementMode == DCRT )
+			dctx = CryptoContextHelper::getNewDCRTContext( "LTV5", 5, 32 );
 	}
 
-	if( !ctx ) {
-		usage("ALL", "Unable to create a crypto context");
+	if( !ctx && !dctx ) {
+		cerr << "Unable to create a crypto context" << endl;
 		return 1;
 	}
 
@@ -581,15 +644,25 @@ main( int argc, char *argv[] )
 		return 1;
 	}
 
-	ctx->Enable(ENCRYPTION);
-	ctx->Enable(PRE);
-	ctx->Enable(SHE);
+	if( ElementMode == POLY ) {
+		ctx->Enable(ENCRYPTION);
+		ctx->Enable(PRE);
+		ctx->Enable(SHE);
+	}
+	else if( ElementMode == DCRT ) {
+		dctx->Enable(ENCRYPTION);
+		dctx->Enable(PRE);
+		dctx->Enable(SHE);
+	}
 
 	bool	rancmd = false;
 	string userCmd(argv[cmdidx]);
 	for( size_t i=0; i<(sizeof(cmds)/sizeof(cmds[0])); i++ ) {
 		if( cmds[i].command == string(userCmd) ) {
-			(*cmds[i].func)(ctx, cmds[i].command, argc-1-cmdidx, &argv[cmdidx + 1]);
+			if( ElementMode == POLY )
+				(*cmds[i].func)(ctx, cmds[i].command, argc-1-cmdidx, &argv[cmdidx + 1]);
+			else if( ElementMode == DCRT )
+				(*cmds[i].dfunc)(dctx, cmds[i].command, argc-1-cmdidx, &argv[cmdidx + 1]);
 			rancmd = true;
 			break;
 		}

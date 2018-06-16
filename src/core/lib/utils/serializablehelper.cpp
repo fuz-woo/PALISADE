@@ -81,6 +81,7 @@ namespace lbcrypto {
     FILE *fp = fopen(outputFileName.c_str(), "w");
     if( fp == 0 ) return false;
 
+    //char writeBuffer[32768];
     char writeBuffer[32768];
     rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
 
@@ -101,7 +102,8 @@ namespace lbcrypto {
     FILE *fp = fopen(outputFileName.c_str(), "w");
     if( fp == 0 ) return false;
 
-    char writeBuffer[32768];
+    //char writeBuffer[32768];
+    char writeBuffer[131072];
     rapidjson::FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
 
     rapidjson::PrettyWriter<rapidjson::FileWriteStream> pwriter(os);
@@ -122,7 +124,8 @@ namespace lbcrypto {
     FILE *fp = fopen(jsonFileName.c_str(), "r");
     if( fp == 0 ) return false;
 
-    char readBuffer[32768];
+    //char readBuffer[32768];
+    char readBuffer[131072];
     rapidjson::FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 
     serObj->ParseStream(is);

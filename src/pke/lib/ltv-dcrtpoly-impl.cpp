@@ -37,7 +37,7 @@ template class LPLeveledSHEAlgorithmLTV<DCRTPoly>;
 
 template<>
 bool LPAlgorithmParamsGenLTV<DCRTPoly>::ParamsGen(shared_ptr<LPCryptoParameters<DCRTPoly>> cryptoParams,
-		int32_t evalAddCount, int32_t evalMultCount, int32_t keySwitchCount) const
+		int32_t evalAddCount, int32_t evalMultCount, int32_t keySwitchCount, size_t dcrtBits) const
 {
 	if (!cryptoParams)
 		return false;

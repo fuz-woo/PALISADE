@@ -58,7 +58,7 @@ template<class Element>
 Matrix<Element>& Matrix<Element>::Fill(const Element &val) {
     for (size_t row = 0; row < rows; ++row) {
         for (size_t col = 0; col < cols; ++col) {
-            *data[row][col] = val;
+            data[row][col] = val;
         }
     }
     return *this;
@@ -78,7 +78,7 @@ Matrix<Element> Matrix<Element>::Mult(Matrix<Element> const& other) const {
 #endif
         for (size_t col = 0; col < result.cols; ++col) {
 		for (size_t i = 0; i < cols; ++i) {
-		        *result.data[0][col] += *data[0][i] * *other.data[i][col];
+		        result.data[0][col] += data[0][i] * other.data[i][col];
 		    }
         }
     }
@@ -90,7 +90,7 @@ Matrix<Element> Matrix<Element>::Mult(Matrix<Element> const& other) const {
 	    for (size_t row = 0; row < result.rows; ++row) {
 		for (size_t i = 0; i < cols; ++i) {
 		for (size_t col = 0; col < result.cols; ++col) {
-		        *result.data[row][col] += *data[row][i] * *other.data[i][col];
+		        result.data[row][col] += data[row][i] * other.data[i][col];
 		    }
 		}
 	    }
@@ -108,7 +108,7 @@ Matrix<Element>& Matrix<Element>::operator+=(Matrix<Element> const& other) {
 #endif
     for (size_t j = 0; j < cols; ++j) {
 	for (size_t i = 0; i < rows; ++i) {
-            *data[i][j] += *other.data[i][j];
+            data[i][j] += other.data[i][j];
         }
     }
 
@@ -125,7 +125,7 @@ Matrix<Element>& Matrix<Element>::operator-=(Matrix<Element> const& other) {
 #endif
     for (size_t j = 0; j < cols; ++j) {
         for (size_t i = 0; i < rows; ++i) {
-            *data[i][j] -= *other.data[i][j];
+            data[i][j] -= other.data[i][j];
         }
     }
 
@@ -159,9 +159,9 @@ void Matrix<Element>::Determinant(Element *determinant) const {
 	if (rows < 1)
 		throw invalid_argument("Dimension should be at least one");
 	else if (rows == 1)
-		*determinant = *data[0][0];
+		*determinant = data[0][0];
 	else if (rows == 2)
-		*determinant = *data[0][0] * (*data[1][1]) - *data[1][0] * (*data[0][1]);
+		*determinant = data[0][0] * (data[1][1]) - data[1][0] * (data[0][1]);
 	else
 	{
 		size_t j1, j2;
@@ -179,20 +179,20 @@ void Matrix<Element>::Determinant(Element *determinant) const {
 				for (size_t j = 0; j < n; j++) {
 					if (j == j1) continue; // don't copy the minor column element
 
-					*result.data[i-1][j2] = *data[i][j];  // copy source element into new sub-matrix
+					result.data[i-1][j2] = data[i][j];  // copy source element into new sub-matrix
 											 // i-1 because new sub-matrix is one row
 											 // (and column) smaller with excluded minors
 					j2++;                  // move to next sub-matrix column position
 				}
 			}
 
-			auto tempDeterminant( *allocZero() );
+			auto tempDeterminant( allocZero() );
 			result.Determinant(&tempDeterminant);
 
 			if (j1 % 2 == 0)
-				*determinant = *determinant + (*data[0][j1]) * tempDeterminant;
+				*determinant = *determinant + (data[0][j1]) * tempDeterminant;
 			else
-				*determinant = *determinant - (*data[0][j1]) * tempDeterminant;
+				*determinant = *determinant - (data[0][j1]) * tempDeterminant;
 
 			//if (j1 % 2 == 0)
 			//	determinant = determinant + (*data[0][j1]) * result.Determinant();
@@ -234,22 +234,22 @@ Matrix<Element> Matrix<Element>::CofactorMatrix() const {
 				for (jj = 0; jj<n; jj++) {
 					if (jj == j)
 						continue;
-					*c.data[iNew][jNew] = *data[ii][jj];
+					c.data[iNew][jNew] = data[ii][jj];
 					jNew++;
 				}
 				iNew++;
 			}
 
 			/* Calculate the determinant */
-			Element determinant( *allocZero() );
+			Element determinant( allocZero() );
 			c.Determinant(&determinant);
 			Element negDeterminant = -determinant;
 
 			/* Fill in the elements of the cofactor */
 			if ((i + j) % 2 == 0)
-				*result.data[i][j] = determinant;
+				result.data[i][j] = determinant;
 			else
-				*result.data[i][j] = negDeterminant;
+				result.data[i][j] = negDeterminant;
 		}
 	}
 
@@ -264,9 +264,9 @@ Matrix<Element>& Matrix<Element>::VStack(Matrix<Element> const& other) {
         throw invalid_argument("VStack rows not equal size");
     }
     for (size_t row = 0; row < other.rows; ++row) {
-        vector<unique_ptr<Element>> rowElems;
+        data_row_t rowElems;
         for (auto elem = other.data[row].begin(); elem != other.data[row].end(); ++elem) {
-            rowElems.push_back(make_unique<Element>(**elem));
+            rowElems.push_back(*elem);
         }
         data.push_back(std::move(rowElems));
     }
@@ -281,9 +281,9 @@ inline Matrix<Element>& Matrix<Element>::HStack(Matrix<Element> const& other) {
         throw invalid_argument("HStack cols not equal size");
     }
     for (size_t row = 0; row < rows; ++row) {
-        vector<unique_ptr<Element>> rowElems;
+    	data_row_t rowElems;
         for (auto elem = other.data[row].begin(); elem != other.data[row].end(); ++elem) {
-            rowElems.push_back(make_unique<Element>(**elem));
+            rowElems.push_back(*elem);
         }
         MoveAppend(data[row], rowElems);
     }
@@ -297,7 +297,7 @@ void Matrix<Element>::deepCopyData(data_t const& src) {
     data.resize(src.size());
     for (size_t row = 0; row < src.size(); ++row) {
         for (auto elem = src[row].begin(); elem != src[row].end(); ++elem) {
-            data[row].push_back(lbcrypto::make_unique<Element>(**elem));
+            data[row].push_back(*elem);
         }
     }
 }
@@ -316,7 +316,7 @@ Matrix<Element> Matrix<Element>::MultByUnityVector() const {
 #endif
 	for (size_t row = 0; row < result.rows; ++row) {
 		for (size_t col= 0; col<cols; ++col){
-				*result.data[row][0] += *data[row][col];
+				result.data[row][0] += data[row][col];
 		}
 	}
 
@@ -338,7 +338,7 @@ Matrix<Element> Matrix<Element>::MultByRandomVector(std::vector<int> ranvec) con
 	for (size_t row = 0; row < result.rows; ++row) {
 		for (size_t col= 0; col<cols; ++col){
 			if (ranvec[col] == 1)
-				*result.data[row][0] += *data[row][col];
+				result.data[row][0] += data[row][col];
 		}
 	}
 	return result;

@@ -130,7 +130,6 @@ void PackedEncoding::Destroy()
 	m_fromCRTPerm.clear();
 }
 
-// FIXME: can these two SetParams methods be collapsed into one??
 void PackedEncoding::SetParams(usint m, EncodingParams params)
 {
 	NativeInteger modulusNI(params->GetPlaintextModulus()); //native int modulus
@@ -211,77 +210,6 @@ void PackedEncoding::SetParams(usint m, EncodingParams params)
 
 	if( hadEx )
 		throw std::logic_error(exception_message);
-
-}
-
-void PackedEncoding::SetParams(usint m, const PlaintextModulus &modulus)
-{
-	NativeInteger modulusNI(modulus); //native int modulus
-
-	std::string exception_message;
-	bool hadEx = false;
-
-	//initialize the CRT coefficients if not initialized
-#pragma omp critical
-	try {
-		if (!(m & (m - 1))) { // Check if m is a power of 2
-			SetParams_2n(m, modulusNI);
-		}
-		else {
-			const ModulusM modulusM = {modulusNI,m};
-
-			NativeInteger initRoot = RootOfUnity<NativeInteger>(2 * m, modulusNI);
-
-			// Arbitrary: Bluestein based CRT Arb. So we need the 2mth root of unity
-
-			m_initRoot[modulusM] = initRoot;
-
-			// Find a compatible big-modulus and root of unity for CRTArb
-			usint nttDim = pow(2, ceil(log2(2 * m - 1)));
-			if ((modulusNI.ConvertToInt() - 1) % nttDim == 0) {
-				m_bigModulus[modulusM] = modulusNI;
-			}
-			else {
-				usint bigModulusSize = ceil(log2(2 * m - 1)) + 2 * modulusNI.GetMSB() + 1;
-				m_bigModulus[modulusM] = FirstPrime<NativeInteger>(bigModulusSize, nttDim);
-			}
-
-			auto ri = RootOfUnity<NativeInteger>(nttDim, m_bigModulus[modulusM]);
-			m_bigRoot[modulusM] = ri;
-
-
-			// Find a generator for the automorphism group
-			NativeInteger M(m); // Hackish typecast
-			NativeInteger automorphismGenerator = FindGeneratorCyclic<NativeInteger>(M);
-			m_automorphismGenerator[m] = automorphismGenerator.ConvertToInt();
-
-			// Create the permutations that interchange the automorphism and crt ordering
-			usint phim = GetTotient(m);
-			auto tList = GetTotientList(m);
-			auto tIdx = std::vector<usint>(m, -1);
-			for (usint i = 0; i<phim; i++) {
-				tIdx[tList[i]] = i;
-			}
-
-			m_toCRTPerm[m] = std::vector<usint>(phim);
-			m_fromCRTPerm[m] = std::vector<usint>(phim);
-
-			usint curr_index = 1;
-			for (usint i = 0; i<phim; i++) {
-				m_toCRTPerm[m][tIdx[curr_index]] = i;
-				m_fromCRTPerm[m][i] = tIdx[curr_index];
-
-				curr_index = curr_index*m_automorphismGenerator[m] % m;
-			}
-		}
-	}
-	catch( std::exception& e ) {
-		exception_message = e.what();
-		hadEx = true;
-	}
-
-	if( hadEx )
-		throw std::logic_error(exception_message);
 }
 
 template<typename P>
@@ -296,7 +224,7 @@ void PackedEncoding::Pack(P *ring, const PlaintextModulus &modulus) const {
 
 	//Do the precomputation if not initialized
 	if (this->m_initRoot[modulusM].GetMSB() == 0) {
-		SetParams(m, modulus);
+		SetParams(m, EncodingParams(new EncodingParamsImpl(modulus)));
 	}
 
 	usint phim = ring->GetRingDimension();
@@ -370,7 +298,7 @@ void PackedEncoding::Unpack(P *ring, const PlaintextModulus &modulus) const {
 
 	//Do the precomputation if not initialized
 	if (this->m_initRoot[modulusM].GetMSB() == 0) {
-		SetParams(m, modulus);
+		SetParams(m, EncodingParams(new EncodingParamsImpl(modulus)));
 	}
 
 	usint phim = ring->GetRingDimension(); //ring dimension

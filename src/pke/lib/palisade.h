@@ -27,6 +27,8 @@
 #ifndef SRC_LIB_PALISADE_H_
 #define SRC_LIB_PALISADE_H_
 
+#include "version.h"
+
 #include <initializer_list>
 
 #include <string>
@@ -52,6 +54,8 @@ class CiphertextImpl;
 template<typename Element>
 using Ciphertext = shared_ptr<CiphertextImpl<Element>>;
 
+template<typename Element>
+using ConstCiphertext = const shared_ptr<const CiphertextImpl<Element>>;
 }
 
 #include "math/backend.h"
@@ -66,7 +70,7 @@ using Ciphertext = shared_ptr<CiphertextImpl<Element>>;
 #include "lattice/ildcrtparams.h"
 #include "lattice/ilelement.h"
 #include "lattice/poly.h"
-#include "../../core/lib/lattice/dcrtpoly.h"
+#include "lattice/dcrtpoly.h"
 
 #include "encoding/encodings.h"
 
@@ -78,6 +82,7 @@ using Ciphertext = shared_ptr<CiphertextImpl<Element>>;
 #include "bgv.h"
 #include "bfv.h"
 #include "bfvrns.h"
+#include "bfvrnsB.h"
 #include "nullscheme.h"
 
 #include "utils/serializable.h"

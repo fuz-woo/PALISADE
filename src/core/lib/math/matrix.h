@@ -50,9 +50,9 @@ namespace lbcrypto {
 template<class Element>
 class Matrix : public Serializable {
 public:
-	typedef vector<vector<unique_ptr<Element>>> data_t;
-	typedef vector<unique_ptr<Element>> data_row_t;
-	typedef std::function<unique_ptr<Element>(void)> alloc_func;
+	typedef vector<vector<Element>> data_t;
+	typedef vector<Element> data_row_t;
+	typedef std::function<Element(void)> alloc_func;
 
 
 	/**
@@ -79,7 +79,7 @@ public:
 	 * @param &allocZero lambda function for zero initialization (used for initializing derived matrix objects)
 	 * @param &rows number of rows.
 	 * @param &rows number of columns.
-	 * @param &allocGen lambda function for intialization using a distribution generator.
+	 * @param &allocGen lambda function for initialization using a distribution generator.
 	 */
 	Matrix(alloc_func allocZero, size_t rows, size_t cols, alloc_func allocGen);
 
@@ -193,10 +193,12 @@ public:
 	 */
 	Matrix<Element> ScalarMult(Element const& other) const {
 		Matrix<Element> result(*this);
+#ifdef OMP
 #pragma omp parallel for
+#endif
 		for (size_t col = 0; col < result.cols; ++col) {
 			for (size_t row = 0; row < result.rows; ++row) {
-				*result.data[row][col] = *result.data[row][col] * other;
+				result.data[row][col] = result.data[row][col] * other;
 			}
 		}
 
@@ -226,7 +228,7 @@ public:
 
 		for (size_t i = 0; i < rows; ++i) {
 			for (size_t j = 0; j < cols; ++j) {
-				if (*data[i][j] != *other.data[i][j]) {
+				if (data[i][j] != other.data[i][j]) {
 					return false;
 				}
 			}
@@ -309,10 +311,12 @@ public:
 			throw invalid_argument("Addition operands have incompatible dimensions");
 		}
 		Matrix<Element> result(*this);
+#ifdef OMP
 #pragma omp parallel for
+#endif
 		for (size_t j = 0; j < cols; ++j) {
 			for (size_t i = 0; i < rows; ++i) {
-				*result.data[i][j] += *other.data[i][j];
+				result.data[i][j] += other.data[i][j];
 			}
 		}
 		return result;
@@ -348,10 +352,12 @@ public:
 			throw invalid_argument("Subtraction operands have incompatible dimensions");
 		}
 		Matrix<Element> result(allocZero, rows, other.cols);
+#ifdef OMP
 #pragma omp parallel for
+#endif
 		for (size_t j = 0; j < cols; ++j) {
 			for (size_t i = 0; i < rows; ++i) {
-				*result.data[i][j] = *data[i][j] - *other.data[i][j];
+				result.data[i][j] = data[i][j] - other.data[i][j];
 			}
 		}
 
@@ -423,7 +429,7 @@ public:
 	 * @return the element at the index
 	 */
 	Element& operator()(size_t row, size_t col) {
-		return *data[row][col];
+		return data[row][col];
 	}
 
 	/**
@@ -434,7 +440,7 @@ public:
 	 * @return the element at the index
 	 */
 	Element const& operator()(size_t row, size_t col) const {
-		return *data[row][col];
+		return data[row][col];
 	}
 
 	/**
@@ -447,7 +453,7 @@ public:
 		Matrix<Element> result(this->allocZero,1,this->cols);
 		int i = 0;
 		for (auto elem = this->GetData()[row].begin(); elem != this->GetData()[row].end(); ++elem) {
-			result(0,i) = **elem;
+			result(0,i) = *elem;
 			i++;
 		}
 		return result;
@@ -467,7 +473,7 @@ public:
 			int i = 0;
 
 			for (auto elem = this->GetData()[row].begin(); elem != this->GetData()[row].end(); ++elem) {
-				result(row-row_start,i) = **elem;
+				result(row-row_start,i) = *elem;
 				i++;
 			}
 		}
@@ -481,7 +487,7 @@ public:
 	    for (size_t row = 0; row < m.GetRows(); ++row) {
 	        os << "[ ";
 	        for (size_t col = 0; col < m.GetCols(); ++col) {
-	            os << *m.GetData()[row][col] << " ";
+	            os << m(row,col) << " ";
 	        }
 	        os << "]\n";
 	    }

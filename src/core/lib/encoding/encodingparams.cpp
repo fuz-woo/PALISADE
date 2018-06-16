@@ -41,9 +41,9 @@ namespace lbcrypto
 */
 bool EncodingParamsImpl::Serialize(Serialized* serObj) const
 {
-
-	if (!serObj->IsObject())
-		return false;
+	if( !serObj->IsObject() ){
+		serObj->SetObject();
+	}
 
 	SerialItem ser(rapidjson::kObjectType);
 	ser.AddMember("PlaintextModulus", std::to_string(this->m_plaintextModulus), serObj->GetAllocator());

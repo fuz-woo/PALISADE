@@ -32,6 +32,7 @@
 #include "encoding/encodingparams.h"
 #include "encoding/coefpackedencoding.h"
 #include "encoding/integerencoding.h"
+#include "encoding/fractionalencoding.h"
 #include "encoding/packedencoding.h"
 #include "encoding/scalarencoding.h"
 #include "encoding/stringencoding.h"

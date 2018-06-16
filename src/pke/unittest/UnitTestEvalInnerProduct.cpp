@@ -157,8 +157,6 @@ usint ArbLTVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -166,6 +164,8 @@ usint ArbLTVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextLTV(params, encodingParams, 16, stdDev);
 
@@ -216,8 +216,6 @@ usint ArbBGVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -225,6 +223,8 @@ usint ArbBGVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev);
 
@@ -286,11 +286,11 @@ usint ArbBFVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	auto cycloPolyBig = GetCyclotomicPolynomial<BigVector, BigInteger>(m, bigEvalMultModulus);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPolyBig, bigEvalMultModulus);
 
-	PackedEncoding::SetParams(m, p);
-
 	usint batchSize = 8;
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	BigInteger delta(modulusQ.DividedBy(modulusP));
 

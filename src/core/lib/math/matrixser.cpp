@@ -125,18 +125,24 @@ template<>
 bool Matrix<Poly>::Serialize(Serialized* serObj) const {
 
   //TODO: this was probably never tested since Matrix<Poly>.Deserialize() is not written
-        serObj->SetObject();
-	//SerializeVectorOfVector("Matrix", elementName<Element>(), this->data, serObj);
-
-	//std::cout << typeid(Element).name() << std::endl;
-
-	for( size_t r=0; r<rows; r++ ) {
-		for( size_t c=0; c<cols; c++ ) {
-			data[r][c]->Serialize(serObj);
-		}
+  if( !serObj->IsObject() ){
+    serObj->SetObject();
+  }
+  
+  //SerializeVectorOfVector("Matrix", elementName<Element>(), this->data, serObj);
+  
+  //std::cout << typeid(Element).name() << std::endl;
+  bool rc = false;
+    for( size_t r=0; r<rows; r++ ) {
+      for( size_t c=0; c<cols; c++ ) {
+	rc = data[r][c].Serialize(serObj);
+	if (!rc) {
+	  PALISADE_THROW(lbcrypto::serialize_error ,"serialization failure in Matrix<Poly> "
+			 +to_string(r)+", "+to_string(c));
 	}
-
-	return true;
+      }
+    }
+    return true;
 }
 
 template<>
@@ -147,36 +153,47 @@ bool Matrix<Poly>::Deserialize(const Serialized& serObj) {
 
 template<>
 bool Matrix<NativePoly>::Serialize(Serialized* serObj) const {
-	serObj->SetObject();
+ if( !serObj->IsObject() ){
+    serObj->SetObject();
+  }
 
-	for( size_t r=0; r<rows; r++ ) {
-		for( size_t c=0; c<cols; c++ ) {
-			data[r][c]->Serialize(serObj);
-		}
-	}
-
-	return true;
+  bool rc = false;
+  for( size_t r=0; r<rows; r++ ) {
+    for( size_t c=0; c<cols; c++ ) {
+      data[r][c].Serialize(serObj);
+      if (!rc) {
+	PALISADE_THROW(lbcrypto::serialize_error ,"serialization failure in Matrix<NativePoly> "
+		       +to_string(r)+", "+to_string(c));
+      }
+    }
+  }
+  return true;
 }
 
 template<>
 bool Matrix<NativePoly>::Deserialize(const Serialized& serObj) {
+      std::cout<<"Matrix<NativePoly>::Deserialize() not written"<<std::endl;
 	return false;
 }
 
 template<>
 bool Matrix<DCRTPoly>::Serialize(Serialized* serObj) const {
   std::cout <<" Matrix<DCRTPoly>::Serialize, unsupported, use SerializeMatrix"<<std::endl;
-  if( !serObj->IsObject() ) {
-    std::cout <<" Matrix<DCRTPoly>::Serialize, serObj is not an object"<<std::endl;
-    return false;
+  if( !serObj->IsObject() ){
+    serObj->SetObject();
   }
-  
+  bool rc = false;
   for( size_t r=0; r<rows; r++ ) {
     for( size_t c=0; c<cols; c++ ) {
-      data[r][c]->Serialize(serObj); //call the serialization for this matrix
+      rc = data[r][c].Serialize(serObj); //call the serialization for this matrix
+      if( !rc ) {
+	PALISADE_THROW(lbcrypto::serialize_error,
+		       "Matrix<DCRTPoly>::Serialize error element "
+		       +to_string(r)+", "+to_string(c));
+	return false;
+      }
     }
   }
-
   return true;
 }
 
@@ -201,22 +218,26 @@ bool MatrixStrassen<Poly>::Deserialize(const Serialized& serObj) {
 
 template<>
 bool Matrix<Plaintext>::Serialize(Serialized* serObj) const {
-	return false;
+  std::cout<<"Matrix<Poly>::Serialize() not written"<<std::endl;
+  return false;
 }
 
 template<>
 bool Matrix<Plaintext>::Deserialize(const Serialized& serObj) {
-	return false;
+    std::cout<<"Matrix<Plaintext>::Deserialize() not written"<<std::endl;
+    return false;
 }
 
 template<>
 bool Matrix<PackedEncoding>::Serialize(Serialized* serObj) const {
-	return false;
+    std::cout<<"Matrix<PackedEncoding>::Serialize() not written"<<std::endl;
+    return false;
 }
 
 template<>
 bool Matrix<PackedEncoding>::Deserialize(const Serialized& serObj) {
-	return false;
+    std::cout<<"Matrix<PackedEncoding>::Deserialize() not written"<<std::endl;
+    return false;
 }
 
 template<>
@@ -227,7 +248,8 @@ bool Matrix<Field2n>::Serialize(Serialized* serObj) const {
 
 template<>
 bool Matrix<Field2n>::Deserialize(const Serialized& serObj) {
-	return false;
+  std::cout<<"Matrix<Field2n>::Deserialize() not written"<<std::endl;
+  return false;
 }
 
 }

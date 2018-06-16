@@ -46,58 +46,6 @@ class ElemParams : public Serializable
 {
 public:
 	/**
-	 * @brief Simple constructor method that takes as input order and ciphertext modulus.
-	 * @param order the cyclotomic order wrapped by the parameter set.
-	 * @param ctModulus the ciphertext modulus wrapped by the parameter set.
-	 */
-	ElemParams(usint order,
-	           const IntegerType& ctModulus) {
-		cyclotomicOrder = order;
-		ringDimension = GetTotient(order);
-		isPowerOfTwo = ringDimension == cyclotomicOrder / 2;
-		ciphertextModulus = ctModulus;
-		rootOfUnity = 0;
-		bigCiphertextModulus = 0;
-		bigRootOfUnity = 0;
-	}
-	/**
-	 * @brief Simple constructor method that takes as input root of unity, cyclotomic order and ciphertext modulus.
-	 * @param order the cyclotomic order wrapped by the parameter set.
-	 * @param ctModulus the ciphertext modulus wrapped by the parameter set.
-	 * @param rUnity the root of unity.
-	 */
-	ElemParams(usint order,
-	           const IntegerType& ctModulus,
-	           const IntegerType& rUnity) {
-		cyclotomicOrder = order;
-		ringDimension = GetTotient(order);
-		isPowerOfTwo = ringDimension == cyclotomicOrder / 2;
-		ciphertextModulus = ctModulus;
-		rootOfUnity = rUnity;
-		bigCiphertextModulus = 0;
-		bigRootOfUnity = 0;
-	}
-	/**
-	 * @brief Simple constructor method that takes as input root of unity, cyclotomic order
-	 * and the ciphertext modulus and big ciphertext Modulus.  This is used for bit-packing operations.
-	 * @param order the cyclotomic order wrapped by the parameter set.
-	 * @param ctModulus the ciphertext modulus wrapped by the parameter set.
-	 * @param rUnity the root of unity.
-	 * @param bigCtModulus the big ciphertext modulus used for bit packing operations.
-	 */
-	ElemParams(usint order,
-	           const IntegerType& ctModulus,
-	           const IntegerType& rUnity,
-	           const IntegerType& bigCtModulus) {
-		cyclotomicOrder = order;
-		ringDimension = GetTotient(order);
-		isPowerOfTwo = ringDimension == cyclotomicOrder / 2;
-		ciphertextModulus = ctModulus;
-		rootOfUnity = rUnity;
-		bigCiphertextModulus = bigCtModulus;
-		bigRootOfUnity = 0;
-	}
-	/**
 	 * @brief Simple constructor method that takes as input root of unity, big root of unity, cyclotomic order
 	 * and the ciphertext modulus and big ciphertext Modulus.  This is used for bit-packing operations.
 	 * @param order the cyclotomic order wrapped by the parameter set.
@@ -108,9 +56,9 @@ public:
 	 */
 	ElemParams(usint order,
 	           const IntegerType& ctModulus,
-	           const IntegerType& rUnity,
-	           const IntegerType& bigCtModulus,
-	           const IntegerType& bigRUnity) {
+	           const IntegerType& rUnity = IntegerType(0),
+	           const IntegerType& bigCtModulus = IntegerType(0),
+	           const IntegerType& bigRUnity = IntegerType(0)) {
 		cyclotomicOrder = order;
 		ringDimension = GetTotient(order);
 		isPowerOfTwo = ringDimension == cyclotomicOrder / 2;
@@ -119,6 +67,7 @@ public:
 		bigCiphertextModulus = bigCtModulus;
 		bigRootOfUnity = bigRUnity;
 	}
+
 	/**
 	 * @brief Copy constructor using assignment to copy wrapped elements.
 	 * @param rhs the input ElemParams copied.
@@ -133,6 +82,7 @@ public:
 		bigCiphertextModulus = rhs.bigCiphertextModulus;
 		bigRootOfUnity = rhs.bigRootOfUnity;
 	}
+
 	/**
 	 * @brief Copy constructor using move semnantics to copy wrapped elements.
 	 * @param rhs the input ElemParams copied.
@@ -147,6 +97,7 @@ public:
 		bigCiphertextModulus = std::move(rhs.bigCiphertextModulus);
 		bigRootOfUnity = std::move(rhs.bigRootOfUnity);
 	}
+
 	/**
 	 * @brief Assignment operator using assignment operations of wrapped elements.
 	 * @param rhs the ElemParams instance to copy.
@@ -161,6 +112,7 @@ public:
 		bigRootOfUnity = rhs.bigRootOfUnity;
 		return *this;
 	}
+
 	/**
 	 * @brief Simple destructor method.
 	 * @return
@@ -174,6 +126,7 @@ public:
 	usint GetCyclotomicOrder() const {
 		return cyclotomicOrder;
 	}
+
 	/**
 	 * @brief Simple ring dimension getter method.  The ring dimension is the evaluation of the
 	 * totient function of the cyclotomic order.
@@ -182,6 +135,7 @@ public:
 	usint GetRingDimension() const {
 		return ringDimension;
 	}
+
 	/**
 	 * @brief Returns True if the cyclotomic order or ring dimension is a power of 2.
 	 * @return True if the cyclotomic order or ring dimension is a power of 2.  False otherwise.
@@ -189,6 +143,7 @@ public:
 	const bool OrderIsPowerOfTwo() const {
 		return isPowerOfTwo;
 	}
+
 	/**
 	 * @brief Simple getter method for the ciphertext modulus, not the big ciphertext modulus.
 	 * @return The ciphertext modulus, not the big ciphertext modulus.
@@ -196,6 +151,7 @@ public:
 	const IntegerType &GetModulus() const {
 		return ciphertextModulus;
 	}
+
 	/**
 	 * @brief Simpler getter method for the big ciphertext modulus.
 	 * This is not relevant for all applications.
@@ -204,6 +160,7 @@ public:
 	const IntegerType &GetBigModulus() const {
 		return bigCiphertextModulus;
 	}
+
 	/**
 	 * @brief Simple getter method for the root of unity, not the big root of unity.
 	 * @return The root of unity, not the big root of unity.
@@ -211,6 +168,7 @@ public:
 	const IntegerType &GetRootOfUnity() const {
 		return rootOfUnity;
 	}
+
 	/**
 	 * @brief Simple getter method for the big root of unity.
 	 * @return The the big root of unity.
@@ -218,6 +176,7 @@ public:
 	const IntegerType &GetBigRootOfUnity() const {
 		return bigRootOfUnity;
 	}
+
 	/**
 	 * @brief Output strem operator.
 	 * @param out the preceding output stream.
@@ -227,6 +186,7 @@ public:
 	friend std::ostream& operator<<(std::ostream& out, const ElemParams &item) {
 		return item.doprint(out);
 	}
+
 	/**
 	 * @brief Equality operator that tests the equality of all wrapped values.
 	 * @param other the other ElemenParams to compare to.
@@ -240,6 +200,7 @@ public:
 		       bigCiphertextModulus == other.bigCiphertextModulus &&
 		       bigRootOfUnity == other.bigRootOfUnity;
 	}
+
 	/**
 	 * @brief Inequality operator that tests the equality of all wrapped values.
 	 * @param other the other ElemenParams to compare to.
@@ -249,7 +210,6 @@ public:
 		return !(*this == other);
 	}
 
-public:
 	/**
 	 * Serialize the object into a Serialized
 	 * @param serObj is used to store the serialized result. It MUST be a rapidjson Object (SetObject());

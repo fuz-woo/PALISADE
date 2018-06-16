@@ -12,7 +12,8 @@ third-party/distros/gmp-6.1.1
 third-party/distros/gmp-6.1.2
 third-party/distros/ntl-10.3.0
 third-party/distros/ntl-10.5.0
-third-party/include
+third-party/include/NTL
+third-party/include/gmp.h
 third-party/lib
 third-party/share
 timing/

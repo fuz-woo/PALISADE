@@ -31,7 +31,7 @@ namespace lbcrypto
 {
 
 template<typename IntType>
-ILDCRTParams<IntType>::ILDCRTParams(usint order, usint depth, usint bits) : ElemParams<IntType>(order, 0, 0, 0, 0)
+ILDCRTParams<IntType>::ILDCRTParams(usint order, usint depth, usint bits) : ElemParams<IntType>(order, 0)
 {
 	if( order == 0 )
 		return;
@@ -63,13 +63,13 @@ template<typename IntType>
 bool
 ILDCRTParams<IntType>::Serialize(Serialized* serObj) const
 {
-	if( !serObj->IsObject() )
-		return false;
+    if( !serObj->IsObject() ){
+	  serObj->SetObject();
+	} 
 
 	Serialized ser(rapidjson::kObjectType, &serObj->GetAllocator());
 
 	SerializeVectorOfPointers<ILNativeParams>("Params", "ILParams", m_parms, &ser);
-
 	serObj->AddMember("ILDCRTParams", ser, serObj->GetAllocator());
 
 	return true;

@@ -31,12 +31,23 @@
 #include <string>
 #include <iomanip>
 #ifndef RAPIDJSON_HAS_STDSTRING
-#define RAPIDJSON_HAS_STDSTRING
+#define RAPIDJSON_HAS_STDSTRING 1
 #endif
 #ifndef RAPIDJSON_HAS_CXX11_RVALUE_REFS
-#define RAPIDJSON_HAS_CXX11_RVALUE_REFS
+#define RAPIDJSON_HAS_CXX11_RVALUE_REFS 1
+#endif
+
+#ifdef __GNUC__
+#if __GNUC__ >= 8
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
 #endif
 #include "rapidjson/document.h"
+#ifdef __GNUC__
+#if __GNUC__ >= 8
+#pragma GCC diagnostic pop
+#endif
+#endif
 #include "rapidjson/pointer.h"
 #include "rapidjson/reader.h"
 #include "rapidjson/error/en.h"

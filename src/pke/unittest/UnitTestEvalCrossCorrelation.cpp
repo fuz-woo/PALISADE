@@ -98,8 +98,6 @@ usint BGVCrossCorrelation() {
 	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
-	PackedEncoding::SetParams(m, p);
-
 	float stdDev = 4;
 
 	usint batchSize = 8;
@@ -107,6 +105,8 @@ usint BGVCrossCorrelation() {
 	shared_ptr<ILParams> params(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(params, encodingParams, 8, stdDev);
 
@@ -120,7 +120,7 @@ usint BGVCrossCorrelation() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
+	auto zeroAlloc = [=]() { return cc->MakePackedPlaintext({0}); };
 
 	Matrix<Plaintext> x = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
@@ -185,11 +185,11 @@ usint BFVCrossCorrelation() {
 
 	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPolyBig, bigEvalMultModulus);
 
-	PackedEncoding::SetParams(m, p);
-
 	usint batchSize = 8;
 
 	EncodingParams encodingParams(new EncodingParamsImpl(p, batchSize, PackedEncoding::GetAutomorphismGenerator(m)));
+
+	PackedEncoding::SetParams(m, encodingParams);
 
 	BigInteger delta(modulusQ.DividedBy(modulusP));
 
@@ -206,7 +206,7 @@ usint BFVCrossCorrelation() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
+	auto zeroAlloc = [=]() { return cc->MakePackedPlaintext({0}); };
 
 	Matrix<Plaintext> x = Matrix<Plaintext>(zeroAlloc, 2, 1);
 
@@ -268,7 +268,7 @@ usint BFVrnsCrossCorrelation() {
 	cc->EvalSumKeyGen(kp.secretKey);
 	cc->EvalMultKeyGen(kp.secretKey);
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakePackedPlaintext({0})); };
+	auto zeroAlloc = [=]() { return cc->MakePackedPlaintext({0}); };
 
 	Matrix<Plaintext> x = Matrix<Plaintext>(zeroAlloc, 2, 1);
 

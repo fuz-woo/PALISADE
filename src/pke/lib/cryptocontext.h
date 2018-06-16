@@ -66,6 +66,7 @@ private:
 
 	static std::map<string,std::vector<LPEvalKey<Element>>>					evalMultKeyMap;	/*!< cached evalmult keys, by secret key UID */
 	static std::map<string,shared_ptr<std::map<usint,LPEvalKey<Element>>>>	evalSumKeyMap;	/*!< cached evalsum keys, by secret key UID */
+	static std::map<string,shared_ptr<std::map<usint,LPEvalKey<Element>>>>	evalAutomorphismKeyMap;	/*!< cached evalautomorphism keys, by secret key UID */
 
 	bool doTiming;
 	vector<TimingInfo>* timeSamples;
@@ -105,17 +106,22 @@ private:
 	 * @param a
 	 * @param b
 	 */
-	void TypeCheck(const Ciphertext<Element> a, const Ciphertext<Element> b) const {
+	void TypeCheck(ConstCiphertext<Element> a, ConstCiphertext<Element> b) const {
 		if( a == NULL || b == NULL )
 			PALISADE_THROW( type_error, "Null Ciphertext");
 		if( a->GetCryptoContext().get() != this )
-			PALISADE_THROW( type_error, "Ciphertext was not created in this CryptoContextImpl");
+			PALISADE_THROW( type_error, "Ciphertext was not created in this CryptoContext");
 		if( a->GetCryptoContext() != b->GetCryptoContext() )
-			PALISADE_THROW( type_error, "Ciphertexts were not created in the same CryptoContextImpl");
+			PALISADE_THROW( type_error, "Ciphertexts were not created in the same CryptoContext");
 		if( a->GetKeyTag() != b->GetKeyTag() )
 			PALISADE_THROW( type_error, "Ciphertexts were not encrypted with same keys" );
-		if( a->GetEncodingType() != b->GetEncodingType() )
-			PALISADE_THROW( type_error, "Ciphertext encoding types do not match");
+		if( a->GetEncodingType() != b->GetEncodingType() ) {
+			stringstream ss;
+			ss << "Ciphertext encoding types " << a->GetEncodingType();
+			ss << " and " << b->GetEncodingType();
+			ss << " do not match";
+			PALISADE_THROW( type_error, ss.str() );
+		}
 	}
 
 	/**
@@ -123,15 +129,20 @@ private:
 	 * @param a
 	 * @param b
 	 */
-	void TypeCheck(const Ciphertext<Element> a, const Plaintext b) const {
+	void TypeCheck(ConstCiphertext<Element> a, ConstPlaintext b) const {
 		if( a == NULL )
 			PALISADE_THROW( type_error, "Null Ciphertext");
 		if( b == NULL )
 			PALISADE_THROW( type_error, "Null Plaintext");
 		if( a->GetCryptoContext().get() != this )
-			PALISADE_THROW( type_error, "Ciphertext was not created in this CryptoContextImpl");
-		if( a->GetEncodingType() != b->GetEncodingType() )
-			PALISADE_THROW( type_error, "Ciphertext and Plaintext encoding types do not match");
+			PALISADE_THROW( type_error, "Ciphertext was not created in this CryptoContext");
+		if( a->GetEncodingType() != b->GetEncodingType() ) {
+			stringstream ss;
+			ss << "Ciphertext encoding type " << a->GetEncodingType();
+			ss << " and Plaintext encoding type " << b->GetEncodingType();
+			ss << " do not match";
+			PALISADE_THROW( type_error, ss.str() );
+		}
 	}
 
 	/**
@@ -146,8 +157,13 @@ private:
 			PALISADE_THROW( type_error, "Ciphertexts were not created in the same CryptoContextImpl");
 		if( a.GetKeyTag() != b.GetKeyTag() )
 			PALISADE_THROW( type_error, "Ciphertexts were not encrypted with same keys" );
-		if( a.GetNumerator()->GetEncodingType() != b.GetNumerator()->GetEncodingType() )
-			PALISADE_THROW( type_error, "Ciphertext encoding types do not match");
+		if( a.GetNumerator()->GetEncodingType() != b.GetNumerator()->GetEncodingType() ) {
+			stringstream ss;
+			ss << "RationalCiphertext encoding types " << a.GetNumerator()->GetEncodingType();
+			ss << " and " << b.GetNumerator()->GetEncodingType();
+			ss << " do not match";
+			PALISADE_THROW( type_error, ss.str() );
+		}
 	}
 
 	/**
@@ -155,13 +171,18 @@ private:
 	 * @param a
 	 * @param b
 	 */
-	void TypeCheck(const RationalCiphertext<Element>& a, const Plaintext b) const {
+	void TypeCheck(const RationalCiphertext<Element>& a, ConstPlaintext b) const {
 		if( b == NULL )
 			PALISADE_THROW( type_error, "Null Plaintext");
 		if( a.GetCryptoContext().get() != this )
 			PALISADE_THROW( type_error, "Ciphertext was not created in this CryptoContextImpl");
-		if( a.GetNumerator()->GetEncodingType() != b->GetEncodingType() )
-			PALISADE_THROW( type_error, "Ciphertext and Plaintext encoding types do not match");
+		if( a.GetNumerator()->GetEncodingType() != b->GetEncodingType() ){
+			stringstream ss;
+			ss << "RationalCiphertext encoding type " << a.GetNumerator()->GetEncodingType();
+			ss << " and Plaintext encoding type " << b->GetEncodingType();
+			ss << " do not match";
+			PALISADE_THROW( type_error, ss.str() );
+		}
 	}
 
 	bool Mismatched(const CryptoContext<Element> a) const {
@@ -400,6 +421,68 @@ public:
 	 */
 	static void InsertEvalSumKey(const shared_ptr<std::map<usint,LPEvalKey<Element>>> mapToInsert);
 
+	/**
+	 * SerializeEvalAutomorphismKey for all EvalAutomorphism keys
+	 * method will serialize each CryptoContextImpl only once
+	 *
+	 * @param serObj - serialization
+	 * @return true on success
+	 */
+	static bool SerializeEvalAutomorphismKey(Serialized* serObj);
+
+	/**
+	 * SerializeEvalAutomorphismKey for a single EvalAutomorphism key
+	 * method will serialize entire key AND cryptocontext
+	 *
+	 * @param serObj - serialization
+	 * @param id for key to serialize
+	 * @return true on success (false on failure or key id not found)
+	 */
+	static bool SerializeEvalAutomorphismKey(Serialized* serObj, const string& id);
+
+	/**
+	 * SerializeEvalAutomorphismKey for all EvalAutomorphismKeys made in a given context
+	 * method will serialize the context only once
+	 *
+	 * @param serObj - serialization
+	 * @param cc whose keys should be serialized
+	 * @return true on success (false on failure or no keys found)
+	 */
+	static bool SerializeEvalAutomorphismKey(Serialized* serObj, const CryptoContext<Element> cc);
+
+	/**
+	 * DeserializeEvalAutomorphismKey deserialize all keys in the serialization
+	 * deserialized keys silently replace any existing matching keys
+	 * deserialization will create CryptoContextImpl if necessary
+	 *
+	 * @param serObj - serialization
+	 * @return true on success
+	 */
+	static bool DeserializeEvalAutomorphismKey(const Serialized& serObj);
+
+	/**
+	 * ClearEvalAutomorphismKeys - flush EvalAutomorphismKey cache
+	 */
+	static void ClearEvalAutomorphismKeys();
+
+	/**
+	 * ClearEvalAutomorphismKeys - flush EvalAutomorphismKey cache for a given id
+	 * @param id
+	 */
+	static void ClearEvalAutomorphismKeys(const string& id);
+
+	/**
+	 * ClearEvalAutomorphismKeys - flush EvalAutomorphismKey cache for a given context
+	 * @param cc
+	 */
+	static void ClearEvalAutomorphismKeys(const CryptoContext<Element> cc);
+
+	/**
+	 * InsertEvalAutomorphismKey - add the given map of keys to the map, replacing the existing map if there
+	 * @param mapToInsert
+	 */
+	static void InsertEvalAutomorphismKey(const shared_ptr<std::map<usint,LPEvalKey<Element>>> mapToInsert);
+
 
 	// TURN FEATURES ON
 	/**
@@ -472,11 +555,11 @@ public:
 	* @return a public/secret key pair
 	*/
 	LPKeyPair<Element> KeyGen() {
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto r = GetEncryptionAlgorithm()->KeyGen(CryptoContextFactory<Element>::GetContextForPointer(this), false);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpKeyGen, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpKeyGen, TOC_US(t)) );
 		}
 		return r;
 	}
@@ -488,11 +571,11 @@ public:
 	*/
 	LPKeyPair<Element> MultipartyKeyGen(
 		const LPPublicKey<Element> pk, bool makeSparse=false, bool pre=false) {
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto r = GetEncryptionAlgorithm()->MultipartyKeyGen(CryptoContextFactory<Element>::GetContextForPointer(this), pk, makeSparse, pre);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpMultiPartyKeyGenKey, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpMultiPartyKeyGenKey, TOC_US(t)) );
 		}
 		return r;
 	}
@@ -504,11 +587,11 @@ public:
 	*/
 	LPKeyPair<Element> MultipartyKeyGen(
 		const vector<LPPrivateKey<Element>>& secretKeys) {
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto r =  GetEncryptionAlgorithm()->MultipartyKeyGen(CryptoContextFactory<Element>::GetContextForPointer(this), secretKeys, false);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpMultiPartyKeyGenKeyvec, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpMultiPartyKeyGenKeyvec, TOC_US(t)) );
 		}
 		return r;
 	}
@@ -530,8 +613,8 @@ public:
 
         vector<Ciphertext<Element>> newCiphertext;
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		for( size_t i = 0; i < ciphertext.size(); i++ ) {
 			if( ciphertext[i] == NULL || Mismatched(ciphertext[i]->GetCryptoContext()) )
 				throw std::logic_error("A ciphertext passed to MultipartyDecryptLead was not generated with this crypto context");
@@ -541,7 +624,7 @@ public:
 		}
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpMultiPartyDecryptLead, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpMultiPartyDecryptLead, TOC_US(t)) );
 		}
 
 		return newCiphertext;
@@ -564,8 +647,8 @@ public:
 
 		vector<Ciphertext<Element>> newCiphertext;
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 
 		for( size_t i = 0; i < ciphertext.size(); i++ ) {
 			if( ciphertext[i] == NULL || Mismatched(ciphertext[i]->GetCryptoContext()) )
@@ -575,7 +658,7 @@ public:
 		}
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpMultiPartyDecryptMain, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpMultiPartyDecryptMain, TOC_US(t)) );
 		}
 
 		return newCiphertext;
@@ -602,8 +685,8 @@ public:
 		if ( last_ciphertext < 1 )
 			return result;
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 
 		for( size_t i = 0; i < last_ciphertext; i++ ) {
 			if (partialCiphertextVec[i] == NULL || Mismatched(partialCiphertextVec[i]->GetCryptoContext()))
@@ -623,7 +706,7 @@ public:
 		*plaintext = decrypted;
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpMultiPartyDecryptFusion, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpMultiPartyDecryptFusion, TOC_US(t)) );
 		}
 		return result;
 	}
@@ -635,11 +718,11 @@ public:
 	* @return a public/secret key pair
 	*/
 	LPKeyPair<Element> SparseKeyGen() {
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto r = GetEncryptionAlgorithm()->KeyGen(CryptoContextFactory<Element>::GetContextForPointer(this), true);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpSparseKeyGen, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpSparseKeyGen, TOC_US(t)) );
 		}
 		return r;
 	}
@@ -659,11 +742,11 @@ public:
 				Mismatched(oldKey->GetCryptoContext()) )
 			throw std::logic_error("Keys passed to ReKeyGen were not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto r = GetEncryptionAlgorithm()->ReKeyGen(newKey, oldKey);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpReKeyGenPubPri, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpReKeyGenPubPri, TOC_US(t)) );
 		}
 		return r;
 	}
@@ -683,11 +766,11 @@ public:
 				Mismatched(oldKey->GetCryptoContext()) )
 			throw std::logic_error("Keys passed to ReKeyGen were not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto r = GetEncryptionAlgorithm()->ReKeyGen(newKey, oldKey);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpReKeyGenPriPri, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpReKeyGenPriPri, TOC_US(t)) );
 		}
 		return r;
 	}
@@ -736,11 +819,11 @@ public:
 				Mismatched(key2->GetCryptoContext()) )
 			throw std::logic_error("Keys passed to KeySwitchGen were not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto r = GetEncryptionAlgorithm()->KeySwitchGen(key1, key2);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpKeySwitchGen, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpKeySwitchGen, TOC_US(t)) );
 		}
 		return r;
 	}
@@ -764,17 +847,17 @@ public:
 		if( Mismatched(publicKey->GetCryptoContext()) )
 			throw std::logic_error("key passed to Encrypt was not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 
-		Ciphertext<Element> ciphertext = GetEncryptionAlgorithm()->Encrypt(publicKey, plaintext->GetEncodedElement<Element>());
+		Ciphertext<Element> ciphertext = GetEncryptionAlgorithm()->Encrypt(publicKey, plaintext->GetElement<Element>());
 
 		if (ciphertext) {
 			ciphertext->SetEncodingType( plaintext->GetEncodingType() );
 		}
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEncryptPub, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEncryptPub, TOC_US(t)) );
 		}
 		return ciphertext;
 	}
@@ -794,17 +877,17 @@ public:
 		if( plaintext == NULL )
 			throw std::logic_error("null plaintext passed to Encrypt");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 
-		Ciphertext<Element> ciphertext = GetEncryptionAlgorithm()->Encrypt(privateKey, plaintext->GetEncodedElement<Element>());
+		Ciphertext<Element> ciphertext = GetEncryptionAlgorithm()->Encrypt(privateKey, plaintext->GetElement<Element>());
 
 		if (ciphertext) {
 			ciphertext->SetEncodingType( plaintext->GetEncodingType() );
 		}
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEncryptPriv, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEncryptPriv, TOC_US(t)) );
 		}
 		return ciphertext;
 	}
@@ -823,13 +906,13 @@ public:
 		if (publicKey == NULL || Mismatched(publicKey->GetCryptoContext()))
 			throw std::logic_error("key passed to EncryptMatrix was not generated with this crypto context");
 
-		auto zeroAlloc = [=]() { return make_unique<RationalCiphertext<Element>>(publicKey->GetCryptoContext(), true); };
+		auto zeroAlloc = [=]() { return RationalCiphertext<Element>(publicKey->GetCryptoContext(), true); };
 
 		shared_ptr<Matrix<RationalCiphertext<Element>>> cipherResults(new Matrix<RationalCiphertext<Element>>
 			(zeroAlloc, plaintext.GetRows(), plaintext.GetCols()));
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		for (size_t row = 0; row < plaintext.GetRows(); row++)
 		{
 			for (size_t col = 0; col < plaintext.GetCols(); col++)
@@ -848,7 +931,7 @@ public:
 		}
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEncryptMatrixPlain, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEncryptMatrixPlain, TOC_US(t)) );
 		}
 		return cipherResults;
 	}
@@ -890,7 +973,7 @@ public:
 				padded = true;
 			}
 
-			Ciphertext<Element> ciphertext = GetEncryptionAlgorithm()->Encrypt(publicKey, px->GetEncodedElement<Element>());
+			Ciphertext<Element> ciphertext = GetEncryptionAlgorithm()->Encrypt(publicKey, px->GetElement<Element>());
 			if (!ciphertext) {
 				break;
 			}
@@ -920,7 +1003,9 @@ public:
 	 * @return plaintext
 	 */
 	Plaintext MakeScalarPlaintext(int64_t value) const {
-		return Plaintext( new ScalarEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		auto p = Plaintext( new ScalarEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		p->Encode();
+		return p;
 	}
 
 	/**
@@ -929,7 +1014,9 @@ public:
 	 * @return plaintext
 	 */
 	Plaintext MakeStringPlaintext(const string& str) const {
-		return Plaintext( new StringEncoding( this->GetElementParams(), this->GetEncodingParams(), str ) );
+		auto p = Plaintext( new StringEncoding( this->GetElementParams(), this->GetEncodingParams(), str ) );
+		p->Encode();
+		return p;
 	}
 
 	/**
@@ -938,7 +1025,20 @@ public:
 	 * @return plaintext
 	 */
 	Plaintext MakeIntegerPlaintext(int64_t value) const {
-		return Plaintext( new IntegerEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		auto p = Plaintext( new IntegerEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		p->Encode();
+		return p;
+	}
+
+	/**
+	 * MakeIntegerPlaintext constructs a FractionalEncoding in this context
+	 * @param value
+	 * @return plaintext
+	 */
+	Plaintext MakeFractionalPlaintext(int64_t value, size_t truncatedBits = 0) const {
+		auto p =  Plaintext( new FractionalEncoding( this->GetElementParams(), this->GetEncodingParams(), value, truncatedBits) );
+		p->Encode();
+		return p;
 	}
 
 	/**
@@ -948,7 +1048,9 @@ public:
 	 * @return plaintext
 	 */
 	Plaintext MakeCoefPackedPlaintext(const vector<int64_t>& value) const {
-		return Plaintext( new CoefPackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		auto p = Plaintext( new CoefPackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		p->Encode();
+		return p;
 	}
 
 	/**
@@ -958,7 +1060,9 @@ public:
 	 * @return plaintext
 	 */
 	Plaintext MakeCoefPackedPlaintext(const std::initializer_list<int64_t>& value) const {
-		return Plaintext( new CoefPackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		auto p = Plaintext( new CoefPackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		p->Encode();
+		return p;
 	}
 
 	/**
@@ -967,7 +1071,9 @@ public:
 	 * @return plaintext
 	 */
 	Plaintext MakePackedPlaintext(const vector<uint64_t>& value) const {
-		return Plaintext( new PackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		auto p = Plaintext( new PackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		p->Encode();
+		return p;
 	}
 
 	/**
@@ -976,7 +1082,9 @@ public:
 	 * @return plaintext
 	 */
 	Plaintext MakePackedPlaintext(const std::initializer_list<uint64_t>& value) const {
-		return Plaintext( new PackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		auto p = Plaintext( new PackedEncoding( this->GetElementParams(), this->GetEncodingParams(), value ) );
+		p->Encode();
+		return p;
 	}
 
 private:
@@ -1005,6 +1113,9 @@ private:
 		case String:
 			pt.reset( new StringEncoding(vp,ep) );
 			break;
+		case Fractional:
+			pt.reset( new FractionalEncoding(vp,ep) );
+			break;
 		}
 
 		return pt;
@@ -1021,14 +1132,14 @@ public:
 	 */
 	DecryptResult Decrypt(
 			const LPPrivateKey<Element> privateKey,
-			const Ciphertext<Element> ciphertext,
+			ConstCiphertext<Element> ciphertext,
 			Plaintext* plaintext)
 	{
 		if( privateKey == NULL || Mismatched(privateKey->GetCryptoContext()) )
 			throw std::logic_error("Information passed to Decrypt was not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 
 		// determine which type of plaintext that you need to decrypt into
 		Plaintext decrypted = GetPlaintextForDecrypt(ciphertext->GetEncodingType(), this->GetElementParams(), this->GetEncodingParams());
@@ -1039,7 +1150,7 @@ public:
 		decrypted->Decode();
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpDecrypt, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpDecrypt, TOC_US(t)) );
 		}
 
 		*plaintext = decrypted;
@@ -1072,12 +1183,12 @@ public:
 
 		// need to build matrices for the result
 		Plaintext ptx = GetPlaintextForDecrypt(ctN->GetEncodingType(), this->GetElementParams(), this->GetEncodingParams());
-		auto zeroPackingAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(ptx); };
+		auto zeroPackingAlloc = [=]() { return Plaintext(ptx); };
 		*numerator = shared_ptr<Matrix<Plaintext>>( new Matrix<Plaintext>(zeroPackingAlloc, ciphertext->GetRows(), ciphertext->GetCols()) );
 		*denominator = shared_ptr<Matrix<Plaintext>>( new Matrix<Plaintext>(zeroPackingAlloc, ciphertext->GetRows(), ciphertext->GetCols()) );
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		for (size_t row = 0; row < ciphertext->GetRows(); row++)
 		{
 			for (size_t col = 0; col < ciphertext->GetCols(); col++)
@@ -1119,7 +1230,7 @@ public:
 		}
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpDecryptMatrixPlain, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpDecryptMatrixPlain, TOC_US(t)) );
 		}
 		return DecryptResult((**numerator)((*numerator)->GetRows()-1,(*numerator)->GetCols()-1)->GetLength());
 
@@ -1144,8 +1255,8 @@ public:
 		if (privateKey == NULL || Mismatched(privateKey->GetCryptoContext()))
 			throw std::runtime_error("Information passed to DecryptMatrix was not generated with this crypto context");
 
-		double start = 0;
-		if (doTiming) start = currentDateTime();
+		TimeVar t;
+		if (doTiming) TIC(t);
 
 		//force all precomputations to take place in advance
 		if( Mismatched((*ciphertext)(0, 0).GetCryptoContext()) )
@@ -1155,7 +1266,7 @@ public:
 
 		// need to build a numerator matrix for the result
 		Plaintext ptx = GetPlaintextForDecrypt(ctN->GetEncodingType(), this->GetElementParams(), this->GetEncodingParams());
-		auto zeroPackingAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(ptx); };
+		auto zeroPackingAlloc = [=]() { return Plaintext(ptx); };
 		*numerator = shared_ptr<Matrix<Plaintext>>( new Matrix<Plaintext>(zeroPackingAlloc, ciphertext->GetRows(), ciphertext->GetCols()) );
 
 		Plaintext decryptedNumerator = GetPlaintextForDecrypt(ctN->GetEncodingType(), this->GetElementParams(), this->GetEncodingParams());
@@ -1168,7 +1279,9 @@ public:
 
 		for (size_t row = 0; row < ciphertext->GetRows(); row++)
 		{
+#ifdef OMP
 #pragma omp parallel for
+#endif
 			for (size_t col = 0; col < ciphertext->GetCols(); col++)
 			{
 				if (row + col > 0)
@@ -1189,7 +1302,7 @@ public:
 		}
 
 		if (doTiming) {
-			timeSamples->push_back(TimingInfo(OpDecryptMatrixPacked, currentDateTime() - start));
+			timeSamples->push_back(TimingInfo(OpDecryptMatrixPacked, TOC_US(t)));
 		}
 		return DecryptResult((**numerator)((*numerator)->GetRows() - 1, (*numerator)->GetCols() - 1)->GetLength());
 
@@ -1257,7 +1370,7 @@ public:
 	*/
 	Ciphertext<Element> ReEncrypt(
 		LPEvalKey<Element> evalKey,
-		Ciphertext<Element> ciphertext) const
+		ConstCiphertext<Element> ciphertext) const
 	{
 		if( evalKey == NULL || Mismatched(evalKey->GetCryptoContext()) )
 			throw std::logic_error("Information passed to ReEncrypt was not generated with this crypto context");
@@ -1265,13 +1378,13 @@ public:
 		if( ciphertext == NULL || Mismatched(ciphertext->GetCryptoContext()) )
 			throw std::logic_error("The ciphertext passed to ReEncrypt was not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 
 		Ciphertext<Element> newCiphertext = GetEncryptionAlgorithm()->ReEncrypt(evalKey, ciphertext);
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpReEncrypt, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpReEncrypt, TOC_US(t)) );
 		}
 
 		return newCiphertext;
@@ -1322,15 +1435,15 @@ public:
 	 * @return new ciphertext for ct1 + ct2
 	 */
 	Ciphertext<Element>
-	EvalAdd(const Ciphertext<Element> ct1, const Ciphertext<Element> ct2) const
+	EvalAdd(ConstCiphertext<Element> ct1, ConstCiphertext<Element> ct2) const
 	{
 		TypeCheck(ct1, ct2);
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalAdd(ct1, ct2);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalAdd, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalAdd, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1346,11 +1459,11 @@ public:
 	{
 		TypeCheck((*ct1)(0,0), (*ct2)(0,0)); // TODO only checking one; when Matrix is refactored, this should be revisited
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		Matrix<RationalCiphertext<Element>> rv = *ct1 + *ct2;
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalAddMatrix, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalAddMatrix, TOC_US(t)) );
 		}
 		shared_ptr<Matrix<RationalCiphertext<Element>>> a(new Matrix<RationalCiphertext<Element>>(rv));
 		return a;
@@ -1363,15 +1476,15 @@ public:
 	 * @return new ciphertext for ct1 - ct2
 	 */
 	Ciphertext<Element>
-	EvalSub(const Ciphertext<Element> ct1, const Ciphertext<Element> ct2) const
+	EvalSub(ConstCiphertext<Element> ct1, ConstCiphertext<Element> ct2) const
 	{
 		TypeCheck(ct1, ct2);
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalSub(ct1, ct2);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalSub, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalSub, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1387,11 +1500,11 @@ public:
 	{
 		TypeCheck((*ct1)(0,0), (*ct2)(0,0)); // TODO only checking one; when Matrix is refactored, this should be revisited
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		Matrix<RationalCiphertext<Element>> rv = *ct1 - *ct2;
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalSubMatrix, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalSubMatrix, TOC_US(t)) );
 		}
 		shared_ptr<Matrix<RationalCiphertext<Element>>> a(new Matrix<RationalCiphertext<Element>>(rv));
 		return a;
@@ -1404,17 +1517,25 @@ public:
 	* @return new ciphertext for ciphertext + plaintext 
 	*/
 	Ciphertext<Element>
-	EvalAdd(const Ciphertext<Element> ciphertext, const Plaintext plaintext) const
+	EvalAdd(ConstCiphertext<Element> ciphertext, ConstPlaintext plaintext) const
 	{
 		TypeCheck(ciphertext, plaintext);
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
+		plaintext->SetFormat(EVALUATION);
+
 		auto rv = GetEncryptionAlgorithm()->EvalAdd(ciphertext, plaintext);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalAddPlain, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalAddPlain, TOC_US(t)) );
 		}
 		return rv;
+	}
+
+	inline Ciphertext<Element>
+	EvalAdd(ConstPlaintext plaintext, ConstCiphertext<Element> ciphertext) const
+	{
+		return EvalAdd(ciphertext, plaintext);
 	}
 
 	/**
@@ -1424,17 +1545,23 @@ public:
 	* @return new ciphertext for ciphertext - plaintext
 	*/
 	Ciphertext<Element>
-	EvalSub(const Ciphertext<Element> ciphertext, const Plaintext plaintext) const
+	EvalSub(ConstCiphertext<Element> ciphertext, ConstPlaintext plaintext) const
 	{
 		TypeCheck(ciphertext, plaintext);
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalSub(ciphertext, plaintext);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalSubPlain, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalSubPlain, TOC_US(t)) );
 		}
 		return rv;
+	}
+
+	inline Ciphertext<Element>
+	EvalSub(ConstPlaintext plaintext, ConstCiphertext<Element> ciphertext) const
+	{
+		return EvalSub(ciphertext, plaintext);
 	}
 
 	/**
@@ -1444,17 +1571,17 @@ public:
 	 * @return new ciphertext for ct1 * ct2
 	 */
 	Ciphertext<Element>
-	EvalMult(const Ciphertext<Element> ct1, const Ciphertext<Element> ct2) const
+	EvalMult(ConstCiphertext<Element> ct1, ConstCiphertext<Element> ct2) const
 	{
 		TypeCheck(ct1, ct2);
 
 		auto ek = GetEvalMultKeyVector(ct1->GetKeyTag());
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalMult(ct1, ct2, ek[0]);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalMult, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalMult, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1466,15 +1593,15 @@ public:
 	 * @return new ciphertext for ct1 * ct2
 	 */
 	Ciphertext<Element>
-	EvalMultNoRelin(const Ciphertext<Element> ct1, const Ciphertext<Element> ct2) const
+	EvalMultNoRelin(ConstCiphertext<Element> ct1, ConstCiphertext<Element> ct2) const
 	{
 		TypeCheck(ct1, ct2);
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalMult(ct1, ct2);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalMult, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalMult, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1494,11 +1621,11 @@ public:
 
 		const auto ek = GetEvalMultKeyVector(ct[0]->GetKeyTag());
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalMultMany(ct, ek);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalMult, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalMultMany, TOC_US(t)) );
 		}
 		return rv;
 
@@ -1513,16 +1640,15 @@ public:
 	*
 	* @return new ciphertext
 	*/
-	Ciphertext<Element> EvalMultAndRelinearize(const Ciphertext<Element> ct1,
-			const Ciphertext<Element> ct2) const{
+	Ciphertext<Element> EvalMultAndRelinearize(ConstCiphertext<Element> ct1, ConstCiphertext<Element> ct2) const {
 
 		const auto ek = GetEvalMultKeyVector(ct1->GetKeyTag());
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalMultAndRelinearize(ct1, ct2, ek);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalMult, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalMult, TOC_US(t)) );
 		}
 		return rv;
 
@@ -1534,10 +1660,37 @@ public:
 	 * @param ct1
 	 * @return new ciphertext for ct1 * pt2
 	 */
-	Ciphertext<Element>
-	EvalMult(const Plaintext pt2, const Ciphertext<Element> ct1) const
+	inline Ciphertext<Element>
+	EvalMult(ConstPlaintext pt2, ConstCiphertext<Element> ct1) const
 	{
 		return EvalMult(ct1, pt2);
+	}
+
+	/**
+	 * EvalShiftRight - works only for Fractional Encoding
+	 * @param pt2
+	 * @param ct1
+	 * @return new ciphertext for ct1 * pt2
+	 */
+	Ciphertext<Element>
+	EvalRightShift(ConstCiphertext<Element> ct1, size_t divisor) const
+	{
+		if( ct1 && ct1->GetEncodingType() != Fractional ) {
+			stringstream ss;
+			ss << "A " << Fractional << " encoded ciphertext is required for the EvalRightShift operation";
+			PALISADE_THROW( type_error, ss.str() );
+		}
+
+		Plaintext plaintextShift = MakeFractionalPlaintext(0,divisor);
+		TypeCheck(ct1, plaintextShift);
+
+		double start = 0;
+		if( doTiming ) start = currentDateTime();
+		auto rv = EvalMult(ct1, plaintextShift);
+		if( doTiming ) {
+			timeSamples->push_back( TimingInfo(OpEvalRightShift, currentDateTime() - start) );
+		}
+		return rv;
 	}
 
 	/**
@@ -1547,15 +1700,15 @@ public:
 	 * @return new ciphertext for ct1 * pt2
 	 */
 	Ciphertext<Element>
-	EvalMult(const Ciphertext<Element> ct1, const Plaintext pt2) const
+	EvalMult(ConstCiphertext<Element> ct1, ConstPlaintext pt2) const
 	{
 		TypeCheck(ct1, pt2);
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalMult(ct1, pt2);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalMult, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalMult, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1571,11 +1724,11 @@ public:
 	{
 		TypeCheck((*ct1)(0,0), (*ct2)(0,0)); // TODO only checking one; when Matrix is refactored, this should be revisited
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		Matrix<RationalCiphertext<Element>> rv = *ct1 * *ct2;
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalMultMatrix, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalMultMatrix, TOC_US(t)) );
 		}
 		shared_ptr<Matrix<RationalCiphertext<Element>>> a(new Matrix<RationalCiphertext<Element>>(rv));
 		return a;
@@ -1587,16 +1740,16 @@ public:
 	* @return new ciphertext -ct
 	*/
 	Ciphertext<Element>
-	EvalNegate(const Ciphertext<Element> ct) const
+	EvalNegate(ConstCiphertext<Element> ct) const
 	{
 		if (ct == NULL || Mismatched(ct->GetCryptoContext()) )
 			throw std::logic_error("Information passed to EvalNegate was not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalNegate(ct);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalNeg, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalNeg, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1612,15 +1765,15 @@ public:
 		if (ct == NULL || Mismatched((*ct)(0,0).GetCryptoContext()) )
 			throw std::logic_error("Information passed to EvalNegateMatrix was not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		shared_ptr<Matrix<RationalCiphertext<Element>>> m(
 				new Matrix<RationalCiphertext<Element>>(ct->GetAllocator(), ct->GetRows(), ct->GetCols()));
 		for( size_t r = 0; r < m->GetRows(); r++ )
 			for( size_t c = 0; c < m->GetCols(); c++ )
 				(*m)(r,c) = -((*ct)(r,c));
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalNegMatrix, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalNegMatrix, TOC_US(t)) );
 		}
 		return m;
 	}
@@ -1643,11 +1796,11 @@ public:
 		if( publicKey->GetCryptoContext() != origPrivateKey->GetCryptoContext() )
 			PALISADE_THROW( type_error, "Keys were not created in the same CryptoContextImpl");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalAutomorphismKeyGen(publicKey, origPrivateKey, indexList);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalAutomorphismKeyGen, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalAutomorphismKeyGen, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1662,7 +1815,7 @@ public:
 	* @param &evalKeys - reference to the vector of evaluation keys generated by EvalAutomorphismKeyGen.
 	* @return resulting ciphertext
 	*/
-	Ciphertext<Element> EvalAutomorphism(const Ciphertext<Element> ciphertext, usint i,
+	Ciphertext<Element> EvalAutomorphism(ConstCiphertext<Element> ciphertext, usint i,
 		const std::map<usint, LPEvalKey<Element>> &evalKeys) const {
 
 		auto mf = evalKeys.begin();
@@ -1678,11 +1831,11 @@ public:
 		if( ciphertext->GetKeyTag() != tk->GetKeyTag() )
 			PALISADE_THROW( type_error, "Items were not encrypted with same keys" );
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalAutomorphism(ciphertext, i, evalKeys);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalAutomorphismI, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalAutomorphismI, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1702,11 +1855,11 @@ public:
 		if( privateKey->GetCryptoContext().get() != this )
 			PALISADE_THROW( type_error, "Key was not created in this CryptoContextImpl");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalAutomorphismKeyGen(privateKey, indexList);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpEvalAutomorphismK, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpEvalAutomorphismK, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1737,7 +1890,45 @@ public:
 	* @param batchSize size of the batch
 	* @return resulting ciphertext
 	*/
-	Ciphertext<Element> EvalSum(const Ciphertext<Element> ciphertext, usint batchSize) const;
+	Ciphertext<Element> EvalSum(ConstCiphertext<Element> ciphertext, usint batchSize) const;
+
+	/**
+	* EvalSumKeyGen Generates the key map to be used by evalsum
+	*
+	* @param privateKey private key.
+	* @param indexList list of indices.
+	* @param publicKey public key (used in NTRU schemes).
+	*/
+	void EvalAtIndexKeyGen(const LPPrivateKey<Element> privateKey,
+		const std::vector<int32_t> &indexList, const LPPublicKey<Element> publicKey = nullptr);
+
+	/**
+	* Merges multiple ciphertexts with encrypted results in slot 0 into a single ciphertext
+	* The slot assignment is done based on the order of ciphertexts in the vector
+	*
+	* @param ciphertextVector vector of ciphertexts to be merged.
+	* @param &evalKeys - reference to the map of evaluation keys generated by EvalAutomorphismKeyGen.
+	* @return resulting ciphertext
+	*/
+	Ciphertext<Element> EvalMerge(const vector<Ciphertext<Element>> &ciphertextVector) const;
+
+	/**
+	 * GetEvalAutomorphismKey  returns the map
+	 *
+	 * @return the EvalAutomorphism key map
+	 */
+	static const std::map<usint, LPEvalKey<Element>>& GetEvalAutomorphismKeyMap(const string& id);
+
+	static const std::map<string,shared_ptr<std::map<usint, LPEvalKey<Element>>>>& GetAllEvalAutomorphismKeys();
+
+	/**
+	* Moves i-th slot to slot 0
+	*
+	* @param ciphertext.
+	* @param i the index.
+	* @return resulting ciphertext
+	*/
+	Ciphertext<Element> EvalAtIndex(ConstCiphertext<Element> ciphertext, int32_t index) const;
 
 	/**
 	* Evaluates inner product in batched encoding
@@ -1747,7 +1938,7 @@ public:
 	* @param batchSize size of the batch to be summed up
 	* @return resulting ciphertext
 	*/
-	Ciphertext<Element> EvalInnerProduct(const Ciphertext<Element> ciphertext1, const Ciphertext<Element> ciphertext2, usint batchSize) const;
+	Ciphertext<Element> EvalInnerProduct(ConstCiphertext<Element> ciphertext1, ConstCiphertext<Element> ciphertext2, usint batchSize) const;
 
 	/**
 	* Evaluates inner product in batched encoding
@@ -1757,7 +1948,7 @@ public:
 	* @param batchSize size of the batch to be summed up
 	* @return resulting ciphertext
 	*/
-	Ciphertext<Element> EvalInnerProduct(const Ciphertext<Element> ciphertext1, const Plaintext ciphertext2, usint batchSize) const;
+	Ciphertext<Element> EvalInnerProduct(ConstCiphertext<Element> ciphertext1, ConstPlaintext ciphertext2, usint batchSize) const;
 
 	/**
 	* EvalCrossCorrelation - Computes the sliding sum of inner products (known as
@@ -1798,11 +1989,11 @@ public:
 	{
 		TypeCheck((*x)(0,0), (*y)(0,0)); // TODO only checking one; when Matrix is refactored, this should be revisited
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->EvalLinRegression(x, y);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpLinRegression, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpLinRegression, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1815,7 +2006,7 @@ public:
 	*/
 	Ciphertext<Element> KeySwitch(
 		const LPEvalKey<Element> keySwitchHint,
-		const Ciphertext<Element> ciphertext) const
+		ConstCiphertext<Element> ciphertext) const
 	{
 		if( keySwitchHint == NULL || Mismatched(keySwitchHint->GetCryptoContext()) )
 			throw std::logic_error("Key passed to KeySwitch was not generated with this crypto context");
@@ -1823,11 +2014,11 @@ public:
 		if( ciphertext == NULL || Mismatched(ciphertext->GetCryptoContext()) )
 			throw std::logic_error("Ciphertext passed to KeySwitch was not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->KeySwitch(keySwitchHint, ciphertext);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpKeySwitch, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpKeySwitch, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1837,15 +2028,15 @@ public:
 	 * @param ciphertext - vector of ciphertext
 	 * @return vector of mod reduced ciphertext
 	 */
-	Ciphertext<Element> ModReduce(Ciphertext<Element> ciphertext) const {
+	Ciphertext<Element> ModReduce(ConstCiphertext<Element> ciphertext) const {
 		if( ciphertext == NULL || Mismatched(ciphertext->GetCryptoContext()) )
 			throw std::logic_error("Information passed to ModReduce was not generated with this crypto context");
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->ModReduce(ciphertext);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpModReduce, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpModReduce, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1857,12 +2048,12 @@ public:
 	 */
 	RationalCiphertext<Element> ModReduceRational(RationalCiphertext<Element> ciphertext) const {
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		Ciphertext<Element> n = GetEncryptionAlgorithm()->ModReduce(ciphertext.GetNumerator());
 		Ciphertext<Element> d = GetEncryptionAlgorithm()->ModReduce(ciphertext.GetDenominator());
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpModReduce, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpModReduce, TOC_US(t)) );
 		}
 		return RationalCiphertext<Element>(n,d);
 	}
@@ -1875,15 +2066,15 @@ public:
 	shared_ptr<Matrix<RationalCiphertext<Element>>> ModReduceMatrix(shared_ptr<Matrix<RationalCiphertext<Element>>> ciphertext) const {
 		// needs context check
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		shared_ptr<Matrix<RationalCiphertext<Element>>> m(
 				new Matrix<RationalCiphertext<Element>>(ciphertext->GetAllocator(), ciphertext->GetRows(), ciphertext->GetCols()));
 		for( size_t r = 0; r < m->GetRows(); r++ )
 			for( size_t c = 0; c < m->GetCols(); c++ )
 				(*m)(r,c) = ModReduceRational((*ciphertext)(r,c));
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpModReduceMatrix, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpModReduceMatrix, TOC_US(t)) );
 		}
 		return m;
 	}
@@ -1894,7 +2085,7 @@ public:
 	* @param linearKeySwitchHint
 	* @return vector of level reduced ciphertext
 	*/
-	Ciphertext<Element> LevelReduce(const Ciphertext<Element> cipherText1,
+	Ciphertext<Element> LevelReduce(ConstCiphertext<Element> cipherText1,
 		const LPEvalKeyNTRU<Element> linearKeySwitchHint) const {
 
 		if( cipherText1 == NULL || linearKeySwitchHint == NULL ||
@@ -1903,11 +2094,11 @@ public:
 			throw std::logic_error("Information passed to LevelReduce was not generated with this crypto context");
 		}
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->LevelReduce(cipherText1, linearKeySwitchHint);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpLevelReduce, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpLevelReduce, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -1920,7 +2111,7 @@ public:
 	*/
 
 	Ciphertext<Element> RingReduce(
-		Ciphertext<Element> ciphertext,
+		ConstCiphertext<Element> ciphertext,
 		const LPEvalKey<Element> keySwitchHint) const
 	{
 		if( keySwitchHint == NULL ||
@@ -1930,15 +2121,13 @@ public:
 		if( ciphertext == NULL || Mismatched(ciphertext->GetCryptoContext()) )
 			throw std::logic_error("Ciphertext passed to RingReduce was not generated with this crypto context");
 
-		Ciphertext<Element> newCiphertext;
+		TimeVar t;
+		if( doTiming ) TIC(t);
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
-
-		newCiphertext = GetEncryptionAlgorithm()->RingReduce(ciphertext, keySwitchHint);
+		auto newCiphertext = GetEncryptionAlgorithm()->RingReduce(ciphertext, keySwitchHint);
 
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpRingReduce, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpRingReduce, TOC_US(t)) );
 		}
 		return newCiphertext;
 	}
@@ -1951,8 +2140,8 @@ public:
 	* return vector of resulting ciphertext
 	*/
 	Ciphertext<Element> ComposedEvalMult(
-		const Ciphertext<Element> ciphertext1,
-		const Ciphertext<Element> ciphertext2) const
+		ConstCiphertext<Element> ciphertext1,
+		ConstCiphertext<Element> ciphertext2) const
 	{
 		if( ciphertext1 == NULL || ciphertext2 == NULL || ciphertext1->GetKeyTag() != ciphertext2->GetKeyTag() ||
 				Mismatched(ciphertext1->GetCryptoContext()) )
@@ -1960,11 +2149,11 @@ public:
 
 		auto ek = GetEvalMultKeyVector(ciphertext1->GetKeyTag());
 
-		double start = 0;
-		if( doTiming ) start = currentDateTime();
+		TimeVar t;
+		if( doTiming ) TIC(t);
 		auto rv = GetEncryptionAlgorithm()->ComposedEvalMult(ciphertext1, ciphertext2, ek[0]);
 		if( doTiming ) {
-			timeSamples->push_back( TimingInfo(OpComposedEvalMult, currentDateTime() - start) );
+			timeSamples->push_back( TimingInfo(OpComposedEvalMult, TOC_US(t)) );
 		}
 		return rv;
 	}
@@ -2101,13 +2290,13 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the LTV Scheme
-	* @param plaintextmodulus
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param depth
+	* @param params ring parameters
+	* @param plaintextModulus plaintext modulus
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param depth of supported computation circuit (not used; for future use)
+	* @param assuranceMeasure alpha - effective bound for gaussians: - sqrt{alpha}*sigma..sqrt{alpha}*sigma
+	* @param security level - root Hermite factor
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextLTV(shared_ptr<typename Element::Params> params,
@@ -2116,13 +2305,13 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the LTV Scheme
-	* @param encodingParams
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param depth
+	* @param params ring parameters
+	* @param encodingParams plaintext encoding parameters
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param depth of supported computation circuit (not used; for future use)
+	* @param assuranceMeasure alpha - effective bound for gaussians: - sqrt{alpha}*sigma..sqrt{alpha}*sigma
+	* @param security level - root Hermite factor
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextLTV(shared_ptr<typename Element::Params> params,
@@ -2131,11 +2320,13 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the LTV Scheme using the scheme's ParamsGen methods
-	* @param plaintextModulus
-	* @param securityLevel
-	* @param numAdds
-	* @param numMults
-	* @param numKeyswitches
+	* @param plaintextModulus plaintext modulus
+	* @param security level - root Hermite factor
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param dist sigma - distribution parameter for error distribution
+	* @param numAdds - number/depth of homomorphic additions (assuming no other homomorphic operations are performed)
+	* @param numMults - multiplicative depth (assuming no other homomorphic operations are performed)
+	* @param numKeyswitches - depth of key switching/number of hops in proxy re-encryption (assuming no other homomorphic operations are performed)
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextLTV(
@@ -2144,11 +2335,13 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the LTV Scheme using the scheme's ParamsGen methods
-	* @param encodingParams
-	* @param securityLevel
-	* @param numAdds
-	* @param numMults
-	* @param numKeyswitches
+	* @param encodingParams plaintext encoding parameters
+	* @param security level - root Hermite factor
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param dist sigma - distribution parameter for error distribution
+	* @param numAdds - number/depth of homomorphic additions (assuming no other homomorphic operations are performed)
+	* @param numMults - multiplicative depth (assuming no other homomorphic operations are performed)
+	* @param numKeyswitches - depth of key switching/number of hops in proxy re-encryption (assuming no other homomorphic operations are performed)
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextLTV(
@@ -2157,21 +2350,20 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFV Scheme
-	* @param plaintextmodulus
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param delta
-	* @param mode
-	* @param bigmodulus
-	* @param bigrootofunity
-	* @param depth
-	* @param assuranceMeasure
-	* @param securityLevel
-	* @param bigmodulusarb
-	* @param bigrootofunityarb
+	* @param params ring parameters
+	* @param plaintextModulus plaintext modulus
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param delta - the plaintext scaling parameter floor(q/t) in BFV
+	* @param mode - mode for generating secret keys (RLWE vs OPTIMIZED)
+	* @param bigmodulus - large modulus used in tensoring of homomorphic multiplication
+	* @param bigrootofunity - root of unity for bigmodulus
+	* @param depth of supported computation circuit (not used; for future use)
+	* @param assuranceMeasure alpha - effective bound for gaussians: - sqrt{alpha}*sigma..sqrt{alpha}*sigma
+	* @param security level - root Hermite factor
+	* @param bigmodulusarb - additional large modulus for bigmoduls for the case of general (non-power-of-two) cyclotomics
+	* @param bigrootofunityarb - root of unity for bigmodulusarb
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBFV(shared_ptr<typename Element::Params> params,
@@ -2183,21 +2375,20 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFV Scheme
-	* @param encodingParams
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param delta
-	* @param mode
-	* @param bigmodulus
-	* @param bigrootofunity
-	* @param depth
-	* @param assuranceMeasure
-	* @param securityLevel
-	* @param bigmodulusarb
-	* @param bigrootofunityarb
+	* @param params ring parameters
+	* @param encodingParams plaintext encoding parameters
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param delta - the plaintext scaling parameter floor(q/t) in BFV
+	* @param mode - mode for generating secret keys (RLWE vs OPTIMIZED)
+	* @param bigmodulus - large modulus used in tensoring of homomorphic multiplication
+	* @param bigrootofunity - root of unity for bigmodulus
+	* @param depth of supported computation circuit (not used; for future use)
+	* @param assuranceMeasure alpha - effective bound for gaussians: - sqrt{alpha}*sigma..sqrt{alpha}*sigma
+	* @param security level - root Hermite factor
+	* @param bigmodulusarb - additional large modulus for bigmoduls for the case of general (non-power-of-two) cyclotomics
+	* @param bigrootofunityarb - root of unity for bigmodulusarb
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBFV(shared_ptr<typename Element::Params> params,
@@ -2209,11 +2400,15 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFV Scheme using the scheme's ParamsGen methods
-	* @param plaintextModulus
-	* @param securityLevel
-	* @param numAdds
-	* @param numMults
-	* @param numKeyswitches
+	* @param plaintextModulus plaintext modulus
+	* @param securityLevel root Hermite factor (lattice security parameter)
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBFV(
@@ -2222,11 +2417,14 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFV Scheme using the scheme's ParamsGen methods
-	* @param encodingParams
-	* @param securityLevel
-	* @param numAdds
-	* @param numMults
-	* @param numKeyswitches
+	* @param encodingParams plaintext encoding parameters
+	* @param securityLevel root Hermite factor (lattice security parameter)
+	* @param distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBFV(
@@ -2235,41 +2433,88 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFVrns Scheme using the scheme's ParamsGen methods
-	* @param plaintextModulus
-	* @param securityLevel
-	* @param distribution parameter
-	* @param numAdds
-	* @param numMults
-	* @param numKeyswitches
+	* @param plaintextModulus plaintext modulus
+	* @param securityLevel root Hermite factor (lattice security parameter)
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow the key switching window (bits in the base for digits) used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBFVrns(
 		const PlaintextModulus plaintextModulus, float securityLevel, float dist,
-		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2);
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFVrns Scheme using the scheme's ParamsGen methods
-	* @param encodingParams
-	* @param securityLevel
-	* @param distribution parameter
-	* @param numAdds
-	* @param numMults
-	* @param numKeyswitches
+	* @param encodingParams plaintext encoding parameters
+	* @param securityLevel root Hermite factor (lattice security parameter)
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow  the key switching window used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBFVrns(
 		EncodingParams encodingParams, float securityLevel, float dist,
-		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2);
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFVrnsB Scheme using the scheme's ParamsGen methods
+	* @param plaintextModulus plaintext modulus
+	* @param securityLevel root Hermite factor (lattice security parameter)
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow  the key switching window used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFVrnsB(
+		const PlaintextModulus plaintextModulus, float securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFVrnsB Scheme using the scheme's ParamsGen methods
+	* @param encodingParams plaintext encoding parameters
+	* @param securityLevel root Hermite factor (lattice security parameter)
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow  the key switching window used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFVrnsB(
+		EncodingParams encodingParams, float securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BGV Scheme
-	* @param plaintextmodulus
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param mode
+	* @param params ring parameters
+	* @param plaintextModulus plaintext modulus
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param depth of supported computation circuit (not used; for future use)
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBGV(shared_ptr<typename Element::Params> params,
@@ -2279,13 +2524,12 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BGV Scheme
-	* @param encodingParams
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param mode
+	* @param params ring parameters
+	* @param encodingParams plaintext encoding parameters
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param depth of supported computation circuit (not used; for future use)
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextBGV(shared_ptr<typename Element::Params> params,
@@ -2295,13 +2539,14 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the StehleSteinfeld Scheme
-	* @param plaintextmodulus
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param stDevStSt
+	* @param params ring parameters
+	* @param plaintextModulus plaintext modulus
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param stdDev distribution parameter for secret key distribution
+	* @param depth of supported computation circuit (not used; for future use)
+	* @param assuranceMeasure alpha - effective bound for gaussians: - sqrt{alpha}*sigma..sqrt{alpha}*sigma
+	* @param security level - root Hermite factor
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextStehleSteinfeld(shared_ptr<typename Element::Params> params,
@@ -2310,13 +2555,14 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the StehleSteinfeld Scheme
-	* @param encodingParams
-	* @param ringdim
-	* @param modulus
-	* @param rootOfUnity
-	* @param relinWindow
-	* @param stDev
-	* @param stDevStSt
+	* @param params ring parameters
+	* @param encodingParams plaintext encoding parameters
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param stdDev sigma - distribution parameter for error distribution
+	* @param stdDev distribution parameter for secret key distribution
+	* @param depth of supported computation circuit (not used; for future use)
+	* @param assuranceMeasure alpha - effective bound for gaussians: - sqrt{alpha}*sigma..sqrt{alpha}*sigma
+	* @param security level - root Hermite factor
 	* @return new context
 	*/
 	static CryptoContext<Element> genCryptoContextStehleSteinfeld(shared_ptr<typename Element::Params> params,
@@ -2325,14 +2571,16 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the Null Scheme
-	* @param plaintext modulus
+	* @param m cyclotomic order (ring dimension n = m/2 for power-of-two cyclotomics)
+	* @param plaintextModulus plaintext modulus
 	* @return
 	*/
 	static CryptoContext<Element> genCryptoContextNull(unsigned int m, const PlaintextModulus ptModulus);
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the Null Scheme
-	* @param encodingParams
+	* @param m cyclotomic order (ring dimension n = m/2 for power-of-two cyclotomics)
+	* @param encodingParams plaintext encoding parameters
 	* @return
 	*/
 	static CryptoContext<Element> genCryptoContextNull(unsigned int m, EncodingParams encodingParams);

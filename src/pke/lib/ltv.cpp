@@ -147,7 +147,7 @@ Ciphertext<Element> LPAlgorithmLTV<Element>::Encrypt(const LPPrivateKey<Element>
 
 template <class Element>
 DecryptResult LPAlgorithmLTV<Element>::Decrypt(const LPPrivateKey<Element> privateKey,
-	const Ciphertext<Element> ciphertext,
+	ConstCiphertext<Element> ciphertext,
 	NativePoly *plaintext) const
 {
 
@@ -170,14 +170,9 @@ DecryptResult LPAlgorithmLTV<Element>::Decrypt(const LPPrivateKey<Element> priva
 
 template <class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalAdd(
-	const Ciphertext<Element> ciphertext1,
-	const Ciphertext<Element> ciphertext2) const
+		ConstCiphertext<Element> ciphertext1,
+		ConstCiphertext<Element> ciphertext2) const
 {
-	if (!(ciphertext1->GetCryptoParameters() == ciphertext2->GetCryptoParameters())) {
-		std::string errMsg = "EvalAdd crypto parameters are not the same";
-		throw std::runtime_error(errMsg);
-	}
-
 	Ciphertext<Element> newCiphertext = ciphertext1->CloneEmpty();
 
 	Element cResult = ciphertext1->GetElement() + ciphertext2->GetElement();
@@ -189,19 +184,12 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalAdd(
 
 template <class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalAdd(
-	const Ciphertext<Element> ciphertext,
-	const Plaintext plaintext) const
+		ConstCiphertext<Element> ciphertext,
+		ConstPlaintext plaintext) const
 {
-//	if (!(ciphertext1->GetCryptoParameters() == ciphertext2->GetCryptoParameters())) {
-//		std::string errMsg = "EvalAdd crypto parameters are not the same";
-//		throw std::runtime_error(errMsg);
-//	}
-
 	Ciphertext<Element> newCiphertext = ciphertext->CloneEmpty();
 
-	plaintext->GetEncodedElement<Element>().SetFormat(EVALUATION);
-
-	Element cResult = ciphertext->GetElement() + plaintext->GetEncodedElement<Element>();
+	Element cResult = ciphertext->GetElement() + plaintext->GetElement<Element>();
 
 	newCiphertext->SetElement(cResult);
 
@@ -210,8 +198,8 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalAdd(
 
 template <class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalSub(
-	const Ciphertext<Element> ciphertext1,
-	const Ciphertext<Element> ciphertext2) const
+	ConstCiphertext<Element> ciphertext1,
+	ConstCiphertext<Element> ciphertext2) const
 {
 	if (!(ciphertext1->GetCryptoParameters() == ciphertext2->GetCryptoParameters())) {
 		std::string errMsg = "EvalSub crypto parameters are not the same";
@@ -229,8 +217,8 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalSub(
 
 template <class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalSub(
-	const Ciphertext<Element> ciphertext,
-	const Plaintext plaintext) const
+	ConstCiphertext<Element> ciphertext,
+	ConstPlaintext plaintext) const
 {
 //	if (!(ciphertext1->GetCryptoParameters() == ciphertext2->GetCryptoParameters())) {
 //		std::string errMsg = "EvalSub crypto parameters are not the same";
@@ -239,9 +227,9 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalSub(
 
 	Ciphertext<Element> newCiphertext = ciphertext->CloneEmpty();
 
-	plaintext->GetEncodedElement<Element>().SetFormat(EVALUATION);
+	plaintext->SetFormat(EVALUATION);
 
-	Element cResult = ciphertext->GetElement() - plaintext->GetEncodedElement<Element>();
+	Element cResult = ciphertext->GetElement() - plaintext->GetElement<Element>();
 
 	newCiphertext->SetElement(cResult);
 
@@ -251,8 +239,8 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalSub(
 // Homomorphic multiplication of ciphertexts without key switching
 template <class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalMult(
-	const Ciphertext<Element> ciphertext1,
-	const Ciphertext<Element> ciphertext2) const
+	ConstCiphertext<Element> ciphertext1,
+	ConstCiphertext<Element> ciphertext2) const
 {
 
 	if (ciphertext1->GetElement().GetFormat() == Format::COEFFICIENT || ciphertext2->GetElement().GetFormat() == Format::COEFFICIENT) {
@@ -275,8 +263,8 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalMult(
 
 // Homomorphic multiplication of ciphertexts with key switching
 template <class Element>
-Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalMult(const Ciphertext<Element> ciphertext1,
-	const Ciphertext<Element> ciphertext2, const LPEvalKey<Element> ek) const {
+Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalMult(ConstCiphertext<Element> ciphertext1,
+	ConstCiphertext<Element> ciphertext2, const LPEvalKey<Element> ek) const {
 
 	Ciphertext<Element> newCiphertext = EvalMult(ciphertext1, ciphertext2);
 
@@ -287,18 +275,18 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalMult(const Ciphertext<Elemen
 
 template <class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalMult(
-	const Ciphertext<Element> ciphertext,
-	const Plaintext plaintext) const
+	ConstCiphertext<Element> ciphertext,
+	ConstPlaintext plaintext) const
 {
 	Ciphertext<Element> newCiphertext = ciphertext->CloneEmpty();
 
-	plaintext->GetEncodedElement<Element>().SetFormat(EVALUATION);
+	plaintext->SetFormat(EVALUATION);
 
-	if (ciphertext->GetElement().GetFormat() == Format::COEFFICIENT || plaintext->GetEncodedElement<Element>().GetFormat() == Format::COEFFICIENT ) {
+	if (ciphertext->GetElement().GetFormat() == Format::COEFFICIENT || plaintext->GetElement<Element>().GetFormat() == Format::COEFFICIENT ) {
 		throw std::runtime_error("EvalMult cannot multiply in COEFFICIENT domain.");
 	}
 
-	Element cResult = ciphertext->GetElement() * plaintext->GetEncodedElement<Element>();
+	Element cResult = ciphertext->GetElement() * plaintext->GetElement<Element>();
 
 	newCiphertext->SetElement(cResult);
 
@@ -306,7 +294,7 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalMult(
 }
 
 template <class Element>
-Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalNegate(const Ciphertext<Element> ciphertext) const {
+Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalNegate(ConstCiphertext<Element> ciphertext) const {
 
 	Ciphertext<Element> newCiphertext = ciphertext->CloneEmpty();
 
@@ -373,7 +361,7 @@ LPEvalKey<Element> LPAlgorithmSHELTV<Element>::KeySwitchGen(
 template<class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::KeySwitch(
 	const LPEvalKey<Element> keySwitchHint,
-	const Ciphertext<Element> cipherText) const {
+	ConstCiphertext<Element> cipherText) const {
 
 	//Get the EvalKeyNTRU to perform key swich, also verfies if proper EvalKey is instantiated.
 	const LPEvalKeyNTRU<Element> keyHint = std::dynamic_pointer_cast<LPEvalKeyNTRUImpl<Element>>(keySwitchHint);
@@ -444,7 +432,7 @@ LPEvalKey<Element> LPAlgorithmSHELTV<Element>::KeySwitchRelinGen(const LPPublicK
 //Function for re-encypting ciphertext using the array generated by KeySwitchRelinGen
 template <class Element>
 Ciphertext<Element> LPAlgorithmSHELTV<Element>::KeySwitchRelin(const LPEvalKey<Element>evalKey,
-	const Ciphertext<Element> ciphertext) const
+	ConstCiphertext<Element> ciphertext) const
 {
 	Ciphertext<Element> newCiphertext = ciphertext->CloneEmpty();
 
@@ -472,7 +460,7 @@ Ciphertext<Element> LPAlgorithmSHELTV<Element>::KeySwitchRelin(const LPEvalKey<E
 }
 
 template <class Element>
-Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalAutomorphism(const Ciphertext<Element> ciphertext, usint i,
+Ciphertext<Element> LPAlgorithmSHELTV<Element>::EvalAutomorphism(ConstCiphertext<Element> ciphertext, usint i,
 	const std::map<usint, LPEvalKey<Element>> &evalKeys) const
 {
 
@@ -526,7 +514,7 @@ LPEvalKey<Element> LPAlgorithmPRELTV<Element>::ReKeyGen(const LPPublicKey<Elemen
 //Function for re-encypting ciphertext using the array generated by ReKeyGen
 template <class Element>
 Ciphertext<Element> LPAlgorithmPRELTV<Element>::ReEncrypt(const LPEvalKey<Element> evalKey,
-	const Ciphertext<Element> ciphertext) const
+	ConstCiphertext<Element> ciphertext) const
 {
 	return ciphertext->GetCryptoContext()->GetEncryptionAlgorithm()->KeySwitchRelin(evalKey, ciphertext);
 }
@@ -541,7 +529,7 @@ Ciphertext<Element> LPAlgorithmPRELTV<Element>::ReEncrypt(const LPEvalKey<Elemen
 * ModReduce is written for DCRTPoly and it drops the last tower while updating the necessary parameters.
 */
 template<class Element> inline
-Ciphertext<Element> LPLeveledSHEAlgorithmLTV<Element>::ModReduce(Ciphertext<Element> cipherText) const {
+Ciphertext<Element> LPLeveledSHEAlgorithmLTV<Element>::ModReduce(ConstCiphertext<Element> cipherText) const {
 
 	Ciphertext<Element> newCiphertext = cipherText->CloneEmpty();
 
@@ -567,7 +555,7 @@ Ciphertext<Element> LPLeveledSHEAlgorithmLTV<Element>::ModReduce(Ciphertext<Elem
 */
 template<class Element>
 Ciphertext<Element>
-LPLeveledSHEAlgorithmLTV<Element>::RingReduce(Ciphertext<Element> cipherText, const LPEvalKey<Element> keySwitchHint) const {
+LPLeveledSHEAlgorithmLTV<Element>::RingReduce(ConstCiphertext<Element> cipherText, const LPEvalKey<Element> keySwitchHint) const {
 
 	//KeySwitching to a cipherText that can be decrypted by a sparse key.
 	Ciphertext<Element> newcipherText = cipherText->GetCryptoContext()->KeySwitch(keySwitchHint, cipherText);
@@ -593,8 +581,8 @@ LPLeveledSHEAlgorithmLTV<Element>::RingReduce(Ciphertext<Element> cipherText, co
 
 template<class Element>
 Ciphertext<Element> LPLeveledSHEAlgorithmLTV<Element>::ComposedEvalMult(
-	const Ciphertext<Element> cipherText1,
-	const Ciphertext<Element> cipherText2,
+	ConstCiphertext<Element> cipherText1,
+	ConstCiphertext<Element> cipherText2,
 	const LPEvalKey<Element> ek) const {
 
 	Ciphertext<Element> prod = cipherText1->GetCryptoContext()->GetEncryptionAlgorithm()->EvalMult(cipherText1, cipherText2, ek);
@@ -603,7 +591,7 @@ Ciphertext<Element> LPLeveledSHEAlgorithmLTV<Element>::ComposedEvalMult(
 }
 
 template<class Element>
-Ciphertext<Element> LPLeveledSHEAlgorithmLTV<Element>::LevelReduce(const Ciphertext<Element> cipherText1,
+Ciphertext<Element> LPLeveledSHEAlgorithmLTV<Element>::LevelReduce(ConstCiphertext<Element> cipherText1,
 	const LPEvalKey<Element> linearKeySwitchHint) const {
 
 	Ciphertext<Element> cipherTextResult = cipherText1->GetCryptoContext()->GetEncryptionAlgorithm()->KeySwitch(linearKeySwitchHint, cipherText1);

@@ -53,7 +53,7 @@ BigVectorImpl<IntegerType>::BigVectorImpl(usint length, const IntegerType& modul
 }
 
 template<class IntegerType>
-BigVectorImpl<IntegerType>::BigVectorImpl(usint length, const IntegerType& modulus, std::initializer_list<usint> rhs){
+BigVectorImpl<IntegerType>::BigVectorImpl(usint length, const IntegerType& modulus, std::initializer_list<uint64_t> rhs){
 	this->m_length = length;
 	this->m_modulus = modulus;
 	this->m_data = new IntegerType[m_length] ();
@@ -608,9 +608,10 @@ BigVectorImpl<IntegerType> BigVectorImpl<IntegerType>::GetDigitAtIndexForBase(us
 template<class IntegerType>
 bool BigVectorImpl<IntegerType>::Serialize(lbcrypto::Serialized* serObj) const {
 
-	if( !serObj->IsObject() )
-		return false;
-
+  if( !serObj->IsObject() ){
+    serObj->SetObject();
+  }
+  
 	lbcrypto::SerialItem bbvMap(rapidjson::kObjectType);
 
 	bbvMap.AddMember("Modulus", this->GetModulus().ToString(), serObj->GetAllocator());

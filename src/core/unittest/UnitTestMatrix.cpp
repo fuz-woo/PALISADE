@@ -64,28 +64,28 @@ protected:
 /* TESTING BASIC MATH METHODS AND OPERATORS     */
 /************************************************/
 
-static function<unique_ptr<Poly>()> secureIL2nAlloc() {
+static function<Poly()> secureIL2nAlloc() {
     BigInteger secureModulus("8590983169");
     BigInteger secureRootOfUnity("4810681236");
-    return Poly::MakeAllocator(
+    return Poly::Allocator(
         shared_ptr<ILParams>( new ILParams(
         2048, secureModulus, secureRootOfUnity) ),
         EVALUATION
         );
 }
 
-static function<unique_ptr<Poly>()> fastIL2nAlloc() {
+static function<Poly()> fastIL2nAlloc() {
 	usint m = 16;
 	BigInteger modulus("67108913");
 	BigInteger rootOfUnity("61564");
-    return Poly::MakeAllocator(
+    return Poly::Allocator(
         shared_ptr<ILParams>( new ILParams(
         m, modulus, rootOfUnity) ),
         EVALUATION
         );
 }
 
-static function<unique_ptr<Poly>()> fastUniformIL2nAlloc() {
+static function<Poly()> fastUniformIL2nAlloc() {
 	usint m = 16;
 	BigInteger modulus("67108913");
 	BigInteger rootOfUnity("61564");
@@ -97,7 +97,7 @@ static function<unique_ptr<Poly>()> fastUniformIL2nAlloc() {
 }
 
 TEST(UTMatrix,serializer) {
-	Matrix<int32_t> m([](){return make_unique<int32_t>();}, 3, 5);
+	Matrix<int32_t> m([](){return 0;}, 3, 5);
 }
 
 TEST(UTMatrix,basic_il2n_math){
@@ -133,7 +133,7 @@ TEST(UTMatrix,basic_intvec_math){
 
     BigInteger modulus("67108913");
     DEBUG("1");
-    auto singleAlloc = [=](){ return make_unique<BigVector>(1, modulus); };
+    auto singleAlloc = [=](){ return BigVector(1, modulus); };
     DEBUG("2");
     Matrix<BigVector> z(singleAlloc, 2,2);
     DEBUG("3");
@@ -165,9 +165,9 @@ TEST(UTMatrix, transpose){
 TEST(UTMatrix, scalar_mult){
     Matrix<Poly> n = Matrix<Poly>(secureIL2nAlloc(), 4, 2).Ones();
     auto one = secureIL2nAlloc()();
-    *one = 1;
-    EXPECT_EQ(n, *one*n);
-    EXPECT_EQ(n, n**one);
+    one = 1;
+    EXPECT_EQ(n, one*n);
+    EXPECT_EQ(n, n*one);
 
     //auto two = secureIL2nAlloc()();
     //Matrix<Poly> twos = Matrix<Poly>(secureIL2nAlloc(), 4, 2).Fill(2);
@@ -224,7 +224,7 @@ inline void expect_close(double a, double b) {
 
 TEST(UTMatrix, cholesky) {
         bool dbg_flag = false;
-        Matrix<int32_t> m([]() { return make_unique<int32_t>(); }, 2, 2);
+        Matrix<int32_t> m([]() { return 0; }, 2, 2);
 	m(0, 0) = 20;
 	m(0, 1) = 4;
 	m(1, 0) = 4;
@@ -247,14 +247,14 @@ TEST(UTMatrix, cholesky) {
 TEST(UTMatrix, gadget_vector) {
     Matrix<Poly> n = Matrix<Poly>(secureIL2nAlloc(), 1, 4).GadgetVector();
 	auto v = secureIL2nAlloc()();
-	*v = 1;
-    EXPECT_EQ(*v, n(0,0));
-	*v = 2;
-    EXPECT_EQ(*v, n(0,1));
-	*v = 4;
-    EXPECT_EQ(*v, n(0,2));
-	*v = 8;
-    EXPECT_EQ(*v, n(0,3));
+	v = 1;
+    EXPECT_EQ(v, n(0,0));
+	v = 2;
+    EXPECT_EQ(v, n(0,1));
+	v = 4;
+    EXPECT_EQ(v, n(0,2));
+	v = 8;
+    EXPECT_EQ(v, n(0,3));
 }
 
 TEST(UTMatrix, rotate_vec_result) {
@@ -272,9 +272,9 @@ TEST(UTMatrix, rotate_vec_result) {
 	EXPECT_EQ(negOneVec, R(0,6));
 	EXPECT_EQ(negOneVec, R(1,7));
 
-    auto singleAlloc = [=](){ return make_unique<Poly::Vector>(1, modulus); };
-	EXPECT_EQ(*singleAlloc(), R(0,6 + 8));
-	EXPECT_EQ(*singleAlloc(), R(1,7 + 8));
+    auto singleAlloc = [=](){ return Poly::Vector(1, modulus); };
+	EXPECT_EQ(singleAlloc(), R(0,6 + 8));
+	EXPECT_EQ(singleAlloc(), R(1,7 + 8));
 
 }
 
@@ -319,7 +319,7 @@ TEST(UTMatrix, norm) {
 // Checks the implementantation of determinant based on a 3x3 matrix
 TEST(UTMatrix, determinant) {
 	
-	Matrix<int32_t> m([]() { return make_unique<int32_t>(); }, 3, 3);
+	Matrix<int32_t> m([]() { return 0; }, 3, 3);
 	m(0, 0) = 1;
 	m(0, 1) = 2;
 	m(0, 2) = 1;
@@ -340,7 +340,7 @@ TEST(UTMatrix, determinant) {
 // Checks the implementantation of cofactor matrix based on a 3x3 matrix
 TEST(UTMatrix, cofactorMatrix) {
 
-	Matrix<int32_t> m([]() { return make_unique<int32_t>(); }, 3, 3);
+	Matrix<int32_t> m([]() { return 0; }, 3, 3);
 	m(0, 0) = 1;
 	m(0, 1) = 2;
 	m(0, 2) = 0;
@@ -351,7 +351,7 @@ TEST(UTMatrix, cofactorMatrix) {
 	m(2, 1) = 2;
 	m(2, 2) = 3;
 
-	Matrix<int32_t> r([]() { return make_unique<int32_t>(); }, 3, 3);
+	Matrix<int32_t> r([]() { return 0; }, 3, 3);
 	r(0, 0) = 1;
 	r(0, 1) = 4;
 	r(0, 2) = -3;

@@ -82,11 +82,6 @@ namespace NTL {
     SetMSB();
   }
 
-  //this is the zero allocator for the palisade matrix class
-  unique_ptr<myZZ> myZZ::Allocator() {
-    return lbcrypto::make_unique<NTL::myZZ>();
-  };
-
   usint myZZ::GetMSB() const {
     //note: originally I did not worry about this, and just set the 
     //MSB whenever this was called, but then that violated constness in the 
@@ -209,59 +204,67 @@ namespace NTL {
     return ans.FromBinaryString(vin);
   }
 
+  // utility function introduced in Backend 6 to get a subset of bits from a Bigint 
+  usint myZZ::GetBitRangeAtIndex(usint ppo, usint length) const{
+    long pin = ppo-1;
+    long bl;
+    long sa;
+    _ntl_limb_t wh;
+    
+    if (pin < 0 || !this->rep) return 0;
+    
+    usint out(0);
+    
+    for (usint p = pin, i = 0; i<length; i++, p++){
+      
+      bl = p/NTL_ZZ_NBITS;
+      wh = ((_ntl_limb_t) 1) << (p - NTL_ZZ_NBITS*bl);
+      
+      sa = this->size();
+      if (sa < 0) sa = -sa;
+      
+      if (sa <= bl) {
+	return out;
+      }
+      if (ZZ_limbs_get(*this)[bl] & wh) {
+	out |= 1<<i;
+      }
+    }
+    return out;
+  }
+  
+  
   usint myZZ::GetDigitAtIndexForBase(usint index, usint base) const{
     bool dbg_flag = false;		// if true then print dbg output
     DEBUG("myZZ::GetDigitAtIndexForBase:  index = " << index
 	  << ", base = " << base);
 
-	  usint DigitLen = ceil(log2(base));
+    usint DigitLen = std::ceil(log2(base));
+    usint digit = 0;
+    usint newIndex = 1 + (index - 1)*DigitLen;
 
-	  usint digit = 0;
-	  usint newIndex = 1 + (index - 1)*DigitLen;
-	  for (usint i = 1; i < base; i = i * 2)
-	  {
-		  digit += GetBitAtIndex(newIndex)*i;
-		  newIndex++;
-	  }
+    //newIndex 1 is lsb
+    digit = GetBitRangeAtIndex(newIndex, DigitLen);
     DEBUG("digit = " << digit);
-	  return digit;
+    return digit;
   }
 
   // returns the bit at the index into the binary format of the big integer, 
-  // note that msb is 1 like all other indicies. 
-  //TODO: this code could be massively simplified
+  // note that msb is 1 like all other bit indicies in PALISADE. 
+
   uschar myZZ::GetBitAtIndex(usint index) const{
     bool dbg_flag = false;		// if true then print dbg output
     DEBUG("myZZ::GetBitAtIndex(" << index << "), this=" << *this);
-    GetMSB();
+    return (uschar) GetBitRangeAtIndex( index, 1);
+  }
 
-    if(index<=0){
-      return 0;
-    }
-    else if (index > m_MSB) {
-      return 0;
-    }
+  // returns a group of 6  bist at the index into the binary format of the big integer, 
+  // note that msb is 1 like all other bit indicies in PALISADE. 
 
-    ZZ_limb_t result;
-    const ZZ_limb_t *zlp = ZZ_limbs_get(*this); //get access to limb array
-    int idx =ceilIntByUInt(index)-1;//idx is the index of the limb array
-
-    if (idx >= (this->size())){
-      return (uschar)0;
-    }
-
-    ZZ_limb_t temp = zlp[idx]; // point to correct limb
-    ZZ_limb_t bmask_counter = index%NTL_ZZ_NBITS==0? NTL_ZZ_NBITS:index%NTL_ZZ_NBITS;//bmask is the bit number in the limb
-    ZZ_limb_t bmask = 1;
-    for(usint i=1;i<bmask_counter;i++)
-      bmask<<=1;//generate the bitmask number
-    DEBUG("temp = " << temp << ", bmask_counter = " << bmask_counter
-	  << ", bmask = " << bmask);
-    result = temp&bmask;//finds the bit in  bit format
-    DEBUG("result = " << result);
-    result>>=bmask_counter-1;//shifting operation gives bit either 1 or 0
-    DEBUG("result = " << result);
-    return (uschar)result;
+  uschar myZZ::Get6BitsAtIndex(usint index) const{
+    bool dbg_flag = false;		// if true then print dbg output
+    DEBUG("myZZ::Get6BitsAtIndex(" << index << "), this=" << *this);
+    return (uschar) GetBitRangeAtIndex( index, 6);
   }
 
   //optimized ceiling function after division by number of bits in the limb data type.
@@ -278,9 +281,6 @@ namespace NTL {
       return Number>>m_log2LimbBitLength;
   }
 
-  //adapter kit
-  //const myZZ& myZZ::zero() {return myZZ(ZZ::zero());}
-
   //palisade conversion methods
 
   uint64_t myZZ::ConvertToInt() const{
@@ -296,7 +296,7 @@ namespace NTL {
     s>>result;
 
     if ((this->GetMSB() >= (sizeof(uint64_t)*8)) ||
-	(this->GetMSB() >= NTL_ZZ_NBITS)) {
+	(this->GetMSB() > NTL_ZZ_NBITS)) {
       std::cerr<<"Warning myZZ::ConvertToInt() Loss of precision. "<<std::endl;
       std::cerr<<"input  "<< *this<<std::endl;			
       std::cerr<<"result  "<< result<<std::endl;			
@@ -484,8 +484,10 @@ namespace NTL {
 
   bool myZZ::Serialize(lbcrypto::Serialized* serObj) const{
     bool dbg_flag = false;
-    if( !serObj->IsObject() )
-      return false;
+ 
+    if( !serObj->IsObject() ){
+      serObj->SetObject();
+    }
     
     lbcrypto::SerialItem bbiMap(rapidjson::kObjectType);
 

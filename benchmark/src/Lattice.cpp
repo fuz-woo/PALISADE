@@ -51,6 +51,8 @@
 using namespace std;
 using namespace lbcrypto;
 
+namespace lbcrypto {
+
 template <typename E>
 static E makeElement(shared_ptr<lbcrypto::ILParamsImpl<typename E::Integer>> params) {
 	typename E::Vector	vec = makeVector<typename E::Vector>(params->GetRingDimension(), params->GetModulus());
@@ -182,6 +184,7 @@ PolyImpl<BE6Integer, BE6Integer, BE6Vector, BE6ILParams>::DecryptionCRTInterpola
 	return std::move( interp );
 }
 #endif
+}
 
 map<usint,shared_ptr<ILNativeParams>> Nativeparms;
 map<usint,shared_ptr<BE2ILParams>> BE2parms;

@@ -35,10 +35,10 @@ namespace lbcrypto {
 		template<class Element>
         class MatrixStrassen : public Serializable {
         public:
-            typedef vector<vector<unique_ptr<Element>>> data_t;
-            typedef vector<unique_ptr<Element>> lineardata_t;
-            typedef typename vector<unique_ptr<Element>>::iterator it_lineardata_t;
-            typedef std::function<unique_ptr<Element>(void)> alloc_func;
+            typedef vector<vector<Element>> data_t;
+            typedef vector<Element> lineardata_t;
+            typedef typename vector<Element>::iterator it_lineardata_t;
+            typedef std::function<Element(void)> alloc_func;
         
 			/**
 			 * Constructor that initializes matrix values using a zero allocator
@@ -163,7 +163,9 @@ namespace lbcrypto {
              */  
             inline MatrixStrassen<Element> ScalarMult(Element const& other) const {
                 MatrixStrassen<Element> result(*this);
+#ifdef OMP
             #pragma omp parallel for
+#endif
             for (int32_t col = 0; col < result.cols; ++col) {
             	for (int32_t row = 0; row < result.rows; ++row) {
 
@@ -196,7 +198,7 @@ namespace lbcrypto {
 
                 for (size_t i = 0; i < rows; ++i) {
                     for (size_t j = 0; j < cols; ++j) {
-                        if (*data[i][j] != *other.data[i][j]) {
+                        if (data[i][j] != other.data[i][j]) {
                             return false;
                         }
                     }
@@ -279,8 +281,9 @@ namespace lbcrypto {
                     throw invalid_argument("Addition operands have incompatible dimensions");
                 }
                 MatrixStrassen<Element> result(*this);
-
+#ifdef OMP
                 #pragma omp parallel for
+#endif
 		for (int32_t j = 0; j < cols; ++j) {
 		  for (int32_t i = 0; i < rows; ++i) {
 		    *result.data[i][j] += *other.data[i][j];
@@ -320,7 +323,9 @@ namespace lbcrypto {
                     throw invalid_argument("Subtraction operands have incompatible dimensions");
                 }
                 MatrixStrassen<Element> result(allocZero, rows, other.cols);
+#ifdef OMP
                 #pragma omp parallel for
+#endif
                 for (int32_t j = 0; j < cols; ++j) {
                 	for (int32_t i = 0; i < rows; ++i) {
 			  *result.data[i][j] = *data[i][j] - *other.data[i][j];
@@ -395,7 +400,7 @@ namespace lbcrypto {
 			 * @return the element at the index
              */ 
             inline Element& operator()(size_t row, size_t col) {
-                return *data[row][col];
+                return data[row][col];
             }
 
             /**
@@ -406,7 +411,7 @@ namespace lbcrypto {
 			 * @return the element at the index
              */ 
             inline Element const& operator()(size_t row, size_t col) const {
-                return *data[row][col];
+                return data[row][col];
             }
 
 			/**
@@ -497,7 +502,7 @@ namespace lbcrypto {
             mutable int numMult = 0;
             mutable int numSub = 0;
             mutable MatDescriptor desc;
-            mutable unique_ptr<Element> zeroUniquePtr = allocZero();
+            mutable Element zeroUniquePtr = allocZero();
             mutable int NUM_THREADS = 1;
 
 
@@ -518,7 +523,6 @@ namespace lbcrypto {
             void deepCopyData(data_t const& src);
             void getData(const data_t &Adata, const data_t &Bdata, const data_t &Cdata, int row, int inner, int col) const;
 
-            void accessUniquePtrCAPS(it_lineardata_t ptr, Element val) const;
             void smartSubtractionCAPS(it_lineardata_t result, it_lineardata_t A, it_lineardata_t B) const;
             void smartAdditionCAPS(it_lineardata_t result, it_lineardata_t A, it_lineardata_t B) const;
             void addMatricesCAPS( int numEntries, it_lineardata_t C, it_lineardata_t A, it_lineardata_t B ) const;

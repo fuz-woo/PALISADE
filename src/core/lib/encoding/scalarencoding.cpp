@@ -33,14 +33,10 @@ ScalarEncoding::Encode() {
 	if( this->isEncoded ) return true;
 	PlaintextModulus mod = this->encodingParams->GetPlaintextModulus();
 
-	if( value > INT32_MAX || value < INT32_MIN ) {
-		PALISADE_THROW( config_error, "Cannot encode a scalar larger than 32 bits");
-	}
-
 	if( value <= LowBound() || value > HighBound() )
 		PALISADE_THROW( config_error, "Cannot encode integer " + std::to_string(value) + " because it is out of range of plaintext modulus " + std::to_string(mod) );
 
-	uint32_t entry = value;
+	auto entry = value;
 
 	// map to -p/2 .. p/2
 	if( value < 0 ) {

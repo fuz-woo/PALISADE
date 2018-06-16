@@ -615,9 +615,13 @@ PolyImpl<ModType,IntType,VecType,ParmType> PolyImpl<ModType,IntType,VecType,Parm
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecType,ParmType>::operator+=(const PolyImpl &element)
 {
-	if (!(*this->m_params == *element.m_params))
+	bool dbg_flag = true;
+	if (!(*this->m_params == *element.m_params)){
+		DEBUGEXP(*this->m_params);
+		DEBUGEXP(*element.m_params);
 		throw std::logic_error("operator+= called on PolyImpl's with different params.");
-
+	}
+  
 	if (m_values == nullptr) {
 		// act as tho this is 0
 		m_values = make_unique<VecType>(*element.m_values);
@@ -638,7 +642,7 @@ const PolyImpl<ModType,IntType,VecType,ParmType>& PolyImpl<ModType,IntType,VecTy
 		// act as tho this is 0
 		m_values = make_unique<VecType>(m_params->GetRingDimension(), m_params->GetModulus());
 	}
-	SetValues( m_values->ModSub(*element.m_values), this->m_format );
+	m_values->ModSubEq(*element.m_values);
 	return *this;
 }
 
@@ -1060,19 +1064,17 @@ std::vector<PolyImpl<ModType,IntType,VecType,ParmType>> PolyImpl<ModType,IntType
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 bool PolyImpl<ModType,IntType,VecType,ParmType>::Serialize(Serialized* serObj) const {
 	bool dbg_flag = false;
+	DEBUG("in PolyImpl<> Serialize");
 	if( !serObj->IsObject() ){
-		DEBUG("PolyImpl::Serialize is obj failed");
-		return false;
+	  serObj->SetObject();
 	}
 	Serialized obj(rapidjson::kObjectType, &serObj->GetAllocator());
 	if (!this->GetValues().Serialize(&obj)){
-		DEBUG("PolyImpl::Serialize Get values failed");
-		return false;
+	        PALISADE_THROW(lbcrypto::serialize_error, "PolyImpl::Serialize Get values failed");
 	}
 
 	if (!m_params->Serialize(&obj)){
-		DEBUG("PolyImpl::Serialize m_[arams failed");
-		return false;
+	        PALISADE_THROW(lbcrypto::serialize_error, "PolyImpl::Serialize m_[arams failed");
 	}
 	obj.AddMember("Format", std::to_string(this->GetFormat()), obj.GetAllocator());
 
@@ -1085,16 +1087,16 @@ bool PolyImpl<ModType,IntType,VecType,ParmType>::Serialize(Serialized* serObj) c
 template<typename ModType, typename IntType, typename VecType, typename ParmType>
 bool PolyImpl<ModType,IntType,VecType,ParmType>::Deserialize(const Serialized& serObj) {
 	bool dbg_flag= false;
+	DEBUG("in PolyImpl<> Deserialize");
+
 	Serialized::ConstMemberIterator iMap = serObj.FindMember("PolyImpl");
 	if (iMap == serObj.MemberEnd()) {
-		DEBUG("PolyImpl::Deserialize could not find PolyImpl");
-		return false;
+		PALISADE_THROW(lbcrypto::deserialize_error, "PolyImpl::Deserialize could not find PolyImpl");
 	}
 
 	SerialItem::ConstMemberIterator pIt = iMap->value.FindMember("ILParams");
 	if (pIt == iMap->value.MemberEnd()) {
-		DEBUG("PolyImpl::Deserialize could not find ILParams");
-		return false;
+		PALISADE_THROW(lbcrypto::deserialize_error, "PolyImpl::Deserialize could not find ILParams");
 	}
 
 	Serialized parm(rapidjson::kObjectType);
@@ -1102,8 +1104,7 @@ bool PolyImpl<ModType,IntType,VecType,ParmType>::Deserialize(const Serialized& s
 
 	shared_ptr<ParmType> json_ilParams(new ParmType());
 	if (!json_ilParams->Deserialize(parm)){
-		DEBUG("PolyImpl::Deserialize could not deserialize Params");
-		return false;
+		PALISADE_THROW(lbcrypto::deserialize_error, "PolyImpl::Deserialize could not deserialize Params");
 	}
 	m_params = json_ilParams;
 
@@ -1113,20 +1114,17 @@ bool PolyImpl<ModType,IntType,VecType,ParmType>::Deserialize(const Serialized& s
 
 	SerialItem::ConstMemberIterator vIt = iMap->value.FindMember("BigVectorImpl");
 	if (vIt == iMap->value.MemberEnd()) {
-		DEBUG("PolyImpl::Deserialize could not find BigVectorImpl");
-		return false;
+		PALISADE_THROW(lbcrypto::deserialize_error, "PolyImpl::Deserialize could not find BigVectorImpl");
 	}
 
 	Serialized s(rapidjson::kObjectType);
 	s.AddMember(SerialItem(vIt->name, s.GetAllocator()), SerialItem(vIt->value, s.GetAllocator()), s.GetAllocator());
 	if (!vectorBBV.Deserialize(s)) {
-		DEBUG("PolyImpl::Deserialize could not deserialize s");
-		return false;
+		PALISADE_THROW(lbcrypto::deserialize_error, "PolyImpl::Deserialize could not deserialize s");
 	}
 
 	if ((vIt = iMap->value.FindMember("Format")) == iMap->value.MemberEnd()) {
-		DEBUG("PolyImpl::Deserialize could not find format");
-		return false;
+		PALISADE_THROW(lbcrypto::deserialize_error, "PolyImpl::Deserialize could not find format");
 	}
 	this->SetValues(vectorBBV, Format(atoi(vIt->value.GetString())));
 

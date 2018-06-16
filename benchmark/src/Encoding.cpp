@@ -151,7 +151,7 @@ void BM_encoding_PackedIntPlaintext_SetParams(benchmark::State& state) {
 	}
 
 	while (state.KeepRunning()) {
-		PackedEncoding::SetParams(m, p);
+		PackedEncoding::SetParams(m, ep);
 		state.PauseTiming();
 		PackedEncoding::Destroy();
 		state.ResumeTiming();

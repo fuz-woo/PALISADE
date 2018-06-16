@@ -65,6 +65,8 @@ GENERATE_PKE_TEST_CASE(x, y, Poly, BFV_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, Poly, BFV_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrns_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrnsB_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, Poly, BFVrnsB_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, Null, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, LTV, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, BGV_rlwe, ORD, PTM) \
@@ -73,13 +75,17 @@ GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFV_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFV_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrns_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrnsB_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, NativePoly, BFVrnsB_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, Null, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, LTV, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, StSt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BGV_rlwe, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BGV_opt, ORD, PTM) \
 GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_rlwe, ORD, PTM) \
-GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_opt, ORD, PTM)
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrns_opt, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrnsB_rlwe, ORD, PTM) \
+GENERATE_PKE_TEST_CASE(x, y, DCRTPoly, BFVrnsB_opt, ORD, PTM)
 
 static const usint ORDER = 4096;
 static const usint PTMOD = 256;
@@ -99,18 +105,18 @@ static void ReEncryption(const CryptoContext<Element> cc, const string& failmsg)
 
 	string shortStr(vecSize/2,0);
 	std::generate_n(shortStr.begin(), vecSize/2, randchar);
-	Plaintext plaintextShort( new StringEncoding(cc->GetElementParams(), cc->GetEncodingParams(), shortStr) );
+	Plaintext plaintextShort = cc->MakeStringPlaintext(shortStr);
 
 	string fullStr(vecSize,0);
 	std::generate_n(fullStr.begin(), vecSize, randchar);
-	Plaintext plaintextFull( new StringEncoding(cc->GetElementParams(), cc->GetEncodingParams(), fullStr) );
+	Plaintext plaintextFull = cc->MakeStringPlaintext(fullStr);
 
 	auto ptm = cc->GetCryptoParameters()->GetPlaintextModulus();
 
 	vector<int64_t> intvec;
 	for( size_t ii=0; ii<vecSize; ii++)
 		intvec.push_back( (rand() % (ptm/2)) * (rand()%2 ? 1 : -1) );
-	Plaintext plaintextInt( new CoefPackedEncoding(cc->GetElementParams(), cc->GetEncodingParams(), intvec) );
+	Plaintext plaintextInt = cc->MakeCoefPackedPlaintext(intvec);
 
 	LPKeyPair<Element> kp = cc->KeyGen();
 	EXPECT_EQ(kp.good(), true) << failmsg << " key generation for scalar encrypt/decrypt failed";

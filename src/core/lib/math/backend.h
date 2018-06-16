@@ -28,6 +28,8 @@
 #ifndef LBCRYPTO_MATH_BACKEND_H
 #define LBCRYPTO_MATH_BACKEND_H
 
+#include "version.h"
+
 #include "utils/inttypes.h"
 
  
@@ -43,7 +45,7 @@
 
 typedef native_int::NativeInteger<uint64_t>			NativeInteger;
 typedef native_int::NativeVector<NativeInteger>		NativeVector;
-
+typedef unsigned __int128 DoubleNativeInteger;
 
 /*! Define the underlying default math implementation being used by defining MATHBACKEND */
 
@@ -77,9 +79,9 @@ typedef native_int::NativeVector<NativeInteger>		NativeVector;
 //uncommented line (and breaking the documentation of the line)
 
 #ifndef MATHBACKEND
-#define MATHBACKEND 2
+//#define MATHBACKEND 2
 //#define MATHBACKEND 4
-//#define MATHBACKEND 6
+#define MATHBACKEND 6
 #endif
 
 #if MATHBACKEND != 2 && MATHBACKEND != 4 && MATHBACKEND != 6

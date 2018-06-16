@@ -74,7 +74,7 @@ TEST_F(UTStatisticalEval, Null_Eval_Lin_Regression) {
 
 	// Set the plaintext matrices
 
-	auto zeroAlloc = [=]() { return lbcrypto::make_unique<Plaintext>(cc->MakeCoefPackedPlaintext({int64_t(0)})); };
+	auto zeroAlloc = [=]() { return cc->MakeCoefPackedPlaintext({int64_t(0)}); };
 
 	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
 
@@ -164,7 +164,7 @@ TEST_F(UTStatisticalEval, Null_Eval_Lin_Regression_Int) {
 
 	// Set the plaintext matrices
 
-	auto zeroAlloc = [=]() { return make_unique<Plaintext>(); };
+	auto zeroAlloc = [=]() { return Plaintext(); };
 
 	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
 
@@ -228,14 +228,14 @@ TEST_F(UTStatisticalEval, Null_Eval_Lin_Regression_Int) {
 * In contrast to the previous test, this one also converts an integer
 * into a binary polynomial
 */
-TEST_F(UTStatisticalEval, BFV_Eval_Lin_Regression_Int) {
+TEST_F(UTStatisticalEval, BFV_Eval_Lin_Regression_Int_VERY_LONG) {
 
 	usint plaintextModulus = 512;
 	usint relWindow = 8;
 	float stdDev = 4;
 
 	//Set crypto parametes
-	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(plaintextModulus, 1.06, relWindow, stdDev, 0, 3, 0);
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBFV(plaintextModulus, 1.6, relWindow, stdDev, 0, 3, 0);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(SHE);
 
@@ -244,7 +244,7 @@ TEST_F(UTStatisticalEval, BFV_Eval_Lin_Regression_Int) {
 
 	// Set the plaintext matrices
 
-	auto zeroAlloc = [=]() { return make_unique<Plaintext>(); };
+	auto zeroAlloc = [=]() { return Plaintext(); };
 
 	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
 
@@ -325,7 +325,7 @@ TEST_F(UTStatisticalEval, BFVrns_Eval_Lin_Regression_Int) {
 
 	// Set the plaintext matrices
 
-	auto zeroAlloc = [=]() { return make_unique<Plaintext>(); };
+	auto zeroAlloc = [=]() { return Plaintext(); };
 
 	Matrix<Plaintext> xP = Matrix<Plaintext>(zeroAlloc, 2, 2);
 
