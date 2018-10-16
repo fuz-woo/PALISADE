@@ -33,98 +33,23 @@
 #include "matrixstrassen.h"
 using std::invalid_argument;
 
-// this is the serializations of matricies
+// this is the serializations of matrices
+// not implemented, so just placeholders
 
 namespace lbcrypto {
 
-template<>
-bool Matrix<int32_t>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<int32_t>::Serialize() not written"<<std::endl;
-  return false;
-}
+MATRIX_NOT_SERIALIZABLE(double)
+MATRIX_NOT_SERIALIZABLE(int)
+MATRIX_NOT_SERIALIZABLE(int64_t)
+MATRIX_NOT_SERIALIZABLE(uint64_t)
+MATRIX_NOT_SERIALIZABLE(Field2n)
 
-template<>
-bool Matrix<int32_t>::Deserialize(const Serialized& serObj) {
-  std::cout<<"Matrix<int32_t>::Deserialize() not written"<<std::endl;
-  return false;
-}
 
-template<>
-bool Matrix<int64_t>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<int64_t>::Serialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<int64_t>::Deserialize(const Serialized& serObj) {
-  std::cout<<"Matrix<int64_t>::Deserialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<uint64_t>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<uint64_t>::Serialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<uint64_t>::Deserialize(const Serialized& serObj) {
-  std::cout<<"Matrix<uint64_t>::Deserialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<double>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<double>::Serialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<double>::Deserialize(const Serialized& serObj) {
-  std::cout<<"Matrix<double>::Deserialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<BigInteger>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<BigInteger>::Serialize() not written"<<std::endl;
-	return false;
-}
-
-template<>
-bool Matrix<BigInteger>::Deserialize(const Serialized& serObj) {
-  std::cout<<"Matrix<BigInteger>::Deserialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<NativeInteger>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<native_int::BigInteger>::Serialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<NativeInteger>::Deserialize(const Serialized& serObj) {
-  std::cout<<"Matrix<native_int::BigInteger>::Deserialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<BigVector>::Serialize(Serialized* serObj) const {
-    std::cout<<"Matrix<BigVector>::Serialize() not written"<<std::endl;
-	return false;
-}
-
-template<>
-bool Matrix<BigVector>::Deserialize(const Serialized& serObj) {
-    std::cout<<"Matrix<BigVector>::Deserialize() not written"<<std::endl;
-    return false;
-}
-
+// TODO implement!
+#ifdef OUT
 template<>
 bool Matrix<Poly>::Serialize(Serialized* serObj) const {
 
-  //TODO: this was probably never tested since Matrix<Poly>.Deserialize() is not written
   if( !serObj->IsObject() ){
     serObj->SetObject();
   }
@@ -216,41 +141,7 @@ bool MatrixStrassen<Poly>::Deserialize(const Serialized& serObj) {
   return false;
 }
 
-template<>
-bool Matrix<Plaintext>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<Poly>::Serialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<Plaintext>::Deserialize(const Serialized& serObj) {
-    std::cout<<"Matrix<Plaintext>::Deserialize() not written"<<std::endl;
-    return false;
-}
-
-template<>
-bool Matrix<PackedEncoding>::Serialize(Serialized* serObj) const {
-    std::cout<<"Matrix<PackedEncoding>::Serialize() not written"<<std::endl;
-    return false;
-}
-
-template<>
-bool Matrix<PackedEncoding>::Deserialize(const Serialized& serObj) {
-    std::cout<<"Matrix<PackedEncoding>::Deserialize() not written"<<std::endl;
-    return false;
-}
-
-template<>
-bool Matrix<Field2n>::Serialize(Serialized* serObj) const {
-  std::cout<<"Matrix<Field2n>::Serialize() not written"<<std::endl;
-  return false;
-}
-
-template<>
-bool Matrix<Field2n>::Deserialize(const Serialized& serObj) {
-  std::cout<<"Matrix<Field2n>::Deserialize() not written"<<std::endl;
-  return false;
-}
+#endif
 
 }
 

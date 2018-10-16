@@ -30,6 +30,7 @@
 #include "include/gtest/gtest-all.cc"
 
 #include "math/backend.h"
+#include "lattice/backend.h"
 #include "utils/inttypes.h"
 #include "math/nbtheory.h"
 #include "lattice/elemparams.h"
@@ -37,8 +38,6 @@
 #include "lattice/ildcrtparams.h"
 #include "lattice/ilelement.h"
 #include "math/distrgen.h"
-#include "lattice/poly.h"
-#include "lattice/dcrtpoly.h"
 #include "utils/utilities.h"
 
 using namespace std;
@@ -54,8 +53,6 @@ public:
 		cout << lead << "PALISADE Version " << GetPALISADEVersion() << endl;
 		cout << lead << "Date " <<
 			testing::internal::FormatEpochTimeInMillisAsIso8601(unit_test.start_timestamp()) << endl;
-
-		cout << lead << "Begin " << GetMathBackendParameters() << endl;
 	}
 	void OnTestIterationStart(const ::testing::UnitTest& unit_test, int iteration) {}
 	void OnEnvironmentsSetUpStart(const ::testing::UnitTest& unit_test) {}
@@ -130,14 +127,23 @@ public:
 
 };
 
+bool TestB2 = false;
+bool TestB4 = false;
+bool TestB6 = false;
+bool TestNative = true;
+
 int main(int argc, char **argv) {
 
 	::testing::InitGoogleTest(&argc, argv);
 
 	bool terse=false;
+	bool setall=false;
 	for( int i = 1; i < argc; i++ ) {
 		if( string(argv[i]) == "-t" ) {
 			terse=true;
+		}
+		else if( string(argv[i]) == "-all" ) {
+			setall=true;
 		}
 	}
 
@@ -160,6 +166,15 @@ int main(int argc, char **argv) {
 		cout << "PALISADE Version " << GetPALISADEVersion() << endl;
 		cout << GetMathBackendParameters() << endl;
 	}
+
+	if( setall )
+		TestB2 = TestB4 = TestB6 = true;
+	else if( MATHBACKEND == 2 )
+		TestB2 = true;
+	else if( MATHBACKEND == 4 )
+		TestB4 = true;
+	else if( MATHBACKEND == 6 )
+		TestB6 = true;
 
 	return RUN_ALL_TESTS();
 }

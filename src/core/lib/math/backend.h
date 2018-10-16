@@ -31,6 +31,7 @@
 #include "version.h"
 
 #include "utils/inttypes.h"
+#include "utils/parallel.h"
 
  
 // use of MS VC is not permitted because of various incompatibilities
@@ -143,14 +144,19 @@ typedef mubintvec<xubint> xmubintvec;
 }
 
 #include "gmp_int/gmpint.h" //experimental gmp unsigned big ints
-//#include "gmp_int/mgmpint.h" //experimental gmp modulo unsigned big ints
-//#include "gmp_int/gmpintvec.h" //vectors of such
 #include "gmp_int/mgmpintvec.h" //rings of such
 
 namespace gmp_int {
 typedef NTL::myZZ ubint;
-
 }
+
+// typedefs for the known math backends
+using M2Integer = cpu_int::BigInteger<integral_dtype,BigIntegerBitLength>;
+using M2Vector = cpu_int::BigVectorImpl<M2Integer>;
+using M4Integer = exp_int::xubint;
+using M4Vector = exp_int::xmubintvec;
+using M6Integer = NTL::myZZ;
+using M6Vector = NTL::myVecP<M6Integer>;
 
 /**
  * @namespace lbcrypto
@@ -160,39 +166,59 @@ namespace lbcrypto {
 
 #if MATHBACKEND == 2
 
-	typedef cpu_int::BigInteger<integral_dtype,BigIntegerBitLength> BigInteger;
-	typedef cpu_int::BigVectorImpl<BigInteger> BigVector;
+	using BigInteger = M2Integer;
+	using BigVector = M2Vector;
 
 #endif
 
 #if MATHBACKEND == 4
+
 #ifdef UBINT_64
 	#error MATHBACKEND 4 with UBINT_64 currently does not work do not use.
 #endif
-	typedef exp_int::xubint BigInteger;
-	typedef exp_int::xmubintvec BigVector;
+
+	using BigInteger = M4Integer;
+	using BigVector = M4Vector;
 
 #endif
 
 #if MATHBACKEND == 6
 
-	/** Define the mapping for BigInteger */
-	typedef NTL::myZZ BigInteger;
-	
-	/** Define the mapping for BigVector */
-	typedef NTL::myVecP<NTL::myZZ> BigVector;
+	using BigInteger = M6Integer;
+	using BigVector = M6Vector;
+
+#endif
+}
 
 #endif
 
-	template<typename IntType> class ILParamsImpl;
-	template<typename ModType, typename IntType, typename VecType, typename ParmType> class PolyImpl;
+// COMMON TESTING DEFINITIONS
+extern bool TestB2;
+extern bool TestB4;
+extern bool TestB6;
+extern bool TestNative;
 
-	typedef ILParamsImpl<BigInteger> ILParams;
-	typedef ILParamsImpl<NativeInteger> ILNativeParams;
+// macros for unit testing
+#define RUN_BIG_BACKENDS_INT(FUNCTION, MESSAGE) { \
+	if( TestB2 ) { using T = M2Integer; FUNCTION<T>("BE2 " MESSAGE); } \
+	if( TestB4 ) { using T = M4Integer; FUNCTION<T>("BE4 " MESSAGE); } \
+	if( TestB6 ) { using T = M6Integer; FUNCTION<T>("BE6 " MESSAGE); } \
+}
 
-	typedef PolyImpl<BigInteger, BigInteger, BigVector, ILParams> Poly;
-	typedef PolyImpl<NativeInteger, NativeInteger, NativeVector, ILNativeParams> NativePoly;
-	
-} // namespace lbcrypto ends
+#define RUN_ALL_BACKENDS_INT(FUNCTION, MESSAGE) { \
+	RUN_BIG_BACKENDS_INT(FUNCTION,MESSAGE) \
+	if( TestNative ) { using T = NativeInteger; FUNCTION<T>("Native " MESSAGE); } \
+}
 
-#endif
+#define RUN_BIG_BACKENDS(FUNCTION, MESSAGE) { \
+	if( TestB2 ) { using V = M2Vector; FUNCTION<V>("BE2 " MESSAGE); } \
+	if( TestB4 ) { using V = M4Vector; FUNCTION<V>("BE4 " MESSAGE); } \
+	if( TestB6 ) { using V = M6Vector; FUNCTION<V>("BE6 " MESSAGE); } \
+}
+
+#define RUN_ALL_BACKENDS(FUNCTION, MESSAGE) { \
+	RUN_BIG_BACKENDS(FUNCTION,MESSAGE) \
+	if( TestNative ) { using V = NativeVector; FUNCTION<V>("Native " MESSAGE); } \
+}
+
+

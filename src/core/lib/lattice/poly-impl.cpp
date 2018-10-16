@@ -26,29 +26,17 @@
 
 #include "elemparams.cpp"
 #include "ilparams.cpp"
-#include "../math/discretegaussiangenerator.cpp"
-#include "../math/discreteuniformgenerator.cpp"
-#include "../math/binaryuniformgenerator.cpp"
-#include "../math/ternaryuniformgenerator.cpp"
+//#include "../math/discretegaussiangenerator.cpp"
+//#include "../math/discreteuniformgenerator.cpp"
+//#include "../math/binaryuniformgenerator.cpp"
+//#include "../math/ternaryuniformgenerator.cpp"
+//#include "../math/transfrm.cpp"
 #include "poly.cpp"
 
-// This creates all the necessary class implementations for Poly
-
 namespace lbcrypto {
-template class DiscreteGaussianGeneratorImpl<BigInteger,BigVector>;
-template class BinaryUniformGeneratorImpl<BigInteger,BigVector>;
-template class TernaryUniformGeneratorImpl<BigInteger,BigVector>;
-template class DiscreteUniformGeneratorImpl<BigInteger,BigVector>;
-
-}
-
-namespace lbcrypto {
-template class ElemParams<BigInteger>;
-template class ILParamsImpl<BigInteger>;
-template class PolyImpl<BigInteger,BigInteger,BigVector,ILParams>;
 
 template<>
-PolyImpl<BigInteger,BigInteger,BigVector,ILParams>::PolyImpl(const shared_ptr<ILDCRTParams<BigInteger>> params, Format format, bool initializeElementToZero) : m_values(nullptr), m_format(format) {
+PolyImpl<BigVector>::PolyImpl(const shared_ptr<ILDCRTParams<BigInteger>> params, Format format, bool initializeElementToZero) : m_values(nullptr), m_format(format) {
 	// construct a local params out of the stuff from the DCRT Params
 	m_params.reset( new ILParams(params->GetCyclotomicOrder(), params->GetModulus(), 1));
 

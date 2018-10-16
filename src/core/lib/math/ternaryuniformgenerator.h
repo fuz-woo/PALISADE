@@ -32,24 +32,25 @@
 
 namespace lbcrypto {
 
-template<typename IntType, typename VecType>
+template<typename VecType>
 class TernaryUniformGeneratorImpl;
 
-typedef TernaryUniformGeneratorImpl<BigInteger,BigVector> TernaryUniformGenerator;
+typedef TernaryUniformGeneratorImpl<BigVector> TernaryUniformGenerator;
 
 /**
 * @brief A generator of the Ternary Uniform Distribution.
 */
-template<typename IntType, typename VecType>
-class TernaryUniformGeneratorImpl : public DistributionGenerator<IntType,VecType> {
+template<typename VecType>
+class TernaryUniformGeneratorImpl : public DistributionGenerator<VecType> {
 
 public:
 	/**
 	* @brief Basic constructor for Binary Uniform Generator.
 	*/
-	TernaryUniformGeneratorImpl () : DistributionGenerator<IntType,VecType>() {}
+	TernaryUniformGeneratorImpl () : DistributionGenerator<VecType>() {}
+    virtual ~TernaryUniformGeneratorImpl() {}
 
-	IntType GenerateInteger(const IntType&) const { return IntType(0); }
+	typename VecType::Integer GenerateInteger(const typename VecType::Integer&) const { return (0); }
 
 	/**
 	* @brief  Generates a vector of random values within the Ternary Uniform Distribution.
@@ -57,7 +58,7 @@ public:
 	* @param modulus the modulus applied to all values of the vector.
 	* @return A vector of random values within the Ternary Uniform Distribution.
 	*/
-	VecType GenerateVector  (usint size, const IntType &modulus) const;
+	VecType GenerateVector  (usint size, const typename VecType::Integer &modulus) const;
 
 	/**
 	* @brief      Returns a generated vector of integers.
@@ -66,10 +67,8 @@ public:
 	*/
 	std::shared_ptr<int32_t> GenerateIntVector (usint size) const;
 
-    virtual ~TernaryUniformGeneratorImpl() {}
 private:
 	static std::uniform_int_distribution<int> m_distribution;
-
 };
 
 } // namespace lbcrypto

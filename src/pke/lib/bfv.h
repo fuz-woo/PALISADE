@@ -139,6 +139,39 @@ namespace lbcrypto {
 				int maxDepth = 2);
 
 			/**
+			* Constructor that initializes values.
+			*
+			* @param &params element parameters.
+			* @param &encodingParams plaintext space parameters.
+			* @param distributionParameter noise distribution parameter.
+			* @param assuranceMeasure assurance level. = BigInteger::ZERO
+			* @param securityLevel standard security level.
+			* @param relinWindow the size of the relinearization window.
+			* @param delta BFV-specific factor that is multiplied by the plaintext polynomial.
+			* @param mode mode for secret polynomial, defaults to RLWE.
+			* @param bigModulus modulus used in polynomial multiplications in EvalMult
+			* @param bigRootOfUnity root of unity for bigModulus
+			* @param bigModulusArb modulus used in polynomial multiplications in EvalMult (arbitrary cyclotomics)
+			* @param bigRootOfUnityArb root of unity for bigModulus (arbitrary cyclotomics)
+			* @param depth is the depth of computation circuit supported for these parameters (not used now; for future use).
+			* @param maxDepth is the maximum homomorphic multiplication depth before performing relinearization
+			*/
+			LPCryptoParametersBFV(shared_ptr<typename Element::Params> params,
+				EncodingParams encodingParams,
+				float distributionParameter,
+				float assuranceMeasure,
+				SecurityLevel securityLevel,
+				usint relinWindow,
+				const typename Element::Integer &delta = typename Element::Integer(0),
+				MODE mode = RLWE,
+				const typename Element::Integer &bigModulus = typename Element::Integer(0),
+				const typename Element::Integer &bigRootOfUnity = typename Element::Integer(0),
+				const typename Element::Integer &bigModulusArb = typename Element::Integer(0),
+				const typename Element::Integer &bigRootOfUnityArb = typename Element::Integer(0),
+				int depth = 1,
+				int maxDepth = 2);
+
+			/**
 			* Destructor
 			*/
 			virtual ~LPCryptoParametersBFV() {}

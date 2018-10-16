@@ -33,36 +33,35 @@
 
 namespace lbcrypto {
 
-template<typename IntType, typename VecType>
+template<typename VecType>
 class BinaryUniformGeneratorImpl;
 
-typedef BinaryUniformGeneratorImpl<BigInteger,BigVector> BinaryUniformGenerator;
+typedef BinaryUniformGeneratorImpl<BigVector> BinaryUniformGenerator;
 
 /**
 * @brief A generator of the Binary Uniform Distribution.
 */
-template<typename IntType, typename VecType>
-class BinaryUniformGeneratorImpl : public DistributionGenerator<IntType,VecType> {
+template<typename VecType>
+class BinaryUniformGeneratorImpl : public DistributionGenerator<VecType> {
 
 public:
 	/**
 	* @brief Basic constructor for Binary Uniform Generator.
 	*/
-	BinaryUniformGeneratorImpl () : DistributionGenerator<IntType,VecType>() {}
+	BinaryUniformGeneratorImpl () : DistributionGenerator<VecType>() {}
+    ~BinaryUniformGeneratorImpl() {}
 
 	/**
 	* @brief  Generates a random value within the Binary Uniform Distribution.
 	* @return A random value within this Binary Uniform Distribution.
 	*/
-	IntType GenerateInteger() const;
+    typename VecType::Integer GenerateInteger() const;
 
 	/**
 	* @brief  Generates a vector of random values within the Binary Uniform Distribution.
 	* @return A vector of random values within this Binary Uniform Distribution.
 	*/
-	VecType GenerateVector(const usint size, const IntType &modulus) const;
-
-    virtual ~BinaryUniformGeneratorImpl();
+	VecType GenerateVector(const usint size, const typename VecType::Integer &modulus) const;
 
 private:
 	static std::bernoulli_distribution m_distribution;

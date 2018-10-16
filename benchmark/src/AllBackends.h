@@ -44,25 +44,4 @@
 using namespace std;
 using namespace lbcrypto;
 
-using BE2Integer = cpu_int::BigInteger<integral_dtype,BigIntegerBitLength>;
-using BE2ILParams = ILParamsImpl<BE2Integer>;
-using BE2ILDCRTParams = ILDCRTParams<BE2Integer>;
-using BE2Vector = cpu_int::BigVectorImpl<BE2Integer>;
-using BE2Poly = PolyImpl<BE2Integer, BE2Integer, BE2Vector, BE2ILParams>;
-using BE2DCRTPoly = DCRTPolyImpl<BE2Integer, BE2Integer, BE2Vector, BE2ILDCRTParams>;
-
-using BE4Integer = exp_int::xubint;
-using BE4ILParams = ILParamsImpl<BE4Integer>;
-using BE4ILDCRTParams = ILDCRTParams<BE4Integer>;
-using BE4Vector = exp_int::xmubintvec;
-using BE4Poly = PolyImpl<BE4Integer, BE4Integer, BE4Vector, BE4ILParams>;
-using BE4DCRTPoly = DCRTPolyImpl<BE4Integer, BE4Integer, BE4Vector, BE4ILDCRTParams>;
-
-using BE6Integer = NTL::myZZ;
-using BE6ILParams = ILParamsImpl<BE6Integer>;
-using BE6ILDCRTParams = ILDCRTParams<BE6Integer>;
-using BE6Vector = NTL::myVecP<NTL::myZZ>;
-using BE6Poly = PolyImpl<BE6Integer, BE6Integer, BE6Vector, BE6ILParams>;
-using BE6DCRTPoly = DCRTPolyImpl<BE6Integer, BE6Integer, BE6Vector, BE6ILDCRTParams>;
-
 #endif /* BENCHMARK_SRC_ALLBACKENDS_H_ */

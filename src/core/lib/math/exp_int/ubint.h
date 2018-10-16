@@ -314,7 +314,7 @@ public:
 	 *
 	 * @param &&rhs is the ubint to be moved from.
 	 */
-	explicit ubint(ubint&& rhs);
+	ubint(ubint&& rhs);
 
 	/**
 	 * Construct from a NativeInteger
@@ -322,7 +322,22 @@ public:
 	 */
 	ubint(const NativeInteger& n) : ubint(n.ConvertToInt()) {}
 
-	/**
+    /**
+     * Constructors from smaller basic types
+     * @param init
+     */
+	ubint(int init) : ubint( uint64_t(init) ) {}
+	ubint(uint32_t init) : ubint( uint64_t(init) ) {}
+	ubint(long init) : ubint( uint64_t(init) ) {}
+	ubint(long long init) : ubint( uint64_t(init) ) {}
+
+    /**
+     * Constructor from double is not permitted
+     * @param d
+     */
+	ubint(double d) __attribute__ ((deprecated("Cannot construct from a double")));
+
+    /**
 	 * Destructor.
 	 */
 	~ubint();

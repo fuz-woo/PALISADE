@@ -18,7 +18,8 @@ else
 endif
 
 
-CPPSTD := -std=gnu++11 -fPIC
+##CPPSTD := -std=gnu++11 -fPIC
+CPPSTD := -std=gnu++11 -fPIC ##-mcmodel=large  ## static allocator requires this memory model
 CC := g++ $(CPPSTD)
 
 LIBSUFFIX := .so
@@ -34,4 +35,5 @@ LIBPYTHON := -lpython2.7
 
 COMPTHREADFLAG := -pthread
 LOADTHREADFLAG := -pthread
+
 

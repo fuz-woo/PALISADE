@@ -41,7 +41,7 @@ bool LPCryptoParametersBFVrnsB<DCRTPoly>::PrecomputeCRTTables(){
 	// read values for the CRT basis
 
 	size_t size = GetElementParams()->GetParams().size();
-	size_t n = GetElementParams()->GetRingDimension();
+	auto n = GetElementParams()->GetRingDimension();
 
 	vector<NativeInteger> moduli(size);
 	vector<NativeInteger> roots(size);
@@ -83,7 +83,7 @@ bool LPCryptoParametersBFVrnsB<DCRTPoly>::PrecomputeCRTTables(){
 		memcpy(&m_qModulimu[i], val, sizeof(DoubleNativeInteger));
 	}
 
-	ChineseRemainderTransformFTT<NativeInteger,NativeVector>::PreCompute(roots,2*n,moduli);
+	ChineseRemainderTransformFTT<NativeVector>::PreCompute(roots,2*n,moduli);
 
 	// Compute Bajard's et al. RNS variant lookup tables
 
@@ -127,7 +127,7 @@ bool LPCryptoParametersBFVrnsB<DCRTPoly>::PrecomputeCRTTables(){
 
 	m_paramsBsk = shared_ptr<ILDCRTParams<BigInteger>>(new ILDCRTParams<BigInteger>(2 * n, m_BskModuli, m_BskRoots));
 
-	ChineseRemainderTransformFTT<NativeInteger,NativeVector>::PreCompute(m_BskRoots, 2 * n, m_BskModuli);
+	ChineseRemainderTransformFTT<NativeVector>::PreCompute(m_BskRoots, 2 * n, m_BskModuli);
 
 	// finally add m_tilde as last modulus in the chain
 	m_BskmtildeModuli.push_back( m_mtilde );
@@ -365,6 +365,7 @@ bool LPAlgorithmParamsGenBFVrnsB<DCRTPoly>::ParamsGen(shared_ptr<LPCryptoParamet
 	ExtendedDouble hermiteFactor = ExtendedDouble(cryptoParamsBFVrnsB->GetSecurityLevel());
 	ExtendedDouble p = ExtendedDouble(cryptoParamsBFVrnsB->GetPlaintextModulus());
 	uint32_t relinWindow = cryptoParamsBFVrnsB->GetRelinWindow();
+	SecurityLevel stdLevel = cryptoParamsBFVrnsB->GetStdLevel();
 
 	//Bound of the Gaussian error polynomial
 	ExtendedDouble Berr = sigma*sqrt(alpha);
@@ -372,11 +373,18 @@ bool LPAlgorithmParamsGenBFVrnsB<DCRTPoly>::ParamsGen(shared_ptr<LPCryptoParamet
 	//Bound of the key polynomial
 	ExtendedDouble Bkey;
 
+	DistributionType distType;
+
 	//supports both discrete Gaussian (RLWE) and ternary uniform distribution (OPTIMIZED) cases
-	if (cryptoParamsBFVrnsB->GetMode() == RLWE)
+	if (cryptoParamsBFVrnsB->GetMode() == RLWE) {
 		Bkey = sigma*sqrt(alpha);
+		distType = HEStd_error;
+	}
 	else
+	{
 		Bkey = 1;
+		distType = HEStd_ternary;
+	}
 
 	//expansion factor delta
 	// We use the worst-case bound as the central limit theorem cannot be applied in this case
@@ -385,7 +393,15 @@ bool LPAlgorithmParamsGenBFVrnsB<DCRTPoly>::ParamsGen(shared_ptr<LPCryptoParamet
 	auto Vnorm = [&](uint32_t n) -> ExtendedDouble { return Berr*(1+2*delta(n)*Bkey);  };
 
 	//RLWE security constraint
-	auto nRLWE = [&](ExtendedDouble q) -> ExtendedDouble { return log(q / sigma) / (ExtendedDouble(4) * log(hermiteFactor));  };
+	auto nRLWE = [&](ExtendedDouble q) -> ExtendedDouble {
+		if (stdLevel == HEStd_NotSet) {
+			return log(q / sigma) / (ExtendedDouble(4) * log(hermiteFactor));
+		}
+		else
+		{
+			return (ExtendedDouble)StdLatticeParm::FindRingDim(distType,stdLevel,to_long(ceil(log(q)/(ExtendedDouble)log(2))));
+		}
+	};
 
 	//initial values
 	uint32_t n = 512;
@@ -557,7 +573,7 @@ bool LPAlgorithmParamsGenBFVrnsB<DCRTPoly>::ParamsGen(shared_ptr<LPCryptoParamet
 
 	shared_ptr<ILDCRTParams<BigInteger>> params(new ILDCRTParams<BigInteger>(2 * n, moduli, roots));
 
-	ChineseRemainderTransformFTT<NativeInteger,NativeVector>::PreCompute(roots,2*n,moduli);
+	ChineseRemainderTransformFTT<NativeVector>::PreCompute(roots,2*n,moduli);
 
 	cryptoParamsBFVrnsB->SetElementParams(params);
 

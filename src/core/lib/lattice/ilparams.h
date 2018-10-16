@@ -27,24 +27,17 @@
 #ifndef LBCRYPTO_LATTICE_ILPARAMS_H
 #define LBCRYPTO_LATTICE_ILPARAMS_H
 
-#include "elemparams.h"
+#include "../lattice/elemparams.h"
 #include "../math/backend.h"
 #include "../utils/inttypes.h"
 #include "../math/nbtheory.h"
 
 namespace lbcrypto
 {
-template<typename IntType> class ILParamsImpl;
-typedef ILParamsImpl<BigInteger> ILParams;
-typedef ILParamsImpl<NativeInteger> ILNative1Params;
-}
-
-namespace lbcrypto
-{
 
 /**
  * @class ILParamsImpl
- * @file elemparams.h
+ * @file ilparams.h
  * @brief Wrapper class to hold the parameters for integer lattice operations and their inheritors.
  */
 template<typename IntType>
@@ -94,8 +87,8 @@ public:
 	/**
 	 * @brief Assignment Operator.
 	 *
-	 * @param &rhs the ILParams to be copied.
-	 * @return the resulting ILParams.
+	 * @param &rhs the params to be copied.
+	 * @return this object
 	 */
 	const ILParamsImpl& operator=(const ILParamsImpl &rhs) {
 		ElemParams<IntType>::operator=(rhs);
@@ -112,7 +105,7 @@ public:
 	/**
 	 * @brief Standard Destructor method.
 	 */
-	virtual ~ILParamsImpl() {}
+	~ILParamsImpl() {}
 
 	/**
 	 * @brief Equality operator compares ElemParams (which will be dynamic casted)

@@ -280,36 +280,48 @@ NativeVector<IntegerType> NativeVector<IntegerType>::ModAddAtIndex(usint i, cons
 template<class IntegerType>
 NativeVector<IntegerType> NativeVector<IntegerType>::ModAdd(const IntegerType &b) const{
 
+	IntegerType modulus = this->m_modulus;
+	IntegerType bLocal = b;
+
 	NativeVector ans(*this);
 	if (this->m_modulus.GetMSB() < NTL_SP_NBITS + 1)
 	{
+		if (bLocal > m_modulus)
+			bLocal.ModEq(modulus);
 		for(usint i=0;i<this->m_data.size();i++){
-			ans.m_data[i].ModAddFastOptimizedEq(b, this->m_modulus);
+			ans.m_data[i].ModAddFastOptimizedEq(bLocal, modulus);
 		}
 	}
 	else
 		for(usint i=0;i<this->m_data.size();i++){
-			ans.m_data[i].ModAddFastEq(b, this->m_modulus);
+			ans.m_data[i].ModAddFastEq(bLocal, modulus);
 		}
 	return ans;
+
 }
 
 template<class IntegerType>
 const NativeVector<IntegerType>& NativeVector<IntegerType>::ModAddEq(const IntegerType &b) {
 
+	IntegerType modulus = this->m_modulus;
+	IntegerType bLocal = b;
+
 	if (this->m_modulus.GetMSB() < NTL_SP_NBITS + 1)
 	{
+		if (bLocal > m_modulus)
+			bLocal.ModEq(modulus);
 		for(usint i=0;i<this->m_data.size();i++){
-			this->m_data[i].ModAddFastOptimizedEq(b, this->m_modulus);
+			this->m_data[i].ModAddFastOptimizedEq(bLocal, modulus);
 		}
 	}
 	else
 	{
 		for(usint i=0;i<this->m_data.size();i++){
-			this->m_data[i].ModAddEq(b, this->m_modulus);
+			this->m_data[i].ModAddEq(bLocal, m_modulus);
 		}
 	}
 	return *this;
+
 }
 
 template<class IntegerType>
@@ -350,8 +362,14 @@ NativeVector<IntegerType> NativeVector<IntegerType>::MultiplyAndRound(const Inte
 template<class IntegerType>
 NativeVector<IntegerType> NativeVector<IntegerType>::DivideAndRound(const IntegerType &q) const {
 	NativeVector ans(*this);
+	IntegerType halfQ(this->m_modulus >> 1);
 	for(usint i=0;i<this->m_data.size();i++){
-		ans.m_data[i] = ans.m_data[i].DivideAndRound(q);
+		if (ans.m_data[i] > halfQ) {
+			IntegerType temp = this->m_modulus - ans.m_data[i];
+			ans.m_data[i] = this->m_modulus - temp.DivideAndRound(q);
+		}
+		else
+			ans.m_data[i] = ans.m_data[i].DivideAndRound(q);
 	}
 	return ans;
 }
@@ -367,6 +385,8 @@ NativeVector<IntegerType> NativeVector<IntegerType>::ModMul(const IntegerType &b
 
 	if (modulus.GetMSB() < NTL_SP_NBITS + 1)
 	{
+		if (bLocal > modulus)
+			bLocal.ModEq(modulus);
 		for(usint i=0;i<this->m_data.size();i++)
 			 ans.m_data[i].ModMulFastEqOptimized(bLocal,modulus);
 	}
@@ -386,6 +406,8 @@ const NativeVector<IntegerType>& NativeVector<IntegerType>::ModMulEq(const Integ
 
 	if (modulus.GetMSB() < NTL_SP_NBITS + 1)
 	{
+		if (bLocal > modulus)
+			bLocal.ModEq(modulus);
 		for(usint i=0;i<this->m_data.size();i++){
 			this->m_data[i].ModMulFastEqOptimized(bLocal,modulus);
 		}
@@ -676,6 +698,7 @@ bool NativeVector<IntegerType>::Deserialize(const lbcrypto::Serialized& serObj) 
 
 }
 
-template class NativeVector<NativeInteger<uint64_t>>;
 
+template class NativeVector<NativeInteger<uint64_t>>;
+ 
 } // namespace lbcrypto ends

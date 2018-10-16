@@ -299,7 +299,7 @@ static void UnitTest_Add_Integer(const CryptoContext<Element> cc, const string& 
 GENERATE_TEST_CASES_FUNC(UTSHE, UnitTest_Add_Integer, ORDER, PTMOD)
 
 template<class Element>
-static void UnitTest_Mult(const CryptoContext<Element> cc, const string& failmsg) {
+static void UnitTest_Mult_CoefPacked(const CryptoContext<Element> cc, const string& failmsg) {
 
 	std::vector<int64_t> vectorOfInts1 = { 1,0,3,1,0,1,2,1 };
 	Plaintext plaintext1 = cc->MakeCoefPackedPlaintext(vectorOfInts1);
@@ -351,7 +351,61 @@ static void UnitTest_Mult(const CryptoContext<Element> cc, const string& failmsg
 	EXPECT_EQ(intArrayExpected->GetCoefPackedValue(), results->GetCoefPackedValue()) << failmsg << " EvalMult Ct and Pt fails";
 }
 
-GENERATE_TEST_CASES_FUNC(UTSHE, UnitTest_Mult, ORDER, PTMOD)
+GENERATE_TEST_CASES_FUNC(UTSHE, UnitTest_Mult_CoefPacked, ORDER, PTMOD)
+
+template<class Element>
+static void UnitTest_Mult_Packed(const CryptoContext<Element> cc, const string& failmsg) {
+
+	std::vector<uint64_t> vectorOfInts1 = { 1,0,3,1,0,1,2,1 };
+	Plaintext plaintext1 = cc->MakePackedPlaintext(vectorOfInts1);
+
+	std::vector<uint64_t> vectorOfInts2 = { 2,1,3,2,2,1,3,1 };
+	Plaintext plaintext2 = cc->MakePackedPlaintext(vectorOfInts2);
+
+	// For cyclotomic order != 16, the expected result is the convolution of vectorOfInt21 and vectorOfInts2
+	std::vector<uint64_t> vectorOfIntsMult = { 2,0, 9, 2, 0, 1, 6, 1 };
+
+	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
+
+	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
+
+	Plaintext intArrayExpected = cc->MakePackedPlaintext(vectorOfIntsMult);
+
+	// Initialize the public key containers.
+	LPKeyPair<Element> kp = cc->KeyGen();
+
+	Ciphertext<Element> ciphertext1 = cc->Encrypt(kp.publicKey, intArray1);
+
+	Ciphertext<Element> ciphertext2 = cc->Encrypt(kp.publicKey, intArray2);
+
+	cc->EvalMultKeyGen(kp.secretKey);
+
+	Ciphertext<Element> cResult;
+	Plaintext results;
+
+	cResult = cc->EvalMult(ciphertext1, ciphertext2);
+	cc->Decrypt(kp.secretKey, cResult, &results);
+	results->SetLength(intArrayExpected->GetLength());
+	EXPECT_EQ(intArrayExpected->GetPackedValue(), results->GetPackedValue()) << failmsg << " EvalMult fails";
+
+	cResult = ciphertext1 * ciphertext2;
+	cc->Decrypt(kp.secretKey, cResult, &results);
+	results->SetLength(intArrayExpected->GetLength());
+	EXPECT_EQ(intArrayExpected->GetPackedValue(), results->GetPackedValue()) << failmsg << " operator* fails";
+
+	Ciphertext<Element> cmulInplace(ciphertext1);
+	cmulInplace *= ciphertext2;
+	cc->Decrypt(kp.secretKey, cmulInplace, &results);
+	results->SetLength(intArrayExpected->GetLength());
+	EXPECT_EQ(intArrayExpected->GetPackedValue(), results->GetPackedValue()) << failmsg << " operator*= fails";
+
+	cResult = cc->EvalMult(ciphertext1, plaintext2);
+	cc->Decrypt(kp.secretKey, cResult, &results);
+	results->SetLength(intArrayExpected->GetLength());
+	EXPECT_EQ(intArrayExpected->GetPackedValue(), results->GetPackedValue()) << failmsg << " EvalMult Ct and Pt fails";
+}
+
+GENERATE_TEST_CASES_FUNC_EVALATINDEX(UTSHE, UnitTest_Mult_Packed, 512, 65537)
 
 template<class Element>
 static void UnitTest_EvalAtIndex(const CryptoContext<Element> cc, const string& failmsg) {

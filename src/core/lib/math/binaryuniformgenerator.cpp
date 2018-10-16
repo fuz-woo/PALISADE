@@ -29,16 +29,16 @@
 
 namespace lbcrypto {
 
-template<typename IntType, typename VecType>
-std::bernoulli_distribution BinaryUniformGeneratorImpl<IntType,VecType>::m_distribution = std::bernoulli_distribution(0.5);
+template<typename VecType>
+std::bernoulli_distribution BinaryUniformGeneratorImpl<VecType>::m_distribution = std::bernoulli_distribution(0.5);
 
-template<typename IntType, typename VecType>
-IntType BinaryUniformGeneratorImpl<IntType,VecType>::GenerateInteger () const {
-	return (m_distribution(PseudoRandomNumberGenerator::GetPRNG()) ? IntType(1) : IntType(0));
+template<typename VecType>
+typename VecType::Integer BinaryUniformGeneratorImpl<VecType>::GenerateInteger () const {
+	return (m_distribution(PseudoRandomNumberGenerator::GetPRNG()) ? (1) : (0));
 }
 
-template<typename IntType, typename VecType>
-VecType BinaryUniformGeneratorImpl<IntType,VecType>::GenerateVector (const usint size, const IntType &modulus) const {
+template<typename VecType>
+VecType BinaryUniformGeneratorImpl<VecType>::GenerateVector (const usint size, const typename VecType::Integer &modulus) const {
 	VecType v(size);
 	v.SetModulus(modulus);
 
@@ -46,13 +46,6 @@ VecType BinaryUniformGeneratorImpl<IntType,VecType>::GenerateVector (const usint
 	  v.at(i)= GenerateInteger();
 	}
 	return v;
-}
-
-
-template<typename IntType, typename VecType>
-BinaryUniformGeneratorImpl<IntType,VecType>::~BinaryUniformGeneratorImpl(){
-	// defied since there is a virtual member
-
 }
 
 } // namespace lbcrypto

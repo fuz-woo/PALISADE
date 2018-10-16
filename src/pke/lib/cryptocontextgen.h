@@ -35,7 +35,7 @@
 
 using namespace lbcrypto;
 
-static const usint DefaultQbits = 50;
+static const usint DefaultQbits = 59;
 static const usint DefaultT = 3;
 
 template<typename Element>
@@ -148,7 +148,7 @@ GenCryptoContextBFVrns(PlaintextModulus ptm, MODE mode) {
 template<>
 inline CryptoContext<DCRTPoly>
 GenCryptoContextBFVrns(PlaintextModulus ptm, MODE mode) {
-	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrns(ptm, 1.006, 4, 0, 2, 0, mode, 2, 30, 60);
+	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrns(ptm, HEStd_128_classic, 3.2, 0, 2, 0, mode, 2, 30, 60);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);
@@ -177,7 +177,7 @@ GenCryptoContextBFVrnsB(PlaintextModulus ptm, MODE mode) {
 template<>
 inline CryptoContext<DCRTPoly>
 GenCryptoContextBFVrnsB(PlaintextModulus ptm, MODE mode) {
-	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrnsB(ptm, 1.006, 4, 0, 2, 0, mode, 2, 30, 60);
+	CryptoContext<DCRTPoly> cc = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrnsB(ptm, HEStd_128_classic, 3.2, 0, 2, 0, mode, 2, 30, 60);
 	cc->Enable(ENCRYPTION);
 	cc->Enable(PRE);
 	cc->Enable(SHE);

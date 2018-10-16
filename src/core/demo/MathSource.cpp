@@ -42,16 +42,13 @@
 #include <chrono>
 #include <exception>
 #include "utils/debug.h"
-#include <omp.h> //open MP header
 
 using namespace std;
 using namespace lbcrypto;
 
-
 //define the main sections of the test
 
 void test_BigVector(usint nloop); // test old version of big int vector
-void test_ubintvec(usint nloop);	 // test new vector version
 
 
 //main()   need this for Kurts' makefile to ignore this.

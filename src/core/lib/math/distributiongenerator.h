@@ -90,7 +90,7 @@ private:
 };
 
 // Base class for Distribution Generator by type
-template<typename IntType, typename VecType>
+template<typename VecType>
 class DistributionGenerator {
 public:
 	DistributionGenerator () {}

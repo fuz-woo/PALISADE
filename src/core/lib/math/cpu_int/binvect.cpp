@@ -358,8 +358,16 @@ BigVectorImpl<IntegerType> BigVectorImpl<IntegerType>::MultiplyAndRound(const In
 template<class IntegerType>
 BigVectorImpl<IntegerType> BigVectorImpl<IntegerType>::DivideAndRound(const IntegerType &q) const {
 	BigVectorImpl ans(*this);
+	IntegerType halfQ(this->m_modulus >> 1);
 	for(usint i=0;i<this->m_length;i++){
-		ans.m_data[i] = ans.m_data[i].DivideAndRound(q);
+		if (ans.m_data[i] > halfQ) {
+			IntegerType temp = this->m_modulus - ans.m_data[i];
+			ans.m_data[i] = this->m_modulus - temp.DivideAndRound(q);
+		}
+		else
+		{
+			ans.m_data[i] = ans.m_data[i].DivideAndRound(q);
+		}
 	}
 	return ans;
 }

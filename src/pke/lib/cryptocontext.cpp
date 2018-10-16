@@ -1326,34 +1326,49 @@ CryptoContextFactory<T>::genCryptoContextBFV(
 		const PlaintextModulus plaintextModulus, float securityLevel, usint relinWindow, float dist,
 		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth)
 {
+
+	EncodingParams encodingParams(new EncodingParamsImpl(plaintextModulus));
+
+	return genCryptoContextBFV(encodingParams,securityLevel,relinWindow, dist,
+		numAdds, numMults, numKeyswitches, mode, maxDepth);
+
+}
+
+template <typename T>
+CryptoContext<T>
+CryptoContextFactory<T>::genCryptoContextBFV(
+	EncodingParams encodingParams, float securityLevel, usint relinWindow, float dist,
+	unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth)
+{
 	int nonZeroCount = 0;
 
-	if( numAdds > 0 ) nonZeroCount++;
-	if( numMults > 0 ) nonZeroCount++;
-	if( numKeyswitches > 0 ) nonZeroCount++;
+	if (numAdds > 0) nonZeroCount++;
+	if (numMults > 0) nonZeroCount++;
+	if (numKeyswitches > 0) nonZeroCount++;
 
-	if( nonZeroCount > 1 )
+	if (nonZeroCount > 1)
 		throw std::logic_error("only one of (numAdds,numMults,numKeyswitches) can be nonzero in BFV context constructor");
 
-	shared_ptr<typename T::Params> ep( new typename T::Params(0, typename T::Integer(0), typename T::Integer(0)) );
+	shared_ptr<typename T::Params> ep(new typename T::Params(0, typename T::Integer(0), typename T::Integer(0)));
 
-	shared_ptr<LPCryptoParametersBFV<T>> params( new LPCryptoParametersBFV<T>(
-			ep,
-			EncodingParams(new EncodingParamsImpl(plaintextModulus)),
-			dist,
-			36.0,
-			securityLevel,
-			relinWindow,
-			typename T::Integer(0),
-			mode,
-			typename T::Integer(0),
-			typename T::Integer(0),
-			typename T::Integer(0),
-			typename T::Integer(0),
-			1,
-			maxDepth) );
+	shared_ptr<LPCryptoParametersBFV<T>> params(
+			new LPCryptoParametersBFV<T>(
+				ep,
+				encodingParams,
+				dist,
+				36.0,
+				securityLevel,
+				relinWindow,
+				typename T::Integer(0),
+				mode,
+				typename T::Integer(0),
+				typename T::Integer(0),
+				typename T::Integer(0),
+				typename T::Integer(0),
+				1,
+				maxDepth) );
 
-	shared_ptr<LPPublicKeyEncryptionScheme<T>> scheme( new LPPublicKeyEncryptionSchemeBFV<T>() );
+	shared_ptr<LPPublicKeyEncryptionScheme<T>> scheme(new LPPublicKeyEncryptionSchemeBFV<T>());
 
 	scheme->ParamsGen(params, numAdds, numMults, numKeyswitches);
 
@@ -1363,7 +1378,7 @@ CryptoContextFactory<T>::genCryptoContextBFV(
 template <typename T>
 CryptoContext<T>
 CryptoContextFactory<T>::genCryptoContextBFV(
-	EncodingParams encodingParams, float securityLevel, usint relinWindow, float dist,
+	EncodingParams encodingParams, SecurityLevel securityLevel, usint relinWindow, float dist,
 	unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth)
 {
 	int nonZeroCount = 0;
@@ -1440,7 +1455,59 @@ CryptoContextFactory<T>::genCryptoContextBFVrns(
 template <typename T>
 CryptoContext<T>
 CryptoContextFactory<T>::genCryptoContextBFVrns(
+		const PlaintextModulus plaintextModulus, SecurityLevel securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth,
+		uint32_t relinWindow, size_t dcrtBits)
+{
+
+	EncodingParams encodingParams(new EncodingParamsImpl(plaintextModulus));
+
+	return genCryptoContextBFVrns(encodingParams, securityLevel, dist, numAdds, numMults,
+			numKeyswitches, mode, maxDepth, relinWindow, dcrtBits);
+
+}
+
+template <typename T>
+CryptoContext<T>
+CryptoContextFactory<T>::genCryptoContextBFVrns(
 	EncodingParams encodingParams, float securityLevel, float dist,
+	unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth,
+	uint32_t relinWindow, size_t dcrtBits)
+{
+	int nonZeroCount = 0;
+
+	if (numAdds > 0) nonZeroCount++;
+	if (numMults > 0) nonZeroCount++;
+	if (numKeyswitches > 0) nonZeroCount++;
+
+	if (nonZeroCount > 1)
+		throw std::logic_error("only one of (numAdds,numMults,numKeyswitches) can be nonzero in BFVrns context constructor");
+
+	shared_ptr<typename T::Params> ep(new typename T::Params(0, typename T::Integer(0), typename T::Integer(0)));
+
+	shared_ptr<LPCryptoParametersBFVrns<T>> params(
+			new LPCryptoParametersBFVrns<T>(
+				ep,
+				encodingParams,
+				dist,
+				36.0,
+				securityLevel,
+				relinWindow,
+				mode,
+				1,
+				maxDepth) );
+
+	shared_ptr<LPPublicKeyEncryptionScheme<T>> scheme(new LPPublicKeyEncryptionSchemeBFVrns<T>());
+
+	scheme->ParamsGen(params, numAdds, numMults, numKeyswitches, dcrtBits);
+
+	return CryptoContextFactory<T>::GetContext(params,scheme);
+}
+
+template <typename T>
+CryptoContext<T>
+CryptoContextFactory<T>::genCryptoContextBFVrns(
+	EncodingParams encodingParams, SecurityLevel securityLevel, float dist,
 	unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth,
 	uint32_t relinWindow, size_t dcrtBits)
 {
@@ -1514,6 +1581,22 @@ CryptoContextFactory<T>::genCryptoContextBFVrnsB(
 template <typename T>
 CryptoContext<T>
 CryptoContextFactory<T>::genCryptoContextBFVrnsB(
+		const PlaintextModulus plaintextModulus, SecurityLevel securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth,
+		uint32_t relinWindow, size_t dcrtBits)
+{
+
+	EncodingParams encodingParams(new EncodingParamsImpl(plaintextModulus));
+
+	return genCryptoContextBFVrnsB(encodingParams, securityLevel, dist, numAdds, numMults,
+			numKeyswitches, mode, maxDepth, relinWindow, dcrtBits);
+
+}
+
+
+template <typename T>
+CryptoContext<T>
+CryptoContextFactory<T>::genCryptoContextBFVrnsB(
 	EncodingParams encodingParams, float securityLevel, float dist,
 	unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth,
 	uint32_t relinWindow, size_t dcrtBits)
@@ -1548,6 +1631,42 @@ CryptoContextFactory<T>::genCryptoContextBFVrnsB(
 	return CryptoContextFactory<T>::GetContext(params,scheme);
 }
 
+template <typename T>
+CryptoContext<T>
+CryptoContextFactory<T>::genCryptoContextBFVrnsB(
+	EncodingParams encodingParams, SecurityLevel securityLevel, float dist,
+	unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode, int maxDepth,
+	uint32_t relinWindow, size_t dcrtBits)
+{
+	int nonZeroCount = 0;
+
+	if (numAdds > 0) nonZeroCount++;
+	if (numMults > 0) nonZeroCount++;
+	if (numKeyswitches > 0) nonZeroCount++;
+
+	if (nonZeroCount > 1)
+		throw std::logic_error("only one of (numAdds,numMults,numKeyswitches) can be nonzero in BFVrnsB context constructor");
+
+	shared_ptr<typename T::Params> ep(new typename T::Params(0, typename T::Integer(0), typename T::Integer(0)));
+
+	shared_ptr<LPCryptoParametersBFVrnsB<T>> params(
+			new LPCryptoParametersBFVrnsB<T>(
+				ep,
+				encodingParams,
+				dist,
+				36.0,
+				securityLevel,
+				relinWindow,
+				mode,
+				1,
+				maxDepth) );
+
+	shared_ptr<LPPublicKeyEncryptionScheme<T>> scheme(new LPPublicKeyEncryptionSchemeBFVrnsB<T>());
+
+	scheme->ParamsGen(params, numAdds, numMults, numKeyswitches, dcrtBits);
+
+	return CryptoContextFactory<T>::GetContext(params,scheme);
+}
 
 template <typename T>
 CryptoContext<T>

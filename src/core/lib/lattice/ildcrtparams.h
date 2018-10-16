@@ -35,11 +35,6 @@
 
 namespace lbcrypto
 {
-template<typename ModType, typename IntType, typename VecType, typename ParmType> class PolyImpl;
-}
-
-namespace lbcrypto
-{
 
 /**
  * @brief Parameters for array of ideal lattices (used for Double-CRT).
@@ -54,6 +49,7 @@ class ILDCRTParams : public ElemParams<IntType>
 {
 public:
 	typedef IntType Integer;
+	using ILNativeParams = ILParamsImpl<NativeInteger>;
 
 	/**
 	 * @brief Constructor with basic parameter set.

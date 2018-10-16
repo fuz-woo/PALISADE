@@ -40,51 +40,6 @@
 
 namespace lbcrypto {
 
-
-	template BigInteger RootOfUnity<BigInteger>(usint m, const BigInteger& modulo);
-	template std::vector<BigInteger> RootsOfUnity(usint m, const std::vector<BigInteger> moduli);
-	template BigInteger GreatestCommonDivisor(const BigInteger& a, const BigInteger& b);
-	template bool MillerRabinPrimalityTest(const BigInteger& p, const usint niter);
-	template const BigInteger PollardRhoFactorization(const BigInteger &n);
-	template void PrimeFactorize(BigInteger n, std::set<BigInteger> &primeFactors);
-	template BigInteger FirstPrime(usint nBits, usint m);
-	template BigInteger NextPrime(const BigInteger &q, usint cyclotomicOrder);
-	template BigVector PolyMod(const BigVector &dividend, const BigVector &divisor, const BigInteger &modulus);
-	template BigVector PolynomialMultiplication(const BigVector &a, const BigVector &b);
-	template BigVector GetCyclotomicPolynomial(usint m, const BigInteger &modulus);
-	template BigInteger SyntheticRemainder(const BigVector &dividend, const BigInteger &a, const BigInteger &modulus);
-	template BigVector SyntheticPolyRemainder(const BigVector &dividend, const BigVector &aList, const BigInteger &modulus);
-	template BigVector PolynomialPower<BigVector, BigInteger>(const BigVector &input, usint power);
-	template BigVector SyntheticPolynomialDivision(const BigVector &dividend, const BigInteger &a, const BigInteger &modulus);
-	template BigInteger FindGeneratorCyclic(const BigInteger& modulo);
-	template bool IsGenerator(const BigInteger& g, const BigInteger& modulo);
-	template BigInteger ComputeMu(const BigInteger& q);
-
-	template std::vector<usint> GetTotientList(const usint &n);
-
-	template NativeInteger RootOfUnity<NativeInteger>(usint m, const NativeInteger& modulo);
-	template std::vector<NativeInteger> RootsOfUnity(usint m, const std::vector<NativeInteger> moduli);
-	template NativeInteger GreatestCommonDivisor(const NativeInteger& a, const NativeInteger& b);
-	template bool MillerRabinPrimalityTest(const NativeInteger& p, const usint niter);
-	template const NativeInteger PollardRhoFactorization(const NativeInteger &n);
-	template void PrimeFactorize(NativeInteger n, std::set<NativeInteger> &primeFactors);
-	template NativeInteger FirstPrime(usint nBits, usint m);
-	template NativeInteger NextPrime(const NativeInteger &q, usint cyclotomicOrder);
-	template NativeVector PolyMod(const NativeVector &dividend, const NativeVector &divisor, const NativeInteger &modulus);
-	template NativeVector PolynomialMultiplication(const NativeVector &a, const NativeVector &b);
-	template NativeVector GetCyclotomicPolynomial(usint m, const NativeInteger &modulus);
-	template NativeInteger SyntheticRemainder(const NativeVector &dividend, const NativeInteger &a, const NativeInteger &modulus);
-	template NativeVector SyntheticPolyRemainder(const NativeVector &dividend, const NativeVector &aList, const NativeInteger &modulus);
-	template NativeVector PolynomialPower<NativeVector, NativeInteger>(const NativeVector &input, usint power);
-	template NativeVector SyntheticPolynomialDivision(const NativeVector &dividend, const NativeInteger &a, const NativeInteger &modulus);
-	template NativeInteger FindGeneratorCyclic(const NativeInteger& modulo);
-	template bool IsGenerator(const NativeInteger& g, const NativeInteger& modulo);
-
-	template NativeInteger ComputeMu(const NativeInteger& q);
-#if MATHBACKEND != 2
-  //TODO: figure out why this needs to be here at all for BE = 4,6
-  template cpu_int::BigInteger<integral_dtype,BigIntegerBitLength> ComputeMu(const cpu_int::BigInteger<integral_dtype,BigIntegerBitLength>& q);
-#endif
   /*
 		Generates a random number between 0 and n.
 		Input: BigInteger n.
@@ -158,16 +113,6 @@ namespace lbcrypto {
 
 		return result;
 	}
-
-	//native NTL version
-	NTL::myZZ RNG(const NTL::myZZ& modulus)
-	{
-		bool dbg_flag = false;
-		DEBUG("in NTL RNG");
-		return RandomBnd(modulus);
-
-	}
-
 	/*
 		A witness function used for the Miller-Rabin Primality test.
 		Inputs: a is a randomly generated witness between 2 and p-1,
@@ -361,25 +306,17 @@ namespace lbcrypto {
 		IntType m_a, m_b, m_t;
 		m_a = a;
 		m_b = b;
-		DEBUG("GCD a " << a.ToString() << " b " << b.ToString());
+		DEBUG("GCD a " << a << " b " << b);
 		while (m_b != IntType(0)) {
 			m_t = m_b;
-			DEBUG("GCD m_a.Mod(b) " << m_a.ToString() << "( " << m_b.ToString() << ")");
-			m_b = m_a.Mod(m_b);
+			DEBUG("GCD m_a.Mod(b) " << m_a << "( " << m_b << ")");
+			m_b = m_a % m_b;
 
 			m_a = m_t;
-			DEBUG("GCD m_a " << m_b.ToString() << " m_b " << m_b.ToString());
+			DEBUG("GCD m_a " << m_b << " m_b " << m_b);
 		}
-		DEBUG("GCD ret " << m_a.ToString());
+		DEBUG("GCD ret " << m_a);
 		return m_a;
-	}
-
-	//define an NTL native implementation 
-	NTL::myZZ GreatestCommonDivisor(const NTL::myZZ& a, const NTL::myZZ& b)
-	{
-		bool dbg_flag = false;
-		DEBUG("NTL::GCD a " << a << " b " << b);
-		return GCD(a, b);
 	}
 
 	/*
@@ -418,20 +355,6 @@ namespace lbcrypto {
 		return (!composite);
 	}
 
-
-	//NTL native version
-	bool MillerRabinPrimalityTest(const NTL::myZZ& p, const usint niter)
-	{
-		bool dbg_flag = false;
-		DEBUG("in NTL MRPT");
-		if (p < NTL::myZZ(2) || ((p != NTL::myZZ(2)) &&
-			(p.Mod(NTL::myZZ(2)) == NTL::myZZ(0))))
-			return false;
-		if (p == NTL::myZZ(2) || p == NTL::myZZ(3) || p == NTL::myZZ(5))
-			return true;
-
-		return (bool)ProbPrime(p, niter); //TODO: check to see if niter >maxint
-	}
 
 	/*
 		The Pollard Rho factorization of a number n.
@@ -505,107 +428,82 @@ namespace lbcrypto {
 		PrimeFactorize(n, primeFactors);
 	}
 
+	// issue-881: make sure we don't overflow an IntType
 	template<typename IntType>
-	IntType FirstPrime(usint nBits, usint m) {
-		bool dbg_flag = false;
-		IntType r = IntType(2).ModExp(nBits, m);
-		DEBUG("r "<<r);
-		IntType qNew = (IntType(1) << nBits) + (IntType(m) - r) + IntType(1);
+	IntType FirstPrime(uint64_t nBits, uint64_t m) {
+		try {
+			bool dbg_flag = false;
+			IntType r = IntType(2).ModExp(nBits, m);
+			DEBUG("r "<<r);
+			IntType qNew = (IntType(1) << nBits);
+			if( qNew == IntType(0) ) {
+				// too big for IntType
+				PALISADE_THROW(math_error, "FirstPrime parameters are too large for this integer implementation");
+			}
+			IntType qNew2 = qNew + (IntType(m) - r) + IntType(1);
+			if( qNew2 < qNew ) {
+				PALISADE_THROW(math_error, "FirstPrime parameters overflow this integer implementation");
+			}
+			qNew = qNew2;
 
-		size_t i = 1;
-	        // TP: size_t is a system dependent size, i.e., not of a known size.  Seems like it would
-		// be better to make this a well-defined and system independent type.
-		//  Seems much better to match the type to m
+			uint64_t i = 1; // same type as m
 
-		while (!MillerRabinPrimalityTest(qNew)) {
-			// TP: Dangerous assumption?  This assumes that i*m is smaller than the maximum size of an arg to IntType, whihc
-			// is probably no bigger than 2^32-1 or 2^64-1.
-			// Also, should this really add a steadly increasing value to qNew or just keet adding m?
-			qNew += IntType(i*m);
-			i++;
+			while (!MillerRabinPrimalityTest(qNew)) {
+				// Should this really add a steadily increasing value to qNew or just keep adding m?
+				uint64_t imProd = i*m;
+				if( imProd < m || imProd < i ) {
+					PALISADE_THROW(math_error, "FirstPrime overflow making increment");
+				}
+				IntType incr = IntType(imProd);
+				qNew2 = qNew + incr;
+				i++;
+				if( qNew2 < qNew ) {
+					PALISADE_THROW(math_error, "FirstPrime overflow growing candidate");
+				}
+				qNew = qNew2;
+			}
+
+			return qNew;
 		}
-
-		return qNew;
-
+		catch( ... ) {
+			PALISADE_THROW(math_error, "FirstPrime math exception");
+		}
 	}
 
 	template<typename IntType>
 	IntType NextPrime(const IntType &q, usint m) {
 
 		IntType M(m);
-		IntType qNew = q + M;
+		IntType qOld(q), qNew(q);
+
+		do {
+			qNew += M;
+			if( qNew < qOld )
+				PALISADE_THROW(math_error, "NextPrime overflow growing candidate");
+		} while (!MillerRabinPrimalityTest(qNew));
+
+		return qNew;
+
+	}
+
+	template<typename IntType>
+	IntType PreviousPrime(const IntType &q, usint m) {
+
+		IntType M(m);
+		IntType qNew = q - M;
 
 		while (!MillerRabinPrimalityTest(qNew)) {
-			qNew += M;
+			qNew -= M;
 		}
 
 		return qNew;
 
 	}
 
-
-	/*
-		Finds multiplicative inverse using the Extended Euclid Algorithms
-	*/
-	usint ModInverse(usint a, usint b)
-	{
-
-		//usint b0 = b;
-		usint t, q;
-		usint x0 = 0, x1 = 1;
-		if (b == 1) return 1;
-		while (a > 1) {
-			q = a / b;
-			t = b, b = a % b, a = t;
-			t = x0, x0 = x1 - q * x0, x1 = t;
-		}
-		//if (x1 < 0) x1 += b0;
-		//TODO: x1 is never < 0
-
-		return x1;
-	}
-
-	template<>
-	usint GreatestCommonDivisor(const usint& a, const usint& b)
-	{
-		bool dbg_flag = false;
-		usint m_a, m_b, m_t;
-		m_a = a;
-		m_b = b;
-		DEBUG("GCD a " << a << " b " << b);
-		while (m_b != 0) {
-			m_t = m_b;
-			DEBUG("GCD m_a.Mod(b) " << m_a << "( " << m_b << ")");
-			m_b = m_a % (m_b);
-
-			m_a = m_t;
-			DEBUG("GCD m_a " << m_b << " m_b " << m_b);
-		}
-		DEBUG("GCD ret " << m_a);
-		return m_a;
-	}
-
 	template<typename IntType>
 	IntType NextPowerOfTwo(const IntType &n) {
 		usint result = ceil(log2(n));
 		return result;
-	}
-
-	uint64_t GetTotient(const uint64_t n) {
-
-		std::set<NativeInteger> factors;
-		NativeInteger enn(n);
-		PrimeFactorize(enn, factors);
-
-		NativeInteger primeProd(1);
-		NativeInteger numerator(1);
-		for (auto &r : factors) {
-			numerator = numerator * (r - 1);
-			primeProd = primeProd * r;
-		}
-
-		primeProd = (enn / primeProd) * numerator;
-		return primeProd.ConvertToInt();
 	}
 
 	/*Naive Loop to find coprimes to n*/
@@ -623,8 +521,8 @@ namespace lbcrypto {
 	}
 
 	/* Calculate the remainder from polynomial division */
-	template<typename IntVector, typename IntType>
-	IntVector PolyMod(const IntVector &dividend, const IntVector &divisor, const IntType &modulus) {
+	template<typename IntVector>
+	IntVector PolyMod(const IntVector &dividend, const IntVector &divisor, const typename IntVector::Integer &modulus) {
 
 		usint divisorLength = divisor.GetLength();
 		usint dividendLength = dividend.GetLength();
@@ -633,10 +531,10 @@ namespace lbcrypto {
 		usint runs = dividendLength - divisorLength + 1; //no. of iterations
 
 		//Precompute the Barrett mu parameter
-		IntType mu = ComputeMu<IntType>(modulus);
+		auto mu = ComputeMu<typename IntVector::Integer>(modulus);
 
-		auto mat = [](const IntType &x, const IntType &y, const IntType &z, const IntType &mod, const IntType &muBarrett) {
-			IntType result(z.ModBarrettSub(x*y, mod, muBarrett));
+		auto mat = [](const typename IntVector::Integer &x, const typename IntVector::Integer &y, const typename IntVector::Integer &z, const typename IntVector::Integer &mod, const typename IntVector::Integer &muBarrett) {
+			typename IntVector::Integer result(z.ModBarrettSub(x*y, mod, muBarrett));
 			return result;
 		};
 
@@ -644,7 +542,7 @@ namespace lbcrypto {
 
 		usint  divisorPtr;
 		for (usint i = 0; i < runs; i++) {
-			IntType divConst(runningDividend.at(dividendLength - 1));//get the highest degree coeff
+			typename IntVector::Integer divConst(runningDividend.at(dividendLength - 1));//get the highest degree coeff
 			divisorPtr = divisorLength - 1;
 			for (usint j = 0; j < dividendLength - i - 1; j++) {
 				if (divisorPtr > j) {
@@ -661,113 +559,6 @@ namespace lbcrypto {
 			result.at(i)= runningDividend.at(j);
 		}
 
-
-		return result;
-	}
-
-	std::vector<int> GetCyclotomicPolynomialRecursive(usint m) {
-		std::vector<int> result;
-		if (m == 1) {
-			result = { -1,1 };
-			return result;
-		}
-		if (m == 2) {
-			result = { 1,1 };
-			return result;
-		}
-		auto IsPrime = [](usint m) {
-			bool flag = true;
-			for (usint i = 2; i < m; i++) {
-				if (m%i == 0) {
-					flag = false;
-					return flag;
-				}
-			}
-			return flag;
-		};
-		if (IsPrime(m)) {
-			result = std::vector<int>(m, 1);
-			return result;
-		}
-
-		auto GetDivisibleNumbers = [](usint m) {
-			std::vector<usint> div;
-			for (usint i = 1; i < m; i++) {
-				if (m%i == 0) {
-					div.push_back(i);
-				}
-			}
-			return div;
-		};
-
-		auto PolyMult = [](const std::vector<int> &a, const std::vector<int> &b) {
-			usint degreeA = a.size() - 1;
-			usint degreeB = b.size() - 1;
-
-			usint degreeResultant = degreeA + degreeB;
-
-			std::vector<int> result(degreeResultant + 1, 0);
-
-			for (usint i = 0; i < a.size(); i++) {
-
-				for (usint j = 0; j < b.size(); j++) {
-					const auto &valResult = result.at(i + j);
-					const auto &valMult = a.at(i)*b.at(j);
-					result.at(i + j) = valMult + valResult;
-				}
-			}
-
-			return result;
-		};
-
-		auto PolyQuotient = [](const std::vector<int> &dividend, const std::vector<int> &divisor) {
-			usint divisorLength = divisor.size();
-			usint dividendLength = dividend.size();
-
-			usint runs = dividendLength - divisorLength + 1; //no. of iterations
-			std::vector<int> result(runs + 1);
-
-			auto mat = [](const int x, const int y, const int z) {
-				int result = z - (x*y);
-				return result;
-			};
-
-			std::vector<int> runningDividend(dividend);
-
-			usint  divisorPtr;
-			for (usint i = 0; i < runs; i++) {
-				int divConst = (runningDividend.at(dividendLength - 1));//get the highest degree coeff
-				divisorPtr = divisorLength - 1;
-				for (usint j = 0; j < dividendLength - i - 1; j++) {
-					if (divisorPtr > j) {
-						runningDividend.at(dividendLength - 1 - j) = mat(divisor.at(divisorPtr - 1 - j), divConst, runningDividend.at(dividendLength - 2 - j));
-					}
-					else
-						runningDividend.at(dividendLength - 1 - j) = runningDividend.at(dividendLength - 2 - j);
-
-				}
-				result.at(i + 1) = runningDividend.at(dividendLength - 1);
-			}
-			result.at(0) = 1;//under the assumption that both dividend and divisor are monic
-			result.pop_back();
-
-			return result;
-		};
-		auto divisibleNumbers = GetDivisibleNumbers(m);
-
-		std::vector<int> product(1, 1);
-
-		for (usint i = 0; i < divisibleNumbers.size(); i++) {
-			auto P = GetCyclotomicPolynomialRecursive(divisibleNumbers[i]);
-			product = PolyMult(product, P);
-		}
-
-		//make big poly = x^m - 1
-		std::vector<int> bigPoly(m + 1, 0);
-		bigPoly.at(0) = -1;
-		bigPoly.at(m) = 1;
-
-		result = PolyQuotient(bigPoly, product);
 
 		return result;
 	}
@@ -797,33 +588,32 @@ namespace lbcrypto {
 
 	}
 
-	template<typename IntVector, typename IntType>
-	IntVector GetCyclotomicPolynomial(usint m, const IntType &modulus) {
+	template<typename IntVector>
+	IntVector GetCyclotomicPolynomial(usint m, const typename IntVector::Integer &modulus) {
 
 		auto intCP = GetCyclotomicPolynomialRecursive(m);
 		IntVector result(intCP.size(), modulus);
 		for (usint i = 0; i < intCP.size(); i++) {
 			auto val = intCP.at(i);
 			if (intCP.at(i) > -1)
-				result.at(i)= IntType(val);
+				result.at(i) = typename IntVector::Integer(val);
 			else {
 				val *= -1;
-				result.at(i)= modulus - IntType(val);
+				result.at(i) = modulus - typename IntVector::Integer(val);
 			}
 
 		}
 
 		return result;
-
 	}
 
 
-	template<typename IntVector, typename IntType>
-	IntType SyntheticRemainder(const IntVector &dividend, const IntType &a, const IntType &modulus) {
+	template<typename IntVector>
+	typename IntVector::Integer SyntheticRemainder(const IntVector &dividend, const typename IntVector::Integer &a, const typename IntVector::Integer &modulus) {
 		auto val = dividend.at(dividend.GetLength() - 1);
 
 		//Precompute the Barrett mu parameter
-		IntType mu = ComputeMu<IntType>(modulus);
+		auto mu = ComputeMu<typename IntVector::Integer>(modulus);
 
 		for (int i = dividend.GetLength() - 2; i > -1; i--) {
 			val = dividend.at(i) + a*val;
@@ -833,8 +623,8 @@ namespace lbcrypto {
 		return val;
 	}
 
-	template<typename IntVector, typename IntType>
-	IntVector SyntheticPolyRemainder(const IntVector &dividend, const IntVector &aList, const IntType &modulus) {
+	template<typename IntVector>
+	IntVector SyntheticPolyRemainder(const IntVector &dividend, const IntVector &aList, const typename IntVector::Integer &modulus) {
 		IntVector result(aList.GetLength(), modulus);
 		for (usint i = 0; i < aList.GetLength(); i++) {
 			result.at(i) = SyntheticRemainder(dividend, aList.at(i), modulus);
@@ -843,7 +633,7 @@ namespace lbcrypto {
 		return result;
 	}
 
-	template<typename IntVector, typename IntType>
+	template<typename IntVector>
 	IntVector PolynomialPower(const IntVector &input, usint power) {
 		usint finalDegree = (input.GetLength() - 1)*power;
 		IntVector finalPoly(finalDegree + 1, input.GetModulus());
@@ -854,13 +644,13 @@ namespace lbcrypto {
 		return finalPoly;
 	}
 
-	template<typename IntVector, typename IntType>
-	IntVector SyntheticPolynomialDivision(const IntVector &dividend, const IntType &a, const IntType &modulus) {
+	template<typename IntVector>
+	IntVector SyntheticPolynomialDivision(const IntVector &dividend, const typename IntVector::Integer &a, const typename IntVector::Integer &modulus) {
 		usint n = dividend.GetLength() - 1;
 		IntVector result(n, modulus);
 
 		//Precompute the Barrett mu parameter
-		IntType mu = ComputeMu<IntType>(modulus);
+		auto mu = ComputeMu<typename IntVector::Integer>(modulus);
 
 		result.at(n - 1)= dividend.at(n);
 		auto val(dividend.at(n));
@@ -876,72 +666,14 @@ namespace lbcrypto {
 	template<typename IntType>
 	IntType ComputeMu(const IntType& q)
 	{
-#if MATHBACKEND == 4 || MATHBACKEND == 6
-		return IntType(1);
-#else
-		//Precompute the Barrett mu parameter
 		IntType temp(1);
-		temp <<= 2 * q.GetMSB() + 3;
-		return temp.DividedBy(q);
-#endif
-	}
 
-	uint32_t FindAutomorphismIndex2n(int32_t i, uint32_t m) {
-
-		uint32_t n = GetTotient(m);
-
-		uint32_t f1, f2;
-
-		if (i < 0)
-		{
-			f1 = NativeInteger(5).ModInverse(m).ConvertToInt();
-			f2 = NativeInteger(3).ModInverse(m).ConvertToInt();
-		}
-		else
-		{
-			f1 = 5;
-			f2 = 3;
+		if( typeid(IntType) == typeid(M2Integer) ) {
+			temp <<= 2 * q.GetMSB() + 3;
+			return temp.DividedBy(q);
 		}
 
-		uint32_t i_unsigned = (uint32_t)std::abs(i);
-
-		uint32_t g0 = f1;
-		uint32_t g;
-
-		if (i_unsigned < n/2)
-		{
-			g = f1;
-			for (size_t j = 1; j < i_unsigned; j++)
-				g = (g * g0) % m;
-		}
-		else
-		{
-			g = f2;
-			for (size_t j = n/2; j < i_unsigned; j++)
-				g = (g * g0) % m;
-		}
-
-		return g;
-
-	}
-
-	uint32_t FindAutomorphismIndexCyclic(int32_t i, uint32_t m, uint32_t g){
-
-		int32_t n = GetTotient(m);
-
-		int32_t i_signed = i % n;
-		if (i_signed <= 0)
-			i_signed += n;
-
-		uint32_t i_unsigned = (uint32_t)i_signed;
-
-		uint32_t k = g;
-
-		for (size_t i = 2; i < i_unsigned; i++)
-			k = (k * g) % m;
-
-		return k;
-
+		return temp;
 	}
 
 }

@@ -30,26 +30,26 @@
 #include <vector>
 #include <initializer_list>
 #include <iostream>
+
 #include "encodingparams.h"
 #include "../utils/inttypes.h"
 #include "../math/backend.h"
-#include "../lattice/elemparams.h"
-#include "../lattice/dcrtpoly.h"
-#include "../lattice/ilparams.h"
-#include "../lattice/ildcrtparams.h"
-#include "../lattice/poly.h"
+#include "../lattice/backend.h"
+
+using std::shared_ptr;
 
 namespace lbcrypto
 {
 
 enum PlaintextEncodings {
-	Unknown,
+	Unknown = 0,
 	Scalar,
 	Integer,
 	CoefPacked,
 	Packed,
 	String,
 	Fractional,
+	//MaxKnownEncoding = 7
 };
 
 inline std::ostream& operator<<(std::ostream& out, const PlaintextEncodings p) {
@@ -100,9 +100,10 @@ class PlaintextImpl
 protected:
 	bool						isEncoded;
 	PtxtPolyType				typeFlag;
-	EncodingParams				encodingParams;
+	EncodingParams			encodingParams;
+	//mutable ILElement		*vec;
 	mutable Poly				encodedVector;
-	mutable NativePoly			encodedNativeVector;
+	mutable NativePoly		encodedNativeVector;
 	mutable DCRTPoly			encodedVectorDCRT;
 
 public:

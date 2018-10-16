@@ -756,8 +756,14 @@ template<class ubint_el_t>
   template<class ubint_el_t>
   mubintvec<ubint_el_t> mubintvec<ubint_el_t>::DivideAndRound(const ubint_el_t &q) const {
 	  mubintvec ans(*this);
+	  ubint_el_t halfQ(this->m_modulus >> 1);
 	  for (usint i = 0; i<this->m_data.size(); i++) {
-		  ans.m_data[i] = ans.m_data[i].DivideAndRound(q);
+		  if (ans.m_data[i] > halfQ) {
+			  ubint_el_t temp = this->m_modulus - ans.m_data[i];
+			  ans.m_data[i] = this->m_modulus - temp.DivideAndRound(q);
+		  }
+		  else
+			  ans.m_data[i] = ans.m_data[i].DivideAndRound(q);
 	  }
 	    return std::move(ans);
   }

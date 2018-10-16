@@ -61,7 +61,8 @@ public:
 
 class math_error : public palisade_error {
 public:
-	math_error(const std::string& file, int line, const std::string& what) : palisade_error(file,line,what) {}};
+	math_error(const std::string& file, int line, const std::string& what) : palisade_error(file,line,what) {}
+};
 
 class not_implemented_error : public palisade_error {
 public:

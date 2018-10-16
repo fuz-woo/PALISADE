@@ -96,5 +96,12 @@ $(PKE_TEST_TARGET): $(UNITTESTMAINOBJ) $(PKEUNITOBJECTS) $(EXTLIBDIR)/$(PALISADE
 #used to run tests from make
 .PHONY: testpke
 testpke: $(PKE_TEST_TARGET)
-	$(PKE_TEST_TARGET)
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(ROOTDIR)/$(THIRDPARTYLIBDIR):$(ROOTDIR)/$(EXTLIBDIR) $(PKE_TEST_TARGET)
 
+.PHONY: installpke
+installpke: libdir
+	install -t $(LIB_DEST) $(EXTLIBDIR)/$(PALISADEPKELIB)
+
+.PHONY: uninstallpke
+uninstallpke:
+	rm $(LIB_DEST)/$(PALISADEPKELIB)

@@ -107,6 +107,27 @@ LPCryptoParametersBFVrnsB<Element>::LPCryptoParametersBFVrnsB(shared_ptr<typenam
 	}
 
 template <class Element>
+LPCryptoParametersBFVrnsB<Element>::LPCryptoParametersBFVrnsB(shared_ptr<typename Element::Params> params,
+		EncodingParams encodingParams,
+		float distributionParameter,
+		float assuranceMeasure,
+		SecurityLevel securityLevel,
+		usint relinWindow,
+		MODE mode,
+		int depth,
+		int maxDepth)
+		: LPCryptoParametersRLWE<Element>(params,
+			encodingParams,
+			distributionParameter,
+			assuranceMeasure,
+			securityLevel,
+			relinWindow,
+			depth,
+			maxDepth,
+			mode), m_numq(0), m_numB(0) {
+	}
+
+template <class Element>
 bool LPCryptoParametersBFVrnsB<Element>::Serialize(Serialized* serObj) const {
 	if (!serObj->IsObject())
 		return false;

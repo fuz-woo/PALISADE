@@ -1,5 +1,6 @@
-/*
- * @file 
+/**
+ * @file be2-poly-impl.cpp This file contains template instantiations for all classes using math be2
+ *
  * @author  TPOC: palisade@njit.edu
  *
  * @copyright Copyright (c) 2017, New Jersey Institute of Technology (NJIT)
@@ -23,11 +24,44 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
- /*
- *  This file contains google test code that exercises the modulo big int
- *  vector library of the PALISADE lattice encryption library.
- *
- */
 
-#ifdef __linux__
-#endif //__linux__
+#include "math/backend.h"
+#include "lattice/backend.h"
+#include "math/matrix.cpp"
+#include "matrix-lattice-impl.cpp"
+
+#include "elemparams.cpp"
+#include "ilparams.cpp"
+#include "poly.cpp"
+
+namespace lbcrypto {
+
+template class ElemParams<M2Integer>;
+template class ILParamsImpl<M2Integer>;
+template class PolyImpl<M2Vector>;
+template class DCRTPolyImpl<M2Vector>;
+
+template class Matrix<M2Poly>;
+ONES_FOR_TYPE(M2Poly)
+IDENTITY_FOR_TYPE(M2Poly)
+GADGET_FOR_TYPE(M2Poly)
+NORM_FOR_TYPE(M2Poly)
+MATRIX_NOT_SERIALIZABLE(M2Poly)
+SPLIT64_FOR_TYPE(M2Poly)
+SPLIT64ALT_FOR_TYPE(M2Poly)
+SPLIT32ALT_FOR_TYPE(M2Poly)
+template Matrix<M2Vector> RotateVecResult(Matrix<M2Poly> const& inMat);
+template Matrix<M2Integer> Rotate(Matrix<M2Poly> const& inMat);
+
+template class Matrix<M2DCRTPoly>;
+ONES_FOR_TYPE(M2DCRTPoly)
+IDENTITY_FOR_TYPE(M2DCRTPoly)
+GADGET_FOR_TYPE(M2DCRTPoly)
+NORM_FOR_TYPE(M2DCRTPoly)
+MATRIX_NOT_SERIALIZABLE(M2DCRTPoly)
+SPLIT64_FOR_TYPE(M2DCRTPoly)
+SPLIT64ALT_FOR_TYPE(M2DCRTPoly)
+SPLIT32ALT_FOR_TYPE(M2DCRTPoly)
+template Matrix<M2Vector> RotateVecResult(Matrix<M2DCRTPoly> const& inMat);
+template Matrix<M2Integer> Rotate(Matrix<M2DCRTPoly> const& inMat);
+}

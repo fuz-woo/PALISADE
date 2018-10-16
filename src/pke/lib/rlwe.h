@@ -29,6 +29,7 @@
 
 #include "utils/serializable.h"
 #include "lattice/poly.h"
+#include "lattice/stdlatticeparms.h"
 #include <string>
 #include "../../core/lib/lattice/dcrtpoly.h"
 
@@ -54,6 +55,7 @@ public:
 		m_depth = 0;
 		m_maxDepth = 1;
 		m_mode = RLWE;
+		m_stdLevel = HEStd_NotSet;
 	}
 
 	/**
@@ -69,6 +71,7 @@ public:
 		m_depth = rhs.m_depth;
 		m_maxDepth = rhs.m_maxDepth;
 		m_mode = rhs.m_mode;
+		m_stdLevel = rhs.m_stdLevel;
 	}
 
 	/**
@@ -103,6 +106,42 @@ public:
 		m_depth = depth;
 		m_maxDepth = maxDepth;
 		m_mode = mode;
+		m_stdLevel = HEStd_NotSet;
+	}
+
+	/**
+	* Constructor that initializes values - uses HomomorphicEncryption.org standard security levels
+	*
+	* @param &params element parameters.
+	* @param &encodingParams encoding-specific parameters
+	* @param distributionParameter noise distribution parameter.
+	* @param assuranceMeasure assurance level.
+	* @param securityLevel security level.
+	* @param relinWindow the size of the relinearization window.
+	* @param depth is the depth of computation circuit supported for these parameters (not used now; for future use).
+	* @param maxDepth is the maximum homomorphic multiplication depth before performing relinearization
+	* @param mode mode for secret polynomial, defaults to RLWE.
+	*/
+	LPCryptoParametersRLWE(
+		shared_ptr<typename Element::Params> params,
+		EncodingParams encodingParams,
+		float distributionParameter,
+		float assuranceMeasure,
+		SecurityLevel stdLevel,
+		usint relinWindow,
+		int depth = 1,
+		int maxDepth = 1,
+		MODE mode = RLWE) : LPCryptoParameters<Element>(params, encodingParams)
+	{
+		m_distributionParameter = distributionParameter;
+		m_assuranceMeasure = assuranceMeasure;
+		m_securityLevel = 0;
+		m_relinWindow = relinWindow;
+		m_dgg.SetStd(m_distributionParameter);
+		m_depth = depth;
+		m_maxDepth = maxDepth;
+		m_mode = mode;
+		m_stdLevel = stdLevel;
 	}
 
 	/**
@@ -160,6 +199,13 @@ public:
 	MODE GetMode() const { return m_mode; }
 
 	/**
+	* Gets the standard security level
+	*
+	* @return the security level.
+	*/
+	SecurityLevel GetStdLevel() const { return m_stdLevel; }
+
+	/**
 	 * Returns reference to Discrete Gaussian Generator
 	 *
 	 * @return reference to Discrete Gaussian Generaror.
@@ -188,6 +234,12 @@ public:
 	 * @param securityLevel
 	 */
 	void SetSecurityLevel(float securityLevel) {m_securityLevel = securityLevel;}
+
+	/**
+	 * Sets the standard security level
+	 * @param standard security level
+	 */
+	void SetStdLevel(SecurityLevel securityLevel) {m_stdLevel = securityLevel;}
 
 	/**
 	 * Sets the value of relinearization window
@@ -230,7 +282,8 @@ public:
 				m_assuranceMeasure == el->GetAssuranceMeasure() &&
 				m_securityLevel == el->GetSecurityLevel() &&
 				m_relinWindow == el->GetRelinWindow() &&
-				m_mode == el->GetMode();
+				m_mode == el->GetMode() &&
+				m_stdLevel == el->GetStdLevel();
 	}
 
 	void PrintParameters(std::ostream& os) const {
@@ -242,6 +295,7 @@ public:
 				", Relin window " << GetRelinWindow() <<
 				", Depth " << GetDepth() <<
 				", Mode " << GetMode() <<
+				", Standard security level " << GetStdLevel() <<
 				std::endl;
 	}
 
@@ -261,6 +315,8 @@ protected:
 	// specifies whether the secret polynomials are generated from discrete
 	// Gaussian distribution or ternary distribution with the norm of unity
 	MODE m_mode;
+	// Security level according in the HomomorphicEncryption.org standard
+	SecurityLevel m_stdLevel;
 
 	typename Element::DggType m_dgg;
 
@@ -286,6 +342,7 @@ protected:
 		cryptoParamsMap.AddMember("MaxDepth", std::to_string(this->GetMaxDepth()), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("Mode", std::to_string(m_mode), serObj->GetAllocator());
 		cryptoParamsMap.AddMember("PlaintextModulus", std::to_string(this->GetPlaintextModulus()), serObj->GetAllocator());
+		cryptoParamsMap.AddMember("StdLevel", std::to_string(m_stdLevel), serObj->GetAllocator());
 
 		return true;
 	}
@@ -362,6 +419,10 @@ protected:
 			return false;
 		MODE mode = (MODE)atoi(pIt->value.GetString());
 
+		if ((pIt = mIter->value.FindMember("StdLevel")) == mIter->value.MemberEnd())
+			return false;
+		SecurityLevel stdLevel = (SecurityLevel)atoi(pIt->value.GetString());
+
 		this->SetPlaintextModulus(bbiPlaintextModulus);
 		this->SetDistributionParameter(distributionParameter);
 		this->SetAssuranceMeasure(assuranceMeasure);
@@ -370,6 +431,7 @@ protected:
 		this->SetDepth(depth);
 		this->SetMaxDepth(maxDepth);
 		this->SetMode(mode);
+		this->SetStdLevel(stdLevel);
 
 		return true;
 	}

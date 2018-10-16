@@ -33,7 +33,7 @@ namespace lbcrypto {
 
 
 		template<class Element>
-        class MatrixStrassen : public Serializable {
+        class MatrixStrassen { // FIXME : public Serializable {
         public:
             typedef vector<vector<Element>> data_t;
             typedef vector<Element> lineardata_t;
@@ -163,9 +163,7 @@ namespace lbcrypto {
              */  
             inline MatrixStrassen<Element> ScalarMult(Element const& other) const {
                 MatrixStrassen<Element> result(*this);
-#ifdef OMP
             #pragma omp parallel for
-#endif
             for (int32_t col = 0; col < result.cols; ++col) {
             	for (int32_t row = 0; row < result.rows; ++row) {
 
@@ -281,9 +279,7 @@ namespace lbcrypto {
                     throw invalid_argument("Addition operands have incompatible dimensions");
                 }
                 MatrixStrassen<Element> result(*this);
-#ifdef OMP
                 #pragma omp parallel for
-#endif
 		for (int32_t j = 0; j < cols; ++j) {
 		  for (int32_t i = 0; i < rows; ++i) {
 		    *result.data[i][j] += *other.data[i][j];
@@ -323,9 +319,7 @@ namespace lbcrypto {
                     throw invalid_argument("Subtraction operands have incompatible dimensions");
                 }
                 MatrixStrassen<Element> result(allocZero, rows, other.cols);
-#ifdef OMP
                 #pragma omp parallel for
-#endif
                 for (int32_t j = 0; j < cols; ++j) {
                 	for (int32_t i = 0; i < rows; ++i) {
 			  *result.data[i][j] = *data[i][j] - *other.data[i][j];
@@ -367,7 +361,6 @@ namespace lbcrypto {
 			* @param *result where the result is stored
 			*/
 			inline void Determinant(Element *result) const;
-			//inline Element Determinant() const;
 
 			/**
 			* Cofactor matrix - the matrix of determinants of the minors A_{ij} multiplied by -1^{i+j}
@@ -462,19 +455,19 @@ namespace lbcrypto {
              */
             MatrixStrassen<Element> MultByRandomVector(std::vector<int> ranvec) const;
 
-			/**
-			* Serialize the object into a Serialized
-			* @param serObj is used to store the serialized result. It MUST be a rapidjson Object (SetObject());
-			* @return true if successfully serialized
-			*/
-			bool Serialize(Serialized* serObj) const;
+//			/**
+//			* Serialize the object into a Serialized
+//			* @param serObj is used to store the serialized result. It MUST be a rapidjson Object (SetObject());
+//			* @return true if successfully serialized
+//			*/
+			//bool Serialize(Serialized* serObj) const;
 
-			/**
-			* Populate the object from the deserialization of the Serialized
-			* @param serObj contains the serialized object
-			* @return true on success
-			*/
-			bool Deserialize(const Serialized& serObj);
+//			/**
+//			* Populate the object from the deserialization of the Serialized
+//			* @param serObj contains the serialized object
+//			* @return true on success
+//			*/
+			//bool Deserialize(const Serialized& serObj);
 
 
         private:
