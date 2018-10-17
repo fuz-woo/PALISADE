@@ -29,11 +29,11 @@
 
 namespace lbcrypto {
 
-template<typename IntType, typename VecType>
-std::uniform_int_distribution<int> TernaryUniformGeneratorImpl<IntType,VecType>::m_distribution = std::uniform_int_distribution<int>(-1,1);
+template<typename VecType>
+std::uniform_int_distribution<int> TernaryUniformGeneratorImpl<VecType>::m_distribution = std::uniform_int_distribution<int>(-1,1);
 
-template<typename IntType, typename VecType>
-VecType TernaryUniformGeneratorImpl<IntType,VecType>::GenerateVector (usint size, const IntType &modulus) const {
+template<typename VecType>
+VecType TernaryUniformGeneratorImpl<VecType>::GenerateVector (usint size, const typename VecType::Integer &modulus) const {
 	
 	VecType v(size);
 	v.SetModulus(modulus);
@@ -42,16 +42,16 @@ VecType TernaryUniformGeneratorImpl<IntType,VecType>::GenerateVector (usint size
 	for (usint i = 0; i < size; i++) {
 		randomNumber = m_distribution(PseudoRandomNumberGenerator::GetPRNG());
 		if (randomNumber < 0)
-			v[i] = modulus - IntType(1);
+			v[i] = modulus - typename VecType::Integer(1);
 		else
-			v[i] = IntType(randomNumber);
+			v[i] = typename VecType::Integer(randomNumber);
 	}
 
 	return v;
 }
 
-template<typename IntType, typename VecType>
-std::shared_ptr<int32_t> TernaryUniformGeneratorImpl<IntType,VecType>::GenerateIntVector (usint size) const {
+template<typename VecType>
+std::shared_ptr<int32_t> TernaryUniformGeneratorImpl<VecType>::GenerateIntVector (usint size) const {
 	
 	std::shared_ptr<int32_t> ans( new int32_t[size], std::default_delete<int32_t[]>() );
 

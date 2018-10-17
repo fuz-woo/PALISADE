@@ -81,9 +81,9 @@ static void BM_BigVec_Add(benchmark::State& state) { // benchmark
 }
 
 DO_NATIVEVECTOR_BENCHMARK(BM_BigVec_Add)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Add, BE2Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Add, BE4Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Add, BE6Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Add, M2Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Add, M4Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Add, M6Vector)
 
 // +=
 template <typename V>
@@ -105,9 +105,9 @@ static void BM_BigVec_Addeq(benchmark::State& state) { // benchmark
 }
 
 DO_NATIVEVECTOR_BENCHMARK(BM_BigVec_Addeq)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Addeq, BE2Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Addeq, BE4Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Addeq, BE6Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Addeq, M2Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Addeq, M4Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Addeq, M6Vector)
 
 // mult
 template <typename V>
@@ -129,9 +129,9 @@ static void BM_BigVec_Mult(benchmark::State& state) { // benchmark
 }
 
 DO_NATIVEVECTOR_BENCHMARK(BM_BigVec_Mult)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Mult, BE2Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Mult, BE4Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Mult, BE6Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Mult, M2Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Mult, M4Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Mult, M6Vector)
 
 // mult
 template <typename V>
@@ -153,9 +153,9 @@ static void BM_BigVec_Multeq(benchmark::State& state) { // benchmark
 }
 
 DO_NATIVEVECTOR_BENCHMARK(BM_BigVec_Multeq)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Multeq, BE2Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Multeq, BE4Vector)
-DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Multeq, BE6Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Multeq, M2Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Multeq, M4Vector)
+DO_VECTOR_BENCHMARK_TEMPLATE(BM_BigVec_Multeq, M6Vector)
 
 //execute the benchmarks
 BENCHMARK_MAIN()

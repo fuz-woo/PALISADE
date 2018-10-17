@@ -43,9 +43,11 @@ namespace lbcrypto
  * Element is the return type for all of these virtual functions.
  * There is no constructor here in the base class; it contains no data to construct.
  */
-template <typename Element, typename ModType, typename IntType, typename VecType>
+template <typename Element, typename VecType>
 class ILElement : public Serializable
 {
+	using IntType = typename VecType::Integer;
+
 public:
 
 	/**
@@ -72,7 +74,7 @@ public:
 	 * @param format
 	 * @return new Element
 	 */
-	virtual Element CloneWithNoise(const DiscreteGaussianGeneratorImpl<IntType,VecType> &dgg, Format format = EVALUATION) const = 0;
+	virtual Element CloneWithNoise(const DiscreteGaussianGeneratorImpl<VecType> &dgg, Format format = EVALUATION) const = 0;
 
 	/**
 	 * @brief Standard destructor
@@ -116,7 +118,7 @@ public:
 	 *
 	 * @return the modulus.
 	 */
-	virtual const ModType &GetModulus() const = 0;
+	virtual const IntType &GetModulus() const = 0;
 
 	/**
 	 * @brief Get the values for the element
@@ -152,7 +154,7 @@ public:
 		throw std::logic_error("const [] not implemented");
 	}
 
-	virtual NativePoly DecryptionCRTInterpolate(PlaintextModulus ptm) const = 0;
+//	virtual NativePoly DecryptionCRTInterpolate(PlaintextModulus ptm) const = 0;
 
 	// OPERATORS
 	/**

@@ -40,8 +40,17 @@ bool PackedEncoding::Encode() {
 	if( this->isEncoded ) return true;
 	auto mod = this->encodingParams->GetPlaintextModulus();
 
-	if( this->typeFlag == IsNativePoly ) {
-		NativeVector temp(this->GetElementRingDimension(), this->GetElementModulus().ConvertToInt());
+	if (( this->typeFlag == IsNativePoly ) || (this->typeFlag == IsDCRTPoly )) {
+
+		NativeVector temp;
+		if ( this->typeFlag == IsNativePoly )
+			temp = NativeVector(this->GetElementRingDimension(), this->GetElementModulus().ConvertToInt());
+		else {
+			NativeInteger q0 = this->encodedVectorDCRT.GetParams()->GetParams()[0]->GetModulus().ConvertToInt();
+			temp = NativeVector(this->GetElementRingDimension(), q0);
+			if( q0 < mod )
+				throw std::logic_error("the plaintext modulus size is larger than the size of CRT moduli; either decrease the plaintext modulus or increase the CRT moduli.");
+		}
 
 		size_t i;
 		for( i=0; i < value.size(); i++ ) {
@@ -59,9 +68,28 @@ bool PackedEncoding::Encode() {
 			temp[i] = NativeInteger(0);
 		this->isEncoded = true;
 
-		this->GetElement<NativePoly>().SetValues(temp, Format::EVALUATION); //output was in coefficient format
+		if ( this->typeFlag == IsNativePoly ) {
+			this->GetElement<NativePoly>().SetValues(temp, Format::EVALUATION); //the input plaintext data is in the evaluation format
+			this->Pack(&this->GetElement<NativePoly>(), this->encodingParams->GetPlaintextModulus());//ilVector coefficients are packed and resulting ilVector is in COEFFICIENT form.
+		}
+		else
+		{
+			NativePoly firstElement = this->GetElement<DCRTPoly>().GetElementAtIndex(0);
+			firstElement.SetValues(temp, Format::EVALUATION); //the input plaintext data is in the evaluation format
+			this->Pack(&firstElement, this->encodingParams->GetPlaintextModulus());//ilVector coefficients are packed and resulting ilVector is in COEFFICIENT form.
+			this->encodedVectorDCRT.SetElementAtIndex(0,firstElement);
 
-		this->Pack(&this->GetElement<NativePoly>(), this->encodingParams->GetPlaintextModulus());//ilVector coefficients are packed and resulting ilVector is in COEFFICIENT form.
+			const shared_ptr<ILDCRTParams<BigInteger>> params = this->encodedVectorDCRT.GetParams();
+			const std::vector<std::shared_ptr<ILNativeParams>> &nativeParams = params->GetParams();
+
+			for (size_t i = 1; i < nativeParams.size(); i++ ) {
+				NativePoly temp(firstElement);
+				temp.SwitchModulus(nativeParams[i]->GetModulus(),nativeParams[i]->GetRootOfUnity());
+				this->encodedVectorDCRT.SetElementAtIndex(i,temp);
+			}
+
+		}
+
 	}
 	else {
 		BigVector temp(this->GetElementRingDimension(), BigInteger(this->GetElementModulus()));
@@ -82,15 +110,10 @@ bool PackedEncoding::Encode() {
 			temp[i] = BigInteger(0);
 		this->isEncoded = true;
 
-		this->GetElement<Poly>().SetValues(temp, Format::EVALUATION); //output was in coefficient format
+		this->GetElement<Poly>().SetValues(temp, Format::EVALUATION); //the input plaintext data is in the evaluation format
 
 		this->Pack(&this->GetElement<Poly>(), this->encodingParams->GetPlaintextModulus());//ilVector coefficients are packed and resulting ilVector is in COEFFICIENT form.
 	}
-
-	if( this->typeFlag == IsDCRTPoly ) {
-		this->encodedVectorDCRT = this->encodedVector;
-	}
-
 
 	return true;
 }
@@ -107,9 +130,17 @@ bool PackedEncoding::Decode() {
 
 	auto ptm = this->encodingParams->GetPlaintextModulus();
 
-	if( this->typeFlag == IsNativePoly ) {
-		this->Unpack(&this->GetElement<NativePoly>(), ptm);
-		fillVec(this->encodedNativeVector, this->value);
+	if (( this->typeFlag == IsNativePoly ) || (this->typeFlag == IsDCRTPoly )) {
+		if ( this->typeFlag == IsNativePoly ) {
+			this->Unpack(&this->GetElement<NativePoly>(), ptm);
+			fillVec(this->encodedNativeVector, this->value);
+		}
+		else
+		{
+			NativePoly firstElement = this->GetElement<DCRTPoly>().GetElementAtIndex(0);
+			this->Unpack(&firstElement, ptm);
+			fillVec(firstElement, this->value);
+		}
 	}
 	else {
 		this->Unpack(&this->GetElement<Poly>(), ptm);
@@ -251,11 +282,11 @@ void PackedEncoding::Pack(P *ring, const PlaintextModulus &modulus) const {
 			for (usint i = 0; i < phim; i++) {
 				permutedSlots[i] = slotValues[m_toCRTPerm[m][i]];
 			}
-			ChineseRemainderTransformFTT<NativeInteger, NativeVector>::InverseTransform(permutedSlots, m_initRoot[modulusM], m, &slotValues);
+			ChineseRemainderTransformFTT<NativeVector>::InverseTransform(permutedSlots, m_initRoot[modulusM], m, &slotValues);
 		}
 		else
 		{
-			ChineseRemainderTransformFTT<NativeInteger, NativeVector>::InverseTransform(slotValues, m_initRoot[modulusM], m, &slotValues);
+			ChineseRemainderTransformFTT<NativeVector>::InverseTransform(slotValues, m_initRoot[modulusM], m, &slotValues);
 		}
 
 	} else { // Arbitrary cyclotomic
@@ -271,7 +302,7 @@ void PackedEncoding::Pack(P *ring, const PlaintextModulus &modulus) const {
 		DEBUG("m_bigModulus[modulusM] " << m_bigModulus[modulusM]);
 		DEBUG("m_bigRoot[modulusM] " << m_bigRoot[modulusM]);
 
-		slotValues = ChineseRemainderTransformArb<NativeInteger, NativeVector>::
+		slotValues = ChineseRemainderTransformArb<NativeVector>::
 				InverseTransform(permutedSlots, m_initRoot[modulusM], m_bigModulus[modulusM], m_bigRoot[modulusM], m);
 	}
 
@@ -316,9 +347,9 @@ void PackedEncoding::Unpack(P *ring, const PlaintextModulus &modulus) const {
 	// Transform Coeff to Eval
 	NativeVector permutedSlots(phim, modulusNI);
 	if (!(m & (m-1))) { // Check if m is a power of 2
-		ChineseRemainderTransformFTT<NativeInteger, NativeVector>::ForwardTransform(packedVector, m_initRoot[modulusM], m, &permutedSlots);
+		ChineseRemainderTransformFTT<NativeVector>::ForwardTransform(packedVector, m_initRoot[modulusM], m, &permutedSlots);
 	} else { // Arbitrary cyclotomic
-		permutedSlots = ChineseRemainderTransformArb<NativeInteger, NativeVector>::
+		permutedSlots = ChineseRemainderTransformArb<NativeVector>::
 				ForwardTransform(packedVector, m_initRoot[modulusM], m_bigModulus[modulusM], m_bigRoot[modulusM], m);
 	}
 
@@ -363,7 +394,7 @@ void PackedEncoding::SetParams_2n(usint m, const NativeInteger &modulusNI) {
 		m_toCRTPerm[m][(curr_index - 1) / 2] = i;
 		m_fromCRTPerm[m][i] = (curr_index - 1) / 2;
 
-		usint cofactor_index = curr_index * 3 % m;
+		usint cofactor_index = curr_index * (m-1) % m;
 		m_toCRTPerm[m][(cofactor_index - 1) / 2] = i + phim_by_2;
 		m_fromCRTPerm[m][i + phim_by_2] = (cofactor_index - 1) / 2;
 
@@ -402,7 +433,7 @@ void PackedEncoding::SetParams_2n(usint m, EncodingParams params){
 			m_toCRTPerm[m][(curr_index - 1) / 2] = i;
 			m_fromCRTPerm[m][i] = (curr_index - 1) / 2;
 
-			usint cofactor_index = curr_index * 3 % m;
+			usint cofactor_index = curr_index * (m-1) % m;
 			m_toCRTPerm[m][(cofactor_index - 1) / 2] = i + phim_by_2;
 			m_fromCRTPerm[m][i + phim_by_2] = (cofactor_index - 1) / 2;
 

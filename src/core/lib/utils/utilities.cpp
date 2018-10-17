@@ -31,17 +31,18 @@ namespace lbcrypto {
 //Zero-Padd adds extra zeros to the Input polynomial
 //if Input polynomial has a length n less than CycloOrder,
 //then it adds CycloOrder-n zeros in the Input Polynomial
-BigVector ZeroPadForward(const BigVector &InputPoly,usint target_order){
+template<typename V>
+V ZeroPadForward(const V &InputPoly, usint target_order){
 
 	if(InputPoly.GetLength()<target_order){
 
-		BigVector ans(target_order);
+		V ans(target_order);
 
 		for(usint i=0;i<InputPoly.GetLength();i++)
 		  ans.at(i)=InputPoly.at(i);
 
 		for(usint i=InputPoly.GetLength();i<target_order;i++)
-		  ans.at(i)= BigInteger(0);
+		  ans.at(i)= typename V::Integer(0);
 
 		ans.SetModulus(InputPoly.GetModulus());
 
@@ -50,20 +51,21 @@ BigVector ZeroPadForward(const BigVector &InputPoly,usint target_order){
 	}
 
 	else{
-		return BigVector(InputPoly);
+		return V(InputPoly);
 	}
 }
 
 //Adds 0 between each BigInteger to support conversion from Inverse FFT to Inverse CRT
-BigVector ZeroPadInverse(const BigVector &InputPoly,usint target_order){
+template<typename V>
+V ZeroPadInverse(const V &InputPoly,usint target_order){
 
 	if(InputPoly.GetLength()<target_order){
 
-		BigVector ans(target_order);
+		V ans(target_order);
 
 		for(usint i=0;i<InputPoly.GetLength();i++)
 		{
-		  ans.at(2*i)=BigInteger("0");
+		  ans.at(2*i)=typename V::Integer("0");
 		  ans.at(2*i+1)=InputPoly.at(i);
 		}
 
@@ -73,7 +75,7 @@ BigVector ZeroPadInverse(const BigVector &InputPoly,usint target_order){
 	}
 
 	else{
-		return BigVector(InputPoly);
+		return V(InputPoly);
 	}
 
 }

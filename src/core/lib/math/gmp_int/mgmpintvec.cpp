@@ -690,8 +690,14 @@ template<class myT>
 myVecP<myT> myVecP<myT>::DivideAndRound(const myT &q) const {
 	ModulusCheck("myVecP::DivideAndRound");
 	myVecP ans(*this);
+	myT halfQ(this->m_modulus >> 1);
 	for (size_t i = 0; i<this->GetLength(); i++) {
-		ans[i] = ans[i].DivideAndRound(q);
+		if (ans[i] > halfQ) {
+			myT temp = this->m_modulus - ans[i];
+			ans[i] = this->m_modulus - temp.DivideAndRound(q);
+		}
+		else
+			ans[i] = ans[i].DivideAndRound(q);
 	}
 	return ans;
 }

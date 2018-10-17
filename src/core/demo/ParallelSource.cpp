@@ -33,10 +33,7 @@
 #include <chrono>
 #include <thread>
 #include "utils/debug.h"
-#include <omp.h> //open MP header
-
-//using namespace std;
-//using namespace lbcrypto;
+#include "utils/parallel.h"
 
 //function to verify our generated array
 void verify(float *foo, uint32_t array_size){
@@ -63,6 +60,8 @@ void verify(float *foo, uint32_t array_size){
 int main(int argc, char* argv[]){
   // note if you set dbg_flag = true then all  the following DEBUG() statments print to stdout.
   bool dbg_flag = true;
+
+  lbcrypto::PalisadeParallelControls.Enable();
 
   uint32_t array_size = 1000;
   DEBUGEXP(argc);

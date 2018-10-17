@@ -66,9 +66,9 @@ bool LPAlgorithmParamsGenLTV<DCRTPoly>::ParamsGen(shared_ptr<LPCryptoParameters<
 
 		double rootn = sqrt(n);
 		double qboundD = 4 * p * r * rootn * w;
-		NativeInteger qbound(qboundD);
+		NativeInteger qbound(std::llround(qboundD));
 		double q2boundD = 4 * psquared * rpow5 * pow(rootn, 3) * wpow5;
-		NativeInteger q2bound(q2boundD);
+		NativeInteger q2bound(std::llround(q2boundD));
 
 		NativeInteger q = FirstPrime<NativeInteger>(static_cast<usint>(ceil(log2(qboundD))),n);
 		while( q < qbound )

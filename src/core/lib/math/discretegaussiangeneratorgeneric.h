@@ -265,7 +265,7 @@ private:
 /**
  * @brief The class for Generic Discrete Gaussion Distribution generator.
  */
-class DiscreteGaussianGeneratorGeneric: public DistributionGenerator<BigInteger,BigVector>{
+class DiscreteGaussianGeneratorGeneric: public DistributionGenerator<BigVector>{
 public:
 	/**
 	 * @brief Basic constructor which does the precomputations.

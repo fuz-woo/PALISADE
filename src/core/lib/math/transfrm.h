@@ -50,9 +50,11 @@ namespace lbcrypto {
 	/**
 	* @brief Number Theoretic Transform implemetation
 	*/
-	template<typename IntType, typename VecType>
+	template<typename VecType>
 	class NumberTheoreticTransform
 	{
+		using IntType = typename VecType::Integer;
+
 	public:
 		/**
 		* Forward transform.
@@ -365,9 +367,11 @@ namespace lbcrypto {
 	/**
 	* @brief Golden Chinese Remainder Transform FFT implemetation.
 	*/
-	template<typename IntType, typename VecType>
+	template<typename VecType>
 	class ChineseRemainderTransformFTT
 	{
+		using IntType = typename VecType::Integer;
+
 	public:
 		/**
 		* Virtual forward transform.
@@ -419,55 +423,6 @@ namespace lbcrypto {
 		static std::map<IntType, NativeVector> m_rootOfUnityInversePreconTableByModulus;
 	};
 
-	/**
-	* @brief Discrete Fourier Transform FFT implemetation.
-	*/
-	class DiscreteFourierTransform
-	{
-	public:
-		/**
-		* Virtual FFT forward transform.
-		*
-		* @param A is the element to perform the transform on.
-		* @return is the output result of the transform.
-		*/
-		static std::vector<std::complex<double>> FFTForwardTransform(std::vector<std::complex<double>>& A);
-
-		/**
-		* Virtual FFT inverse transform.
-		*
-		* @param A is the element to perform the inverse transform on.
-		* @return is the output result of the inverse transform.
-		*/
-		static std::vector<std::complex<double>> FFTInverseTransform(std::vector<std::complex<double>>& A);
-
-		/**
-		* Virtual forward transform.
-		*
-		* @param A is the element to perform the transform on.
-		* @return is the output result of the transform.
-		*/
-		static std::vector<std::complex<double>> ForwardTransform(std::vector<std::complex<double>> A);
-
-		/**
-		* Virtual inverse transform.
-		*
-		* @param A is the element to perform the inverse transform on.
-		* @return is the output result of the inverse transform.
-		*/
-		static std::vector<std::complex<double>> InverseTransform(std::vector<std::complex<double>> A);
-
-		/**
-		* Reset cached values for the transform to empty.
-		*/
-		static void Reset();
-
-		static void PreComputeTable(uint32_t s);
-
-	private:
-		static std::complex<double>* rootOfUnityTable;
-	};
-
 	// struct used as a key in BlueStein transform
 	template<typename IntType>
 	using ModulusRoot = std::pair<IntType, IntType>;
@@ -478,8 +433,10 @@ namespace lbcrypto {
 	/**
 	* @brief Bluestein Fast Fourier Transform implemetation
 	*/
-	template<typename IntType, typename VecType>
+	template<typename VecType>
 	class BluesteinFFT {
+		using IntType = typename VecType::Integer;
+
 	public:
 		/**
 		* Forward transform.
@@ -569,8 +526,10 @@ namespace lbcrypto {
 	/**
 	* @brief Chinese Remainder Transform for arbitrary cyclotomics.
 	*/
-	template<typename IntType, typename VecType>
+	template<typename VecType>
 	class ChineseRemainderTransformArb {
+		using IntType = typename VecType::Integer;
+
 	public:
 		/**
 		* Sets the cyclotomic polynomial.

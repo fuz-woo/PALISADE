@@ -131,6 +131,37 @@ LPCryptoParametersBFV<Element>::LPCryptoParametersBFV(shared_ptr<typename Elemen
 }
 
 template <class Element>
+LPCryptoParametersBFV<Element>::LPCryptoParametersBFV(shared_ptr<typename Element::Params> params,
+	EncodingParams encodingParams,
+	float distributionParameter,
+	float assuranceMeasure,
+	SecurityLevel securityLevel,
+	usint relinWindow,
+	const typename Element::Integer &delta,
+	MODE mode,
+	const typename Element::Integer &bigModulus ,
+	const typename Element::Integer &bigRootOfUnity,
+	const typename Element::Integer &bigModulusArb,
+	const typename Element::Integer &bigRootOfUnityArb,
+	int depth,
+	int maxDepth)
+	: LPCryptoParametersRLWE<Element>(params,
+		encodingParams,
+		distributionParameter,
+		assuranceMeasure,
+		securityLevel,
+		relinWindow,
+		depth,
+		maxDepth,
+		mode) {
+	m_delta = delta;
+	m_bigModulus = bigModulus;
+	m_bigRootOfUnity = bigRootOfUnity;
+	m_bigModulusArb = bigModulusArb;
+	m_bigRootOfUnityArb = bigRootOfUnityArb;
+}
+
+template <class Element>
 bool LPCryptoParametersBFV<Element>::Serialize(Serialized* serObj) const {
 	if (!serObj->IsObject())
 		return false;
@@ -204,6 +235,7 @@ bool LPAlgorithmParamsGenBFV<Element>::ParamsGen(shared_ptr<LPCryptoParameters<E
 	double hermiteFactor = cryptoParamsBFV->GetSecurityLevel();
 	double p = cryptoParamsBFV->GetPlaintextModulus();
 	uint32_t r = cryptoParamsBFV->GetRelinWindow();
+	SecurityLevel stdLevel = cryptoParamsBFV->GetStdLevel();
 
 	//Bound of the Gaussian error polynomial
 	double Berr = sigma*sqrt(alpha);
@@ -211,11 +243,18 @@ bool LPAlgorithmParamsGenBFV<Element>::ParamsGen(shared_ptr<LPCryptoParameters<E
 	//Bound of the key polynomial
 	double Bkey;
 	
+	DistributionType distType;
+
 	//supports both discrete Gaussian (RLWE) and ternary uniform distribution (OPTIMIZED) cases
-	if (cryptoParamsBFV->GetMode() == RLWE)
+	if (cryptoParamsBFV->GetMode() == RLWE) {
 		Bkey = sigma*sqrt(alpha);
+		distType = HEStd_error;
+	}
 	else
+	{
 		Bkey = 1;
+		distType = HEStd_ternary;
+	}
 
 	//expansion factor delta
 	auto delta = [](uint32_t n) -> double { return 2*sqrt(n); };
@@ -224,7 +263,14 @@ bool LPAlgorithmParamsGenBFV<Element>::ParamsGen(shared_ptr<LPCryptoParameters<E
 	auto Vnorm = [&](uint32_t n) -> double { return Berr*(1+2*delta(n)*Bkey);  };
 
 	//RLWE security constraint
-	auto nRLWE = [&](double q) -> double { return log2(q / sigma) / (4 * log2(hermiteFactor));  };
+	auto nRLWE = [&](double q) -> double {
+		if (stdLevel == HEStd_NotSet) {
+			return log2(q / sigma) / (4 * log2(hermiteFactor));
+		}
+		else {
+			return StdLatticeParm::FindRingDim(distType,stdLevel,(uint32_t)std::ceil(log2(q)));
+		}
+	};
 
 	//initial values
 	uint32_t n = 512;

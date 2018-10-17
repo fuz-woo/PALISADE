@@ -28,28 +28,37 @@
 #include "discretegaussiangenerator.h"
 #include "nbtheory.h"
 #include "backend.h"
+ 
 
 namespace lbcrypto {
-
-	template<typename IntType, typename VecType>
-	DiscreteGaussianGeneratorImpl<IntType,VecType>::DiscreteGaussianGeneratorImpl(float std) : DistributionGenerator<IntType,VecType>() {
+  
+#define KARNEY_THRESHOLD ((float)300.0)
+  
+	template<typename VecType>
+	DiscreteGaussianGeneratorImpl<VecType>::DiscreteGaussianGeneratorImpl(float std) : DistributionGenerator<VecType>() {
 
 		SetStd(std);
 	}
 
-	template<typename IntType, typename VecType>
-	void DiscreteGaussianGeneratorImpl<IntType,VecType>::SetStd(float std) {
+	template<typename VecType>
+	void DiscreteGaussianGeneratorImpl<VecType>::SetStd(float std) {
 		m_std = std;
-		Initialize();
+		if(m_std<KARNEY_THRESHOLD)
+			peikert= true;
+		else
+			peikert= false;
+		if(peikert){
+			Initialize();
+		}
 	}
 
-	template<typename IntType, typename VecType>
-	float DiscreteGaussianGeneratorImpl<IntType,VecType>::GetStd() const {
+	template<typename VecType>
+	float DiscreteGaussianGeneratorImpl<VecType>::GetStd() const {
 		return m_std;
 	}
 
-	template<typename IntType, typename VecType>
-	void DiscreteGaussianGeneratorImpl<IntType,VecType>::Initialize() {
+	template<typename VecType>
+	void DiscreteGaussianGeneratorImpl<VecType>::Initialize() {
 
 		m_vals.clear();
 
@@ -87,8 +96,8 @@ namespace lbcrypto {
 
 	}
 
-	template<typename IntType, typename VecType>
-	int32_t DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateInt() const {
+	template<typename VecType>
+	int32_t DiscreteGaussianGeneratorImpl<VecType>::GenerateInt() const {
 
 		std::uniform_real_distribution<double> distribution(0.0, 1.0);
 
@@ -112,15 +121,16 @@ namespace lbcrypto {
 		return ans;
 	}
 
-	template<typename IntType, typename VecType>
-	std::shared_ptr<int32_t> DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateIntVector(usint size) const {
+	template<typename VecType>
+	std::shared_ptr<int32_t> DiscreteGaussianGeneratorImpl<VecType>::GenerateIntVector(usint size) const {
 
-		std::uniform_real_distribution<double> distribution(0.0, 1.0);
-
+		
+    
+    std::shared_ptr<int32_t> ans( new int32_t[size], std::default_delete<int[]>() );
 		usint val = 0;
 		double seed;
-		std::shared_ptr<int32_t> ans( new int32_t[size], std::default_delete<int[]>() );
-
+    if(peikert){
+    std::uniform_real_distribution<double> distribution(0.0, 1.0);
 		for (usint i = 0; i < size; i++) {
 			seed = distribution(PseudoRandomNumberGenerator::GetPRNG()) - 0.5; //we need to use the binary uniform generator rather than regular continuous distribution; see DG14 for details
 			if (std::abs(seed) <= m_a / 2) {
@@ -136,12 +146,17 @@ namespace lbcrypto {
 			}
 			(ans.get())[i] = val;
 		}
-
+    }
+    else{
+      for (usint i = 0; i < size; i++){
+        (ans.get())[i] = GenerateIntegerKarney(0, m_std);
+      }
+    }
 		return ans;
 	}
 
-	template<typename IntType, typename VecType>
-	usint DiscreteGaussianGeneratorImpl<IntType,VecType>::FindInVector(const std::vector<double> &S, double search) const {
+	template<typename VecType>
+	usint DiscreteGaussianGeneratorImpl<VecType>::FindInVector(const std::vector<double> &S, double search) const {
 		//STL binary search implementation
 		auto lower = std::lower_bound(S.begin(), S.end(), search);
 		if (lower != S.end()){
@@ -152,12 +167,12 @@ namespace lbcrypto {
 			throw std::runtime_error("DGG Inversion Sampling. FindInVector value not found: " + std::to_string(search));
 	}
 
-	template<typename IntType, typename VecType>
-	IntType DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateInteger(const IntType& modulus) const {
+	template<typename VecType>
+	typename VecType::Integer DiscreteGaussianGeneratorImpl<VecType>::GenerateInteger(const typename VecType::Integer& modulus) const {
 
 		int32_t val = 0;
 		double seed;
-		IntType ans;
+		typename VecType::Integer ans;
 		std::uniform_real_distribution<double> distribution(0.0, 1.0);
 
 		seed = distribution(PseudoRandomNumberGenerator::GetPRNG()) - 0.5;
@@ -175,17 +190,17 @@ namespace lbcrypto {
 		if (val < 0)
 		{
 			val *= -1;
-			ans = modulus - IntType(val);
+			ans = modulus - typename VecType::Integer(val);
 		}
 		else
-			ans = IntType(val);
+			ans = typename VecType::Integer(val);
 
 		return ans;
 
 	}
 
-	template<typename IntType, typename VecType>
-	VecType DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateVector(const usint size, const IntType &modulus) const {
+	template<typename VecType>
+	VecType DiscreteGaussianGeneratorImpl<VecType>::GenerateVector(const usint size, const typename VecType::Integer &modulus) const {
 
 		std::shared_ptr<int32_t> result = GenerateIntVector(size);
 
@@ -196,22 +211,22 @@ namespace lbcrypto {
 			int32_t v = (result.get())[i];
 			if (v < 0) {
 				v *= -1;
-				ans[i] = modulus - IntType(v);
+				ans[i] = modulus - typename VecType::Integer(v);
 			}
 			else {
-			  ans[i] = IntType(v);
+			  ans[i] = typename VecType::Integer(v);
 			}
 		}
 
 		return ans;
 	}
 
-	template<typename IntType, typename VecType>
-	IntType DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateInteger(double mean, double stddev, size_t n, const IntType &modulus) const {
+	template<typename VecType>
+	typename VecType::Integer DiscreteGaussianGeneratorImpl<VecType>::GenerateInteger(double mean, double stddev, size_t n, const typename VecType::Integer &modulus) const {
 
 		double t = log2(n)*stddev;
 
-		IntType result;
+		typename VecType::Integer result;
 
 		std::uniform_int_distribution<int32_t> uniform_int(floor(mean - t), ceil(mean + t));
 		std::uniform_real_distribution<double> uniform_real(0.0, 1.0);
@@ -233,17 +248,17 @@ namespace lbcrypto {
 		if (x < 0)
 		{
 			x *= -1;
-			result = modulus - IntType(x);
+			result = modulus - typename VecType::Integer(x);
 		}
 		else
-			result = IntType(x);
+			result = typename VecType::Integer(x);
 
 		return result;
 
 	}
 
-	template<typename IntType, typename VecType>
-	int32_t DiscreteGaussianGeneratorImpl<IntType,VecType>::GenerateInteger(double mean, double stddev, size_t n) const {
+	template<typename VecType>
+	int32_t DiscreteGaussianGeneratorImpl<VecType>::GenerateInteger(double mean, double stddev, size_t n) const {
 		bool dbg_flag = false;
 		int32_t x;
 
@@ -262,7 +277,7 @@ namespace lbcrypto {
 		if (std::isinf(stddev)) {
 			throw std::runtime_error("DiscreteGaussianGeneratorImpl called with stddev == +-inf");
 		}
-		IntType result;
+		typename VecType::Integer result;
 
 		std::uniform_int_distribution<int32_t> uniform_int(floor(mean - t), ceil(mean + t));
 		DEBUG("uniform( "<<floor(mean - t)<<", "<<ceil(mean + t)<<")");
@@ -300,8 +315,8 @@ namespace lbcrypto {
 		return x;
 
 	}
-	template<typename IntType, typename VecType>
-	int64_t DiscreteGaussianGeneratorImpl<IntType, VecType>::GenerateIntegerKarney(double mean, double stddev){
+	template<typename VecType>
+	int64_t DiscreteGaussianGeneratorImpl<VecType>::GenerateIntegerKarney(double mean, double stddev){
 
 		int64_t result;
 		std::uniform_int_distribution<int32_t> uniform_sign(0, 1);
@@ -351,21 +366,21 @@ namespace lbcrypto {
 
 	}
 	
-	template<typename IntType, typename VecType>
-	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmP(std::mt19937 &g, int n){
+	template<typename VecType>
+	bool DiscreteGaussianGeneratorImpl<VecType>::AlgorithmP(std::mt19937 &g, int n){
 		while (n-- && AlgorithmH(g)){}; return n < 0;
 	}
 
-	template<typename IntType, typename VecType>
-	int32_t DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmG(std::mt19937 &g)
+	template<typename VecType>
+	int32_t DiscreteGaussianGeneratorImpl<VecType>::AlgorithmG(std::mt19937 &g)
 	{
 		int n = 0; while (AlgorithmH(g)) ++n; return n;
 	}
 
 	// Use single floating-point precision in most cases; if a situation w/ not enough precision is encountered,
 	// call the double-precision algorithm
-	template<typename IntType, typename VecType>
-	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmH(std::mt19937 &g){
+	template<typename VecType>
+	bool DiscreteGaussianGeneratorImpl<VecType>::AlgorithmH(std::mt19937 &g){
 		
 		std::uniform_real_distribution<float> dist(0,1);
 		float h_a, h_b;
@@ -394,8 +409,8 @@ namespace lbcrypto {
 			return AlgorithmHDouble(g);
 	}
 
-	template<typename IntType, typename VecType>
-	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmHDouble(std::mt19937 &g) {
+	template<typename VecType>
+	bool DiscreteGaussianGeneratorImpl<VecType>::AlgorithmHDouble(std::mt19937 &g) {
 	
 		std::uniform_real_distribution<double> dist(0, 1);
 		double h_a, h_b;
@@ -412,8 +427,8 @@ namespace lbcrypto {
 		}
 	}
 
-	template<typename IntType, typename VecType>
-	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmB(std::mt19937 &g, int32_t k, double x) {
+	template<typename VecType>
+	bool DiscreteGaussianGeneratorImpl<VecType>::AlgorithmB(std::mt19937 &g, int32_t k, double x) {
 
 		std::uniform_real_distribution<float> dist(0.0, 1.0);
 
@@ -446,8 +461,8 @@ namespace lbcrypto {
 
 	}
 
-	template<typename IntType, typename VecType>
-	bool DiscreteGaussianGeneratorImpl<IntType, VecType>::AlgorithmBDouble(std::mt19937 &g, int32_t k, double x) {
+	template<typename VecType>
+	bool DiscreteGaussianGeneratorImpl<VecType>::AlgorithmBDouble(std::mt19937 &g, int32_t k, double x) {
 		std::uniform_real_distribution<double> dist(0.0, 1.0);
 
 		double y = x;

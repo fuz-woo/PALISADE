@@ -29,14 +29,9 @@
 #include <fstream>
 
 #include "../lib/cryptocontext.h"
-
 #include "encoding/encodings.h"
-
 #include "utils/debug.h"
-
 #include "math/matrix.h"
-
-#include <omp.h>
 
 using namespace lbcrypto;
 

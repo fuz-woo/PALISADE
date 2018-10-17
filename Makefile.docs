@@ -25,7 +25,7 @@
 
 INDEXFILE := doc/apidocs/html/index.html
 
-.PHONEY: apidocs
+.PHONY: apidocs
 apidocs: $(INDEXFILE)
 
 $(INDEXFILE):
@@ -34,7 +34,7 @@ $(INDEXFILE):
 	doxygen lbcrypto-doxy-config
 	@echo 
 
-.PHONEY: cleandocs
+.PHONY: cleandocs
 cleandocs:
 	@echo " Cleaning docs..."
 	rm -rf doc/apidocs

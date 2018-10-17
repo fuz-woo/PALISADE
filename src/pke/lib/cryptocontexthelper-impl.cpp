@@ -300,6 +300,109 @@ CryptoContextHelper::getNewDCRTContext(const string& parmset, usint numTowers, u
 	return buildContextFromSerialized<DCRTPoly>(it->second, parms);
 }
 
+template<typename Element>
+shared_ptr<LPPublicKeyEncryptionScheme<Element>>
+CreateSchemeGivenName(const string& schemeName) {
+	if( schemeName == "BFV" )
+		return shared_ptr<LPPublicKeyEncryptionScheme<Element>>( new LPPublicKeyEncryptionSchemeBFV<Element>() );
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeBFVrns<Element>() );
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeBFVrnsB<Element>() );
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeBGV<Element>() );
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeLElementV<Element>() );
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeNull<Element>() );
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeBFV<Element>());
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeBFVrns<Element>());
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeBFVrnsB<Element>());
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeBGV<Element>());
+	else if( schemeName == "LTV" )
+		return shared_ptr<LPPublicKeyEncryptionScheme<Element>>( new LPPublicKeyEncryptionSchemeLTV<Element>());
+//	shared_ptr<LPPublicKeyEncryptionScheme<Element>> scheme( new LPPublicKeyEncryptionSchemeStehleSteinfeld<T>());
+//	};
+//
+//	return SchemeFromName[schemeName];
+	else
+		return 0;
+}
+
+template<typename Element>
+CryptoContext<Element>
+CryptoContextHelper::ContextFromAppProfile(const string& sch,
+		PlaintextModulus ptm,
+		usint nA, usint nM, usint nK,
+		usint maxD, float secFactor)
+{
+//
+////	usint m;
+////	string q, ru;
+////	PlaintextModulus p;
+////
+////	float secLevel;
+////	usint qbits;
+////	usint relinWindow;
+////	float stdev;
+//
+//#if OLD_ITEM
+//	// an MQP confset specifies all 4 of these
+//	if( setType == "MQP" ) {
+//		m = stoul( cs["m"].GetString() );
+//		q = cs["q"].GetString();
+//		if( cs.HasMember("ru") )
+//			ru = cs["ru"].GetString();
+//		p = stoul( cs["p"].GetString() );
+//
+//		cout << m << endl;
+//		cout << q << endl;
+//		cout << p << endl;
+//		return 0;
+//	}
+//	else if( setType == "MqbitsP" ) {
+//		m = stoul( cs["m"].GetString() );
+//		qbits = stoul( cs["qbits"].GetString() );
+//		p = stoul( cs["p"].GetString() );
+//
+//		// make a prime q of at least qbits in size
+//		cout << m << endl;
+//		cout << qbits << endl;
+//		cout << p << endl;
+//		return 0;
+//	}
+//	else if( setType == "MQgen" ){
+//			secLevel = stof( cs["secLevel"].GetString() );
+//			nA = stoul( cs["numAdds"].GetString() );
+//			nM = stoul( cs["numMults"].GetString() );
+//			nK = stoul( cs["numKS"].GetString() );
+//			p = stoul( cs["p"].GetString() );
+//			qbits = stoul( cs["qbits"].GetString() );
+//			relinWindow = stoul( cs["relinWindow"].GetString() );
+//			stdev = stof( cs["dist"].GetString() );
+//	}
+//	else {
+//		return 0;
+//	}
+//#endif
+//
+//	usint relinWindow;
+//	float dist;
+//
+//	if( sch == "LTV") {
+//		return CryptoContextFactory<Element>::genCryptoContextLTV(ptm, secFactor, relinWindow, dist,
+//				nA, nM, nK);
+//	}
+//////	else if( sch == "StSt" ) {
+//////		return CryptoContextFactory<Element>::genCryptoContextStehleSteinfeld(parms, p, relinWindow, stdev, 98.4359);
+//////	}
+//	else if( sch == "BFVrns" ) {
+//		return CryptoContextFactory<Element>::genCryptoContextBFVrns(ptm, secFactor, dist, nA, nM, nK, OPTIMIZED, 5, relinWindow);
+//	}
+//	else {
+		//, "StSt", "BFV", "BFVrns", "BGV", "FV", "Null"
+		return 0;
+//	}
+}
+
+//template CryptoContext<Poly> CryptoContextHelper::ContextFromAppProfile<Poly>(const string& sch, const rapidjson::Value&);
+//template CryptoContext<DCRTPoly> CryptoContextHelper::ContextFromAppProfile<DCRTPoly>(const string& sch, const rapidjson::Value&);
+
 
 static void printSet(std::ostream& out, string key, map<string,string>& pset)
 {

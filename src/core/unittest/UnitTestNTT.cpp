@@ -36,72 +36,52 @@ Test cases in this file make the following assumptions:
 #include <iostream>
 
 #include "math/backend.h"
+#include "lattice/backend.h"
 #include "math/nbtheory.h"
 #include "math/distrgen.h"
-#include "lattice/elemparams.h"
-#include "lattice/ilparams.h"
-#include "lattice/ildcrtparams.h"
-#include "lattice/ilelement.h"
-#include "lattice/poly.h"
-#include "lattice/dcrtpoly.h"
 #include "utils/inttypes.h"
 #include "utils/utilities.h"
 
 using namespace std;
 using namespace lbcrypto;
 
+template<typename Element>
+void switch_format_simple_single_crt(const string& msg) {
+	using Params = typename Element::Params;
 
-
-template <class T>
-class UTNTT : public ::testing::Test {
-
-public:
-	const usint m = 16;
-
-protected:
-	UTNTT() {}
-
-	virtual void SetUp() {
-	}
-
-	virtual void TearDown() {
-
-	}
-
-	virtual ~UTNTT() {  }
-
-};
-
-
-TEST(UTNTT, switch_format_simple_single_crt) {
 	usint m1 = 16;
 
-	BigInteger modulus = FirstPrime<BigInteger>(22, m1);
-	BigInteger rootOfUnity(RootOfUnity(m1, modulus));
-	ILParams params(m1, modulus, rootOfUnity);
-	ILParams params2(m1 / 2, modulus, rootOfUnity);
-	shared_ptr<ILParams> x1p( new ILParams(params) );
-	shared_ptr<ILParams> x2p( new ILParams(params2) );
+	typename Element::Integer modulus = FirstPrime<typename Element::Integer>(22, m1);
+	typename Element::Integer rootOfUnity(RootOfUnity(m1, modulus));
+	Params params(m1, modulus, rootOfUnity);
+	Params params2(m1 / 2, modulus, rootOfUnity);
+	shared_ptr<Params> x1p( new Params(params) );
+	shared_ptr<Params> x2p( new Params(params2) );
 
-	Poly x1( x1p, Format::COEFFICIENT );
+	Element x1( x1p, Format::COEFFICIENT );
 	x1 = { 431,3414,1234,7845,2145,7415,5471,8452 };
 
-	Poly x2( x2p, Format::COEFFICIENT );
+	Element x2( x2p, Format::COEFFICIENT );
 	x2 = { 4127,9647,1987,5410 };
 
-	Poly x1Clone(x1);
-	Poly x2Clone(x2);
+	Element x1Clone(x1);
+	Element x2Clone(x2);
 
 	x1.SwitchFormat();
 	x2.SwitchFormat();
 	x1.SwitchFormat();
 	x2.SwitchFormat();
 
-	EXPECT_EQ(x1, x1Clone);
-	EXPECT_EQ(x2, x2Clone);
+	EXPECT_EQ(x1, x1Clone) << msg;
+	EXPECT_EQ(x2, x2Clone) << msg;
 }
 
-TEST(UTNTT, switch_format_simple_double_crt) {
+TEST(UTNTT, switch_format_simple_single_crt) {
+	RUN_ALL_POLYS(switch_format_simple_single_crt, "switch_format_simple_single_crt")
+}
+
+template<typename Element>
+void switch_format_simple_double_crt(const string& msg) {
 	usint init_m = 16;
 
 	float init_stdDev = 4;
@@ -113,50 +93,57 @@ TEST(UTNTT, switch_format_simple_double_crt) {
 
 	NativeInteger q = FirstPrime<NativeInteger>(28, init_m);
 	NativeInteger temp;
-	BigInteger modulus(1);
+	typename Element::Integer modulus(1);
 
 	for (size_t i = 0; i < init_size; i++) {
 		init_moduli[i] = q;
 		init_rootsOfUnity[i] = RootOfUnity(init_m, init_moduli[i]);
-		modulus = modulus * BigInteger(init_moduli[i].ConvertToInt());
+		modulus = modulus * typename Element::Integer(init_moduli[i].ConvertToInt());
 		q = NextPrime(q, init_m);
 	}
 
-	DiscreteGaussianGenerator dgg(init_stdDev);
+	DiscreteGaussianGeneratorImpl<typename Element::Vector> dgg(init_stdDev);
 
-	shared_ptr<ILDCRTParams<BigInteger>> params( new ILDCRTParams<BigInteger>(init_m, init_moduli, init_rootsOfUnity) );
+	shared_ptr<ILDCRTParams<typename Element::Integer>> params( new ILDCRTParams<typename Element::Integer>(init_m, init_moduli, init_rootsOfUnity) );
 
-	DCRTPoly x1(params, Format::COEFFICIENT);
+	Element x1(params, Format::COEFFICIENT);
 	x1 = { 431,3414,1234,7845,2145,7415,5471,8452 };
 
-	DCRTPoly x2(params, Format::COEFFICIENT);
+	Element x2(params, Format::COEFFICIENT);
 	x2 = { 4127,9647,1987,5410,6541,7014,9741,1256 };
 
-	DCRTPoly x1Clone(x1);
-	DCRTPoly x2Clone(x2);
+	Element x1Clone(x1);
+	Element x2Clone(x2);
 
 	x1.SwitchFormat();
 	x2.SwitchFormat();
 	x1.SwitchFormat();
 	x2.SwitchFormat();
 
-	EXPECT_EQ(x1, x1Clone);
-	EXPECT_EQ(x2, x2Clone);
+	EXPECT_EQ(x1, x1Clone) << msg;
+	EXPECT_EQ(x2, x2Clone) << msg;
 }
 
-TEST(UTNTT, switch_format_decompose_single_crt) {
-        bool dbg_flag = false;
+TEST(UTNTT, switch_format_simple_double_crt) {
+	RUN_BIG_DCRTPOLYS(switch_format_simple_double_crt, "switch_format_simple_double_crt")
+}
+
+template<typename Element>
+void switch_format_decompose_single_crt(const string& msg) {
+	using Params = typename Element::Params;
+
+	bool dbg_flag = false;
 	usint m1 = 16;
 
-	BigInteger modulus = FirstPrime<BigInteger>(22, m1);
-	BigInteger rootOfUnity(RootOfUnity(m1, modulus));
-	shared_ptr<ILParams> params( new ILParams(m1, modulus, rootOfUnity) );
-	shared_ptr<ILParams> params2( new ILParams(m1 / 2, modulus, rootOfUnity) );
+	typename Element::Integer modulus = FirstPrime<typename Element::Integer>(22, m1);
+	typename Element::Integer rootOfUnity(RootOfUnity(m1, modulus));
+	shared_ptr<Params> params( new Params(m1, modulus, rootOfUnity) );
+	shared_ptr<Params> params2( new Params(m1 / 2, modulus, rootOfUnity) );
 
-	Poly x1(params, Format::COEFFICIENT);
+	Element x1(params, Format::COEFFICIENT);
 	x1 = { 431,3414,1234,7845,2145,7415,5471,8452 };
 
-	Poly x2(params, Format::COEFFICIENT);
+	Element x2(params, Format::COEFFICIENT);
 	x2 = { 4127,9647,1987,5410,6541,7014,9741,1256 };
 
 	x1.SwitchFormat(); //EVAL
@@ -174,10 +161,10 @@ TEST(UTNTT, switch_format_decompose_single_crt) {
 	x1.SwitchFormat(); //EVAL
 	x2.SwitchFormat();
 
-	Poly x1Expected(params2, Format::COEFFICIENT);
+	Element x1Expected(params2, Format::COEFFICIENT);
 	x1Expected = { 431,1234,2145,5471};
 
-	Poly x2Expected(params2, Format::COEFFICIENT);
+	Element x2Expected(params2, Format::COEFFICIENT);
 	x2Expected = { 4127,1987,6541,9741 };
 
 	DEBUG("x1: "<<x1);
@@ -188,11 +175,16 @@ TEST(UTNTT, switch_format_decompose_single_crt) {
 	DEBUG("x2: "<<x2);
 	DEBUG("x2exp: "<<x2Expected);
 
-	EXPECT_EQ(x1, x1Expected);
-	EXPECT_EQ(x2, x2Expected);
+	EXPECT_EQ(x1, x1Expected) << msg;
+	EXPECT_EQ(x2, x2Expected) << msg;
 }
 
-TEST(UTNTT, decomposeMult_double_crt) {
+TEST(UTNTT, switch_format_decompose_single_crt) {
+	RUN_ALL_POLYS(switch_format_decompose_single_crt, "switch_format_decompose_single_crt")
+}
+
+template<typename Element>
+void decomposeMult_double_crt(const string& msg) {
   bool dbg_flag = false;
 	usint init_m = 16;
 
@@ -214,17 +206,17 @@ TEST(UTNTT, decomposeMult_double_crt) {
 		init_rootsOfUnity[i] = RootOfUnity(init_m, init_moduli[i]);
 	}
 
-	DiscreteGaussianGenerator dgg(init_stdDev);
+	DiscreteGaussianGeneratorImpl<typename Element::Vector> dgg(init_stdDev);
 
-	shared_ptr<ILDCRTParams<BigInteger>> params( new ILDCRTParams<BigInteger>(init_m, init_moduli, init_rootsOfUnity) );
+	shared_ptr<ILDCRTParams<typename Element::Integer>> params( new ILDCRTParams<typename Element::Integer>(init_m, init_moduli, init_rootsOfUnity) );
 
-	DCRTPoly x1(params, Format::COEFFICIENT);
+	Element x1(params, Format::COEFFICIENT);
 	x1 = { 0,0,0,0,0,0,1,0 };
 
-	DCRTPoly x2(params, Format::COEFFICIENT);
+	Element x2(params, Format::COEFFICIENT);
 	x2 = { 0,0,0,0,0,0,1,0 };
 
-	DCRTPoly resultsEval(x2.CloneParametersOnly());
+	Element resultsEval(x2.CloneParametersOnly());
 	resultsEval = { 0,0,0,0,0,0,0,0 };
 	resultsEval.SwitchFormat();
 
@@ -247,34 +239,41 @@ TEST(UTNTT, decomposeMult_double_crt) {
 	DEBUG("resultsEval ix 0: "<<resultsEval.GetElementAtIndex(0).GetValues());
 	DEBUG("resultsEval ix 1: "<<resultsEval.GetElementAtIndex(1).GetValues());
 
-	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(0), 0);
-	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(1), 0);
-	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(2), NativeInteger("17728"));
-	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(3), 0);
+	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(0), 0) << msg;
+	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(1), 0) << msg;
+	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(2), NativeInteger("17728")) << msg;
+	EXPECT_EQ(resultsEval.GetElementAtIndex(0).at(3), 0) << msg;
 
-	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(0), 0);
-	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(1), 0);
-	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(2), NativeInteger("17760"));
-	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(3), 0);
+	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(0), 0) << msg;
+	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(1), 0) << msg;
+	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(2), NativeInteger("17760")) << msg;
+	EXPECT_EQ(resultsEval.GetElementAtIndex(1).at(3), 0) << msg;
 }
 
-TEST(UTNTT, decomposeMult_single_crt) {
+TEST(UTNTT, decomposeMult_double_crt) {
+	RUN_BIG_DCRTPOLYS(decomposeMult_double_crt, "decomposeMult_double_crt")
+}
+
+template<typename Element>
+void decomposeMult_single_crt(const string& msg) {
+	using Params = typename Element::Params;
+
   bool dbg_flag = false;
 	usint m1 = 16;
 
-	BigInteger modulus("17729");
-	BigInteger rootOfUnity(RootOfUnity(m1, modulus));
-	shared_ptr<ILParams> params( new ILParams(m1, modulus, rootOfUnity) );
-	shared_ptr<ILParams> params2( new ILParams(m1 / 2, modulus, rootOfUnity) );
+	typename Element::Integer modulus("17729");
+	typename Element::Integer rootOfUnity(RootOfUnity(m1, modulus));
+	shared_ptr<Params> params( new Params(m1, modulus, rootOfUnity) );
+	shared_ptr<Params> params2( new Params(m1 / 2, modulus, rootOfUnity) );
 
-	Poly x1(params, Format::COEFFICIENT);
+	Element x1(params, Format::COEFFICIENT);
 
 	x1 = { 0,0,0,0,0,0,1,0 };
 
-	Poly x2(params, Format::COEFFICIENT);
+	Element x2(params, Format::COEFFICIENT);
 	x2 = { 0,0,0,0,0,0,1,0 };
 
-	x1.SwitchFormat(); //dbc remember to remove thtese. 
+	x1.SwitchFormat(); //dbc remember to remove these.
 	x2.SwitchFormat();
 	x1.SwitchFormat();
 	x2.SwitchFormat();
@@ -285,7 +284,7 @@ TEST(UTNTT, decomposeMult_single_crt) {
 	DEBUG("x1.Decompose() "<<x1.GetValues());
 	DEBUG("x2.Decompose() "<<x2.GetValues());
 
-	Poly resultsEval(params2, Format::EVALUATION);
+	Element resultsEval(params2, Format::EVALUATION);
 	DEBUG("resultsEval.modulus"<< resultsEval.GetModulus());
 
 	x1.SwitchFormat();
@@ -301,9 +300,12 @@ TEST(UTNTT, decomposeMult_single_crt) {
 	DEBUG("resultsEval.coef "<<resultsEval.GetValues());
 	DEBUG("resultsEval.modulus"<< resultsEval.GetModulus());
 
-	EXPECT_EQ(resultsEval.at(0), BigInteger(0));
-	EXPECT_EQ(resultsEval.at(1), BigInteger(0));
-	EXPECT_EQ(resultsEval.at(2), BigInteger("17728"));
-	EXPECT_EQ(resultsEval.at(3), BigInteger(0));
+	EXPECT_EQ(resultsEval.at(0), typename Element::Integer(0)) << msg;
+	EXPECT_EQ(resultsEval.at(1), typename Element::Integer(0)) << msg;
+	EXPECT_EQ(resultsEval.at(2), typename Element::Integer("17728")) << msg;
+	EXPECT_EQ(resultsEval.at(3), typename Element::Integer(0)) << msg;
+}
 
+TEST(UTNTT, decomposeMult_single_crt) {
+	RUN_ALL_POLYS(decomposeMult_single_crt, "decomposeMult_single_crt")
 }

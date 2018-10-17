@@ -58,14 +58,15 @@ int main(int argc, char *argv[]) {
 	//Generate parameters.
 	double diff, start, finish;
 
-	int relWindow = 1;
 	int plaintextModulus = 1024;
 	double sigma = 4;
-	double rootHermiteFactor = 1.006;	
+	SecurityLevel securityLevel = HEStd_128_classic;
+
+	EncodingParams encodingParams(new EncodingParamsImpl(plaintextModulus));
 
 	//Set Crypto Parameters	
-	CryptoContext<Poly> cryptoContext = CryptoContextFactory<Poly>::genCryptoContextBFV(
-			plaintextModulus, rootHermiteFactor, relWindow, sigma, 0, 2, 0);
+	CryptoContext<DCRTPoly> cryptoContext = CryptoContextFactory<DCRTPoly>::genCryptoContextBFVrns(
+			encodingParams, securityLevel, sigma, 0, 2, 0, OPTIMIZED);
 
 	// enable features that you wish to use
 	cryptoContext->Enable(ENCRYPTION);
@@ -79,7 +80,7 @@ int main(int argc, char *argv[]) {
 	//std::cin.get();
 	
 	// Initialize Public Key Containers
-	LPKeyPair<Poly> keyPair;
+	LPKeyPair<DCRTPoly> keyPair;
 	
 	////////////////////////////////////////////////////////////
 	// Perform Key Generation Operation

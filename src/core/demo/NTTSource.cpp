@@ -51,7 +51,6 @@
 #include <chrono>
 #include <exception>
 #include "utils/debug.h"
-#include <omp.h> //open MP header
 
 using namespace std;
 using namespace lbcrypto;

@@ -29,7 +29,6 @@
  *
  */
 
-//todo reduce the number of required includes
 #include "include/gtest/gtest.h"
 #include <iostream>
 #include <fstream>
@@ -39,36 +38,11 @@
 #include "utils/inttypes.h"
 #include "math/nbtheory.h"
 
-#include "lattice/elemparams.h"
-#include "lattice/ilparams.h"
-#include "lattice/ildcrtparams.h"
-#include "lattice/ilelement.h"
 #include "math/distrgen.h"
-#include "lattice/poly.h"
 #include "utils/utilities.h"
 
 using namespace std;
 using namespace lbcrypto;
-
-/*
-  int main(int argc, char **argv) {
-  testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-  }
-*/
-class UnitTestmubintvec : public ::testing::Test {
-protected:
-  virtual void SetUp() {
-    // Code here will be called before each test
-    // (right before the constructor).
-
-  }
-
-  virtual void TearDown() {
-    // Code here will be called immediately after each test
-    // (right before the destructor).
-  }
-};
 
 /* list of tests left to run 
    //todo update this. 

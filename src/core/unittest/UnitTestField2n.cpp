@@ -32,16 +32,6 @@ This code exercises the Field2n methods of the PALISADE lattice encryption libra
 
 using namespace lbcrypto;
 
-class UnitTestField2n : public ::testing::Test {
-protected:
-	virtual void SetUp() {
-	}
-
-	virtual void TearDown() {
-		// Code here will be called immediately after each test
-		// (right before the destructor).
-	}
-};
 /*---------------------------------------	TESTING METHODS OF FIELD2N  --------------------------------------------*/
 
 //TEST FOR GETTER FOR FORMAT
@@ -54,6 +44,7 @@ TEST(UTField2n, get_format) {
 	EXPECT_EQ(COEFFICIENT, test.GetFormat())
 		<< "Failed getter" << std::endl;
 }
+
 //TEST FOR INVERSE OF FIELD ELEMENT
 TEST(UTField2n, inverse) {
 	bool dbg_flag = false;
@@ -68,6 +59,7 @@ TEST(UTField2n, inverse) {
 	DEBUG("Step 3");
 	EXPECT_EQ(inverse, test.Inverse());
 }
+
 //TEST FOR ADDITION OPERATION
 TEST(UTField2n, plus) {
 	bool dbg_flag = false;
@@ -101,7 +93,6 @@ TEST(UTField2n, scalar_plus) {
 	c.at(1) = std::complex<double>(-4, 0);
 	EXPECT_EQ(c, a.Plus(b));
 }
-
 
 //TEST FOR SUBSTRACTION OPERATION
 TEST(UTField2n, minus) {
@@ -430,10 +421,3 @@ TEST(UTField2n, evaluation_coefficient) {
 	}
 	DiscreteFourierTransform::Reset();
 }
-
-
-//int main(int argc, char **argv) {
-//	::testing::InitGoogleTest(&argc, argv);
-//	return RUN_ALL_TESTS();
-//}
-

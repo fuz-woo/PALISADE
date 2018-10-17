@@ -72,7 +72,7 @@ void BM_keygen(benchmark::State& state) { // benchmark
 		}
 
 		try {
-			ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(cc->GetRootOfUnity(),
+			ChineseRemainderTransformFTT<BigVector>::PreCompute(cc->GetRootOfUnity(),
 					cc->GetCyclotomicOrder(),
 					cc->GetModulus());
 		} catch( ... ) {}
@@ -108,7 +108,7 @@ void BM_encrypt(benchmark::State& state) { // benchmark
 		}
 
 		try {
-		ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(cc->GetRootOfUnity(),
+		ChineseRemainderTransformFTT<BigVector>::PreCompute(cc->GetRootOfUnity(),
 				cc->GetCyclotomicOrder(),
 				cc->GetModulus());
 		} catch( ... ) {}
@@ -147,7 +147,7 @@ void BM_decrypt(benchmark::State& state) { // benchmark
 		}
 
 		try {
-		ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(cc->GetRootOfUnity(),
+		ChineseRemainderTransformFTT<BigVector>::PreCompute(cc->GetRootOfUnity(),
 				cc->GetCyclotomicOrder(),
 				cc->GetModulus());
 		} catch( ... ) {}
@@ -185,7 +185,7 @@ void BM_rekeygen(benchmark::State& state) { // benchmark
 		}
 
 		try {
-		ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(cc->GetRootOfUnity(),
+		ChineseRemainderTransformFTT<BigVector>::PreCompute(cc->GetRootOfUnity(),
 				cc->GetCyclotomicOrder(),
 				cc->GetModulus());
 		} catch( ... ) {
@@ -229,7 +229,7 @@ void BM_reencrypt(benchmark::State& state) { // benchmark
 		}
 
 		try {
-		ChineseRemainderTransformFTT<BigInteger,BigVector>::PreCompute(cc->GetRootOfUnity(),
+		ChineseRemainderTransformFTT<BigVector>::PreCompute(cc->GetRootOfUnity(),
 				cc->GetCyclotomicOrder(),
 				cc->GetModulus());
 		} catch( ... ) {}

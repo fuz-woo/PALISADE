@@ -230,7 +230,7 @@ namespace lbcrypto {
 	* @return the next prime modulus.
 	*/
 	template<typename IntType>
-	IntType FirstPrime(usint nBits, usint m);
+	IntType FirstPrime(uint64_t nBits, uint64_t m);
 
 	/**
 	* Finds the next prime that satisfies q = 1 mod m
@@ -241,6 +241,16 @@ namespace lbcrypto {
 	*/
 	template<typename IntType>
 	IntType NextPrime(const IntType &q, usint cyclotomicOrder);
+
+	/**
+	* Finds the previous prime that satisfies q = 1 mod m
+	*
+	* @param &q is the prime number to start from (the number itself is not included)
+	*
+	* @return the previous prime modulus.
+	*/
+	template<typename IntType>
+	IntType PreviousPrime(const IntType &q, usint cyclotomicOrder);
 
 	/**
 	 * Multiplicative inverse for primitive unsigned integer data types
@@ -287,8 +297,8 @@ namespace lbcrypto {
 	* @param &modulus the working modulus.
 	* @return resultant polynomial vector s.t. return = divident mod (divisor,modulus).
 	*/
-	template<typename IntVector, typename IntType>
-	IntVector PolyMod(const IntVector &dividend, const IntVector &divisor, const IntType &modulus);
+	template<typename IntVector>
+	IntVector PolyMod(const IntVector &dividend, const IntVector &divisor, const typename IntVector::Integer &modulus);
 
 	/**
 	* Returns the polynomial multiplication of the input operands.
@@ -308,8 +318,8 @@ namespace lbcrypto {
 	* @param &modulus is the working modulus.
 	* @return resultant m-th cyclotomic polynomial with coefficients in modulus.
 	*/
-	template<typename IntVector, typename IntType>
-	IntVector GetCyclotomicPolynomial(usint m, const IntType &modulus);
+	template<typename IntVector>
+	IntVector GetCyclotomicPolynomial(usint m, const typename IntVector::Integer &modulus);
 
 	/**
 	* Returns the m-th cyclotomic polynomial.
@@ -326,8 +336,8 @@ namespace lbcrypto {
 	* @param &a is the integer in divisor[x-a].
 	* @return remainder after division with x-a.
 	*/
-	template<typename IntVector, typename IntType>
-	IntType SyntheticRemainder(const IntVector &dividend, const IntType &a, const IntType &modulus);
+	template<typename IntVector>
+	typename IntVector::Integer SyntheticRemainder(const IntVector &dividend, const typename IntVector::Integer &a, const typename IntVector::Integer &modulus);
 
 	/**
 	* Returns the remainder vector after polynomial division of dividend with divisor = x-aList[i].
@@ -336,8 +346,8 @@ namespace lbcrypto {
 	* @param &aList is the integer vector for divisor[x-aList[i]].
 	* @return remainder vector after division with x-aList[i].
 	*/
-	template<typename IntVector, typename IntType>
-	IntVector SyntheticPolyRemainder(const IntVector &dividend, const IntVector &aList, const IntType &modulus);
+	template<typename IntVector>
+	IntVector SyntheticPolyRemainder(const IntVector &dividend, const IntVector &aList, const typename IntVector::Integer &modulus);
 
 	/**
 	* Returns the polynomial after raising it by exponent = power.
@@ -346,7 +356,7 @@ namespace lbcrypto {
 	* @param &power is the exponent.
 	* @return exponentiated polynomial.
 	*/
-	template<typename IntVector, typename IntType>
+	template<typename IntVector>
 	IntVector PolynomialPower(const IntVector &input, usint power);
 
 	/**
@@ -356,8 +366,8 @@ namespace lbcrypto {
 	* @param &a is the integer in divisor[x-a].
 	* @return quotient after division with x-a.
 	*/
-	template<typename IntVector, typename IntType>
-	IntVector SyntheticPolynomialDivision(const IntVector &dividend, const IntType &a, const IntType &modulus);
+	template<typename IntVector>
+	IntVector SyntheticPolynomialDivision(const IntVector &dividend, const typename IntVector::Integer &a, const typename IntVector::Integer &modulus);
 
 	/**
 	* Checkes if g is a generator for any cyclic group with modulus q (non-prime moduli are supported); currently q up to 64 bits only are supported

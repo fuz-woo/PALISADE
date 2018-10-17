@@ -937,6 +937,48 @@ public:
 	}
 
 	/**
+	* Encrypt a matrix of Plaintext
+	* @param publicKey - for encryption
+	* @param plaintext - to encrypt
+	* @param doEncryption encrypts if true, embeds (encodes) the plaintext into cryptocontext if false
+	* @return a vector of pointers to Ciphertexts created by encrypting the plaintext
+	*/
+	Matrix<Ciphertext<Element>> EncryptMatrixCiphertext(
+		const LPPublicKey<Element> publicKey,
+		Matrix<Plaintext> &plaintext)
+	{
+		if (publicKey == NULL || Mismatched(publicKey->GetCryptoContext()))
+			throw std::logic_error("key passed to EncryptMatrix was not generated with this crypto context");
+
+		auto zeroAlloc = [=]() { return Ciphertext<Element>(new CiphertextImpl<Element>(publicKey->GetCryptoContext())); };
+		Matrix<Ciphertext<Element>> cipherResults(zeroAlloc, plaintext.GetRows(), plaintext.GetCols());
+
+		TimeVar t;
+		if( doTiming ) TIC(t);
+		for (size_t row = 0; row < plaintext.GetRows(); row++)
+		{
+			for (size_t col = 0; col < plaintext.GetCols(); col++)
+			{
+				if( plaintext(row,col)->Encode() == false )
+					throw std::logic_error("Plaintext is not encoded");
+
+				Ciphertext<Element> ciphertext = GetEncryptionAlgorithm()->Encrypt(publicKey, plaintext(row,col)->GetElement<Element>());
+
+				if (ciphertext) {
+					ciphertext->SetEncodingType( plaintext(row,col)->GetEncodingType() );
+				}
+
+				cipherResults(row, col) = (ciphertext);
+			}
+		}
+
+		if( doTiming ) {
+			timeSamples->push_back( TimingInfo(OpEncryptMatrixPlain, TOC_US(t)) );
+		}
+		return cipherResults;
+	}
+
+	/**
 	* Perform an encryption by reading plaintext from a stream, serializing each piece of ciphertext,
 	* and writing the serializations to an output stream
 	* @param publicKey - the encryption key in use
@@ -1237,6 +1279,64 @@ public:
 	}
 
 	/**
+	* Decrypt method for a matrix of ciphertexts
+	* @param privateKey - for decryption
+	* @param ciphertext - matrix of encrypted ciphertexts
+	* @param plaintext - pointer to the destination martrix of plaintexts
+	* @return size of plaintext
+	*/
+	DecryptResult DecryptMatrixCiphertext(
+		const LPPrivateKey<Element> privateKey,
+		const Matrix<Ciphertext<Element>> ciphertext,
+		Matrix<Plaintext> *numerator) const
+	{
+
+		// edge case
+		if ((ciphertext.GetCols()== 0) && (ciphertext.GetRows() == 0))
+			return DecryptResult();
+
+		if (privateKey == NULL || Mismatched(privateKey->GetCryptoContext()))
+			throw std::runtime_error("Information passed to DecryptMatrix was not generated with this crypto context");
+
+		const Ciphertext<Element> ctN = (ciphertext)(0, 0);
+
+		// need to build matrices for the result
+//		Plaintext ptx = GetPlaintextForDecrypt(ctN->GetEncodingType(), this->GetElementParams(), this->GetEncodingParams());
+//		auto zeroPackingAlloc = [=]() { return Plaintext(ptx); };
+//		numerator = new Matrix<Plaintext>(zeroPackingAlloc, ciphertext.GetRows(), ciphertext.GetCols());
+
+		TimeVar t;
+		if( doTiming ) TIC(t);
+		for (size_t row = 0; row < ciphertext.GetRows(); row++)
+		{
+			for (size_t col = 0; col < ciphertext.GetCols(); col++)
+			{
+				if (Mismatched( (ciphertext(row, col))->GetCryptoContext() ))
+					throw std::runtime_error("A ciphertext passed to DecryptMatrix was not generated with this crypto context");
+
+				const Ciphertext<Element> ctN = (ciphertext)(row, col);
+
+				// determine which type of plaintext that you need to decrypt into
+				Plaintext decryptedNumerator = GetPlaintextForDecrypt(ctN->GetEncodingType(), this->GetElementParams(), this->GetEncodingParams());
+				DecryptResult resultN = GetEncryptionAlgorithm()->Decrypt(privateKey, ctN, &decryptedNumerator->GetElement<NativePoly>());
+
+				if (resultN.isValid == false) return resultN;
+
+				(*numerator)(row,col) = decryptedNumerator;
+
+				(*numerator)(row,col)->Decode();
+
+			}
+		}
+
+		if( doTiming ) {
+			timeSamples->push_back( TimingInfo(OpDecryptMatrixPlain, TOC_US(t)) );
+		}
+		return DecryptResult((*numerator)( numerator->GetRows()-1, numerator->GetCols()-1)->GetLength());
+
+	}
+
+	/**
 	* Decrypt method for numerators in a matrix of ciphertexts (packed encoding)
 	* @param privateKey - for decryption
 	* @param ciphertext - matrix of encrypted ciphertexts
@@ -1279,9 +1379,7 @@ public:
 
 		for (size_t row = 0; row < ciphertext->GetRows(); row++)
 		{
-#ifdef OMP
 #pragma omp parallel for
-#endif
 			for (size_t col = 0; col < ciphertext->GetCols(); col++)
 			{
 				if (row + col > 0)
@@ -1470,6 +1568,27 @@ public:
 	}
 
 	/**
+	 * EvalAddMatrix - PALISADE EvalAdd method for a pair of matrices of ciphertexts
+	 * @param ct1
+	 * @param ct2
+	 * @return new matrix for ct1 + ct2
+	 */
+	Matrix<Ciphertext<Element>>
+	EvalAddMatrix(const Matrix<Ciphertext<Element>> &ct1, const Matrix<Ciphertext<Element>> &ct2) const
+	{
+		TypeCheck(ct1(0,0), ct2(0,0)); // TODO only checking one; when Matrix is refactored, this should be revisited
+
+		TimeVar t;
+		if( doTiming ) TIC(t);
+		Matrix<Ciphertext<Element>> rv = ct1 + ct2;
+		if( doTiming ) {
+			timeSamples->push_back( TimingInfo(OpEvalAddMatrix, TOC_US(t)) );
+		}
+//		Matrix<Ciphertext<Element>> a(rv);
+		return rv;
+	}
+
+	/**
 	 * EvalSub - PALISADE EvalSub method for a pair of ciphertexts
 	 * @param ct1
 	 * @param ct2
@@ -1509,6 +1628,28 @@ public:
 		shared_ptr<Matrix<RationalCiphertext<Element>>> a(new Matrix<RationalCiphertext<Element>>(rv));
 		return a;
 	}
+
+	/**
+	 * EvalSubMatrix - PALISADE EvalSub method for a pair of matrices of ciphertexts
+	 * @param ct1
+	 * @param ct2
+	 * @return new matrix for ct1 + ct2
+	 */
+	Matrix<Ciphertext<Element>>
+	EvalSubMatrix(const Matrix<Ciphertext<Element>> &ct1, const Matrix<Ciphertext<Element>> &ct2) const
+	{
+		TypeCheck(ct1(0,0), ct2(0,0)); // TODO only checking one; when Matrix is refactored, this should be revisited
+
+		TimeVar t;
+		if( doTiming ) TIC(t);
+		Matrix<Ciphertext<Element>> rv = ct1 - ct2;
+		if( doTiming ) {
+			timeSamples->push_back( TimingInfo(OpEvalSubMatrix, TOC_US(t)) );
+		}
+		Matrix<Ciphertext<Element>> a(rv);
+		return a;
+	}
+
 
 	/**
 	* EvalAdd - PALISADE EvalAdd method for a ciphertext and plaintext
@@ -2417,6 +2558,23 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFV Scheme using the scheme's ParamsGen methods
+	* @param plaintextModulus plaintext modulus
+	* @param securityLevel standard security level
+	* @param relinWindow bits in the base of digits in key switching/relinearization
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFV(
+		const PlaintextModulus plaintextModulus, SecurityLevel securityLevel, usint relinWindow, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFV Scheme using the scheme's ParamsGen methods
 	* @param encodingParams plaintext encoding parameters
 	* @param securityLevel root Hermite factor (lattice security parameter)
 	* @param distribution parameter for Gaussian noise generation
@@ -2429,6 +2587,22 @@ public:
 	*/
 	static CryptoContext<Element> genCryptoContextBFV(
 		EncodingParams encodingParams, float securityLevel, usint relinWindow, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFV Scheme using the scheme's ParamsGen methods
+	* @param encodingParams plaintext encoding parameters
+	* @param securityLevel standard security level
+	* @param distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFV(
+		EncodingParams encodingParams, SecurityLevel securityLevel, usint relinWindow, float dist,
 		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2);
 
 	/**
@@ -2452,6 +2626,25 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFVrns Scheme using the scheme's ParamsGen methods
+	* @param plaintextModulus plaintext modulus
+	* @param securityLevel standard secuirity level
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow the key switching window (bits in the base for digits) used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFVrns(
+		const PlaintextModulus plaintextModulus, SecurityLevel securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFVrns Scheme using the scheme's ParamsGen methods
 	* @param encodingParams plaintext encoding parameters
 	* @param securityLevel root Hermite factor (lattice security parameter)
 	* @param dist distribution parameter for Gaussian noise generation
@@ -2466,6 +2659,25 @@ public:
 	*/
 	static CryptoContext<Element> genCryptoContextBFVrns(
 		EncodingParams encodingParams, float securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFVrns Scheme using the scheme's ParamsGen methods
+	* @param encodingParams plaintext encoding parameters
+	* @param securityLevel standard security level
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow  the key switching window used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFVrns(
+		EncodingParams encodingParams, SecurityLevel securityLevel, float dist,
 		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
 		uint32_t relinWindow = 0, size_t dcrtBits = 60);
 
@@ -2490,6 +2702,25 @@ public:
 
 	/**
 	* construct a PALISADE CryptoContextImpl for the BFVrnsB Scheme using the scheme's ParamsGen methods
+	* @param plaintextModulus plaintext modulus
+	* @param securityLevel standard security level
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow  the key switching window used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFVrnsB(
+		const PlaintextModulus plaintextModulus, SecurityLevel securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFVrnsB Scheme using the scheme's ParamsGen methods
 	* @param encodingParams plaintext encoding parameters
 	* @param securityLevel root Hermite factor (lattice security parameter)
 	* @param dist distribution parameter for Gaussian noise generation
@@ -2504,6 +2735,25 @@ public:
 	*/
 	static CryptoContext<Element> genCryptoContextBFVrnsB(
 		EncodingParams encodingParams, float securityLevel, float dist,
+		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
+		uint32_t relinWindow = 0, size_t dcrtBits = 60);
+
+	/**
+	* construct a PALISADE CryptoContextImpl for the BFVrnsB Scheme using the scheme's ParamsGen methods
+	* @param encodingParams plaintext encoding parameters
+	* @param securityLevel standard security level
+	* @param dist distribution parameter for Gaussian noise generation
+	* @param numAdds additive depth for homomorphic computations (assumes numMults and numKeySwitches are set to zero)
+	* @param numMults multiplicative depth for homomorphic computations (assumes numAdds and numKeySwitches are set to zero)
+	* @param numKeyswitches  key-switching depth for homomorphic computations  (assumes numAdds and numMults are set to zero)
+ 	* @param mode secret key distribution mode (RLWE [Gaussian noise] or OPTIMIZED [ternary uniform distribution])
+	* @param maxDepth the maximum power of secret key for which the relinearization key is generated (by default, it is 2); setting it to a value larger than 2 adds support for homomorphic multiplication w/o relinearization
+	* @param relinWindow  the key switching window used for digit decomposition (0 - means to use only CRT decomposition)
+	* @param dcrtBits size of "small" CRT moduli
+	* @return new context
+	*/
+	static CryptoContext<Element> genCryptoContextBFVrnsB(
+		EncodingParams encodingParams, SecurityLevel securityLevel, float dist,
 		unsigned int numAdds, unsigned int numMults, unsigned int numKeyswitches, MODE mode = OPTIMIZED, int maxDepth = 2,
 		uint32_t relinWindow = 0, size_t dcrtBits = 60);
 

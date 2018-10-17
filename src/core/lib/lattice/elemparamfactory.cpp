@@ -1,5 +1,5 @@
 /**
- * @file plaintext.h Represents and defines plaintext objects in Palisade.
+ * @file elemparamfactory.cpp - constructs element parameters
  * @author  TPOC: palisade@njit.edu
  *
  * @copyright Copyright (c) 2017, New Jersey Institute of Technology (NJIT)

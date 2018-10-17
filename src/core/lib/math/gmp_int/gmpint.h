@@ -88,7 +88,7 @@ public:
 
 	myZZ();
 	myZZ(uint64_t a);
-	myZZ(const std::string &s);
+	explicit myZZ(const std::string &s);
 	myZZ(const NTL::ZZ &a);
 
 	//movecopy allocators (very important for efficiency)
@@ -98,6 +98,21 @@ public:
 	//myZZ(NTL::myZZ_p &&a);
 
 	myZZ(const NativeInteger& n) : myZZ(n.ConvertToInt()) {}
+
+    /**
+     * Constructors from smaller basic types
+     * @param init
+     */
+	myZZ(int init) : myZZ( uint64_t(init) ) {}
+	myZZ(uint32_t init) : myZZ( uint64_t(init) ) {}
+	myZZ(long init) : myZZ( uint64_t(init) ) {}
+	myZZ(long long init) : myZZ( uint64_t(init) ) {}
+
+    /**
+     * Constructor from double is not permitted
+     * @param d
+     */
+	myZZ(double d) __attribute__ ((deprecated("Cannot construct from a double")));
 
 	const myZZ& operator=(const myZZ &rhs);
 

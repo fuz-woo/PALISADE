@@ -1,3 +1,10 @@
+10/17/2018: PALISADE v1.3.0 is released
+
+* Added support for the security levels/tables specified by the HomorphicEncryption.org security standard to all variants of the BFV scheme
+* Optimized the packed encoding (batching)
+* Simplified the signatures of classes and methods at multiple layers
+* Fixed bugs that were brought to our attention
+
 6/15/2018: PALISADE v1.2 is released
 
 PALISADE v1.2 provides several important advancements and improvements to the library.  Most notably, we provide:

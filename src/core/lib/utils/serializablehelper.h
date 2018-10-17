@@ -55,9 +55,8 @@
 #include <algorithm>
 
 #include "../math/backend.h"
+#include "../lattice/backend.h"
 #include "../math/matrix.h"
-#include "../lattice/poly.h"
-#include "../lattice/dcrtpoly.h"
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE
 
@@ -135,7 +134,7 @@ namespace lbcrypto {
      * @param map containing the serialized object read from the file
      * @return success or failure
      */
-    static bool ReadSerializationFromFile(const std::string jsonFileName, Serialized* map);
+    static bool ReadSerializationFromFile(const std::string jsonFileName, Serialized* map, bool verbose=false);
 
   };
 

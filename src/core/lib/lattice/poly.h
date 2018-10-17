@@ -34,6 +34,7 @@ using std::function;
 using std::shared_ptr;
 
 #include "../math/backend.h"
+#include "../lattice/backend.h"
 #include "../utils/inttypes.h"
 #include "../utils/memory.h"
 #include "../lattice/elemparams.h"
@@ -53,21 +54,22 @@ namespace lbcrypto
  * @file poly.h
  * @brief Ideal lattice using a vector representation
  */
-template<typename ModType, typename IntType, typename VecType, typename ParmType>
-class PolyImpl : public ILElement<PolyImpl<ModType,IntType,VecType,ParmType>,ModType,IntType,VecType>
+template<typename VecType>
+class PolyImpl : public ILElement<PolyImpl<VecType>,VecType>
 {
 public:
 
-	typedef ParmType Params;
-	typedef IntType Integer;
+	using Integer = typename VecType::Integer;
+	using Params = ILParamsImpl<Integer>;
+
 	typedef VecType Vector;
-	typedef PolyImpl<ModType,IntType,VecType,ParmType> PolyType;
-	typedef DiscreteGaussianGeneratorImpl<IntType,VecType> DggType;
-	typedef DiscreteUniformGeneratorImpl<IntType,VecType> DugType;
-	typedef TernaryUniformGeneratorImpl<IntType,VecType> TugType;
-	typedef BinaryUniformGeneratorImpl<IntType,VecType> BugType;
-	typedef PolyImpl<NativeInteger,NativeInteger,NativeVector,ILNativeParams> PolyNative;
-	typedef PolyImpl<ModType,IntType,VecType,ParmType> PolyLargeType;
+	typedef PolyImpl<VecType> PolyType;
+	typedef DiscreteGaussianGeneratorImpl<VecType> DggType;
+	typedef DiscreteUniformGeneratorImpl<VecType> DugType;
+	typedef TernaryUniformGeneratorImpl<VecType> TugType;
+	typedef BinaryUniformGeneratorImpl<VecType> BugType;
+	typedef PolyImpl<NativeVector> PolyNative;
+	typedef PolyImpl<VecType> PolyLargeType;
 
 	/**
 	 * @brief Return the element name.
@@ -88,9 +90,9 @@ public:
 	 * @param format - EVALUATION or COEFFICIENT
 	 * @param initializeElementToZero - if true, allocates an empty vector set to all 0s
 	 */
-	PolyImpl(const shared_ptr<ParmType> params, Format format = EVALUATION, bool initializeElementToZero = false);
+	PolyImpl(const shared_ptr<Params> params, Format format = EVALUATION, bool initializeElementToZero = false);
 
-	PolyImpl(const shared_ptr<ILDCRTParams<ModType>> params, Format format = EVALUATION, bool initializeElementToZero = false);
+	PolyImpl(const shared_ptr<ILDCRTParams<Integer>> params, Format format = EVALUATION, bool initializeElementToZero = false);
 
 	/**
 	 * @brief Construct given parameters and format
@@ -98,7 +100,7 @@ public:
 	 * @param params - element parameters
 	 * @param format - EVALUATION or COEFFICIENT
 	 */
-	PolyImpl(bool initializeElementToMax, const shared_ptr<ParmType> params, Format format);
+	PolyImpl(bool initializeElementToMax, const shared_ptr<Params> params, Format format);
 
 	/**
 	 * @brief Construct with a vector from a given generator
@@ -107,7 +109,7 @@ public:
 	 * @param &params the input params.
 	 * @param format - EVALUATION or COEFFICIENT
 	 */
-	PolyImpl(const DggType &dgg, const shared_ptr<ParmType> params, Format format = EVALUATION);
+	PolyImpl(const DggType &dgg, const shared_ptr<Params> params, Format format = EVALUATION);
 
 	/**
 	 * @brief Construct with a vector from a given generator
@@ -116,7 +118,7 @@ public:
 	 * @param &params the input params.
 	 * @param format - EVALUATION or COEFFICIENT
 	 */
-	PolyImpl(const BugType &bug, const shared_ptr<ParmType> params, Format format = EVALUATION);
+	PolyImpl(const BugType &bug, const shared_ptr<Params> params, Format format = EVALUATION);
 
 	/**
 	 * @brief Construct with a vector from a given generator
@@ -125,7 +127,7 @@ public:
 	 * @param &params the input params.
 	 * @param format - EVALUATION or COEFFICIENT
 	 */
-	PolyImpl(const TugType &tug, const shared_ptr<ParmType> params, Format format = EVALUATION);
+	PolyImpl(const TugType &tug, const shared_ptr<Params> params, Format format = EVALUATION);
 
 	/**
 	 * @brief Construct with a vector from a given generator
@@ -134,14 +136,14 @@ public:
 	 * @param &params the input params.
 	 * @param format - EVALUATION or COEFFICIENT
 	 */
-	PolyImpl( DugType &dug, const shared_ptr<ParmType> params, Format format = EVALUATION);
+	PolyImpl( DugType &dug, const shared_ptr<Params> params, Format format = EVALUATION);
 
 	/**
 	 * @brief Create lambda that allocates a zeroed element for the case when it is called from a templated class
 	 * @param params the params to use.
 	 * @param format - EVALUATION or COEFFICIENT
 	 */
-	inline static function<PolyType()> Allocator(const shared_ptr<ParmType> params, Format format) {
+	inline static function<PolyType()> Allocator(const shared_ptr<Params> params, Format format) {
 		return [=]() {
 			return PolyType(params, format, true);
 		};
@@ -155,9 +157,9 @@ public:
 	 * @param stddev standard deviation for the discrete gaussian generator.
 	 * @return the resulting vector.
 	 */
-	inline static function<PolyType()> MakeDiscreteGaussianCoefficientAllocator(shared_ptr<ParmType> params, Format resultFormat, int stddev) {
+	inline static function<PolyType()> MakeDiscreteGaussianCoefficientAllocator(shared_ptr<Params> params, Format resultFormat, int stddev) {
 		return [=]() {
-			DiscreteGaussianGeneratorImpl<IntType,VecType> dgg(stddev);
+			DiscreteGaussianGeneratorImpl<VecType> dgg(stddev);
 			PolyType ilvec(dgg, params, COEFFICIENT);
 			ilvec.SetFormat(resultFormat);
 			return ilvec;
@@ -171,9 +173,9 @@ public:
 	 * @param format format for the polynomials generated.
 	 * @return the resulting vector.
 	 */
-	inline static function<PolyType()> MakeDiscreteUniformAllocator(shared_ptr<ParmType> params, Format format) {
+	inline static function<PolyType()> MakeDiscreteUniformAllocator(shared_ptr<Params> params, Format format) {
 		return [=]() {
-			DiscreteUniformGeneratorImpl<IntType,VecType> dug;
+			DiscreteUniformGeneratorImpl<VecType> dug;
 			dug.SetModulus(params->GetModulus());
 			return PolyType(dug, params, format);
 		};
@@ -185,7 +187,7 @@ public:
 	 * @param &element the copied element.
 	 * @param parms ILParams instance that is is passed.
 	 */
-	PolyImpl(const PolyType &element, shared_ptr<ParmType> parms = 0);
+	PolyImpl(const PolyType &element, shared_ptr<Params> parms = 0);
 
 	/**
 	 * @brief Copy constructor from a Poly of native integers.
@@ -201,7 +203,7 @@ public:
 	 * @param &&element the copied element.
 	 * @param parms ILParams instance that is is passed.
 	 */
-	PolyImpl(PolyType &&element, shared_ptr<ParmType> parms = 0);
+	PolyImpl(PolyType &&element, shared_ptr<Params> parms = 0);
 
 	/**
 	 * @brief Clone the object by making a copy of it and returning the copy
@@ -233,7 +235,7 @@ public:
 	 * @param &dgg the input discrete Gaussian generator. The dgg will be the seed to populate the towers of the PolyImpl with random numbers.
 	 * @return new Element
 	 */
-	PolyType CloneWithNoise(const DiscreteGaussianGeneratorImpl<IntType,VecType> &dgg, Format format) const;
+	PolyType CloneWithNoise(const DiscreteGaussianGeneratorImpl<VecType> &dgg, Format format) const;
 
 	/**
 	 * Destructor
@@ -302,7 +304,7 @@ public:
 	 *
 	 * @return the ring element params.
 	 */
-	const shared_ptr<ParmType> GetParams() const {
+	const shared_ptr<Params> GetParams() const {
 		return m_params;
 	}
 
@@ -325,7 +327,7 @@ public:
 	 *
 	 * @return the modulus.
 	 */
-	const ModType &GetModulus() const {
+	const Integer &GetModulus() const {
 		return m_params->GetModulus();
 	}
 
@@ -359,7 +361,7 @@ public:
 	 *
 	 * @return the root of unity.
 	 */
-	const IntType &GetRootOfUnity() const {
+	const Integer &GetRootOfUnity() const {
 		return m_params->GetRootOfUnity();
 	}
 
@@ -368,16 +370,16 @@ public:
 	 *
 	 * @return value at index i.
 	 */
-	IntType& at(usint i) ;
-	const IntType& at(usint i) const;
+	Integer& at(usint i) ;
+	const Integer& at(usint i) const;
 
 	/**
 	 * @brief Get value of element at index i.
 	 *
 	 * @return value at index i.
 	 */
-	IntType& operator[](usint i);
-	const IntType& operator[](usint i) const;
+	Integer& operator[](usint i);
+	const Integer& operator[](usint i) const;
 
 	//SETTERS
 	/**
@@ -413,7 +415,7 @@ public:
 	 * @param &element is the element to add entry-wise.
 	 * @return is the return of the addition operation.
 	 */
-	PolyImpl Plus(const IntType &element) const;
+	PolyImpl Plus(const Integer &element) const;
 
 	/**
 	 * @brief Scalar subtraction - subtract an element to all entries.
@@ -421,7 +423,7 @@ public:
 	 * @param &element is the element to subtract entry-wise.
 	 * @return is the return value of the minus operation.
 	 */
-	PolyImpl Minus(const IntType &element) const;
+	PolyImpl Minus(const Integer &element) const;
 
 	/**
 	 * @brief Scalar multiplication - multiply all entries.
@@ -429,7 +431,7 @@ public:
 	 * @param &element is the element to multiply entry-wise.
 	 * @return is the return value of the times operation.
 	 */
-	PolyImpl Times(const IntType &element) const;
+	PolyImpl Times(const Integer &element) const;
 
 
 	// VECTOR OPERATIONS
@@ -467,33 +469,33 @@ public:
 	PolyImpl Times(const PolyImpl &element) const;
 
 	/**
-	 * @brief Performs += operation with a IntType and returns the result.
+	 * @brief Performs += operation with a Integer and returns the result.
 	 *
 	 * @param &element is the element to add
 	 * @return is the result of the addition.
 	 */
-	const PolyImpl& operator+=(const IntType &element) {
+	const PolyImpl& operator+=(const Integer &element) {
 		return *this = this->Plus(element);
 	}
 
 	/**
-	 * @brief Performs -= operation with a IntType and returns the result.
+	 * @brief Performs -= operation with a Integer and returns the result.
 	 *
 	 * @param &element is the element to subtract
 	 * @return is the result of the subtraction.
 	 */
-	const PolyImpl& operator-=(const IntType &element) {
+	const PolyImpl& operator-=(const Integer &element) {
 		m_values->ModSubEq(element);
 		return *this;
 	}
 
 	/**
-	 * @brief Performs *= operation with a IntType and returns the result.
+	 * @brief Performs *= operation with a Integer and returns the result.
 	 *
 	 * @param &element is the element to multiply by
 	 * @return is the result of the multiplication.
 	 */
-	const PolyImpl& operator*=(const IntType &element) {
+	const PolyImpl& operator*=(const Integer &element) {
 		m_values->ModMulEq(element);
 		return *this;
 	}
@@ -548,7 +550,7 @@ public:
 	 * @param &q is the integer divisor.
 	 * @return is the return value of the multiply, divide and followed by rounding operation.
 	 */
-	PolyImpl MultiplyAndRound(const IntType &p, const IntType &q) const;
+	PolyImpl MultiplyAndRound(const Integer &p, const Integer &q) const;
 
 	/**
 	 * @brief Scalar division followed by rounding operation - operation on all entries.
@@ -556,7 +558,7 @@ public:
 	 * @param &q is the element to divide entry-wise.
 	 * @return is the return value of the divide, followed by rounding operation.
 	 */
-	PolyImpl DivideAndRound(const IntType &q) const;
+	PolyImpl DivideAndRound(const Integer &q) const;
 
 	/**
 	 * @brief Performs a negation operation and returns the result.
@@ -590,7 +592,7 @@ public:
 		return *this;
 	}
 
-	NativePoly DecryptionCRTInterpolate(PlaintextModulus ptm) const;
+	PolyNative DecryptionCRTInterpolate(PlaintextModulus ptm) const;
 
 	/**
 	 * @brief Transpose the ring element using the automorphism operation
@@ -619,7 +621,7 @@ public:
 	 * @param modulus is the modulus to use.
 	 * @return is the return value of the modulus.
 	 */
-	PolyImpl Mod(const IntType &modulus) const;
+	PolyImpl Mod(const Integer &modulus) const;
 
 	/**
 	 * @brief Switch modulus and adjust the values
@@ -630,7 +632,7 @@ public:
 	 * @param &rootOfUnityArb is the corresponding root of unity for the modulus
 	 * ASSUMPTION: This method assumes that the caller provides the correct rootOfUnity for the modulus.
 	 */
-	void SwitchModulus(const IntType &modulus, const IntType &rootOfUnity, const IntType &modulusArb = IntType(0), const IntType &rootOfUnityArb = IntType(0));
+	void SwitchModulus(const Integer &modulus, const Integer &rootOfUnity, const Integer &modulusArb = Integer(0), const Integer &rootOfUnityArb = Integer(0));
 
 	/**
 	 * @brief Convert from Coefficient to Evaluation or vice versa; calls FFT and inverse FFT.
@@ -675,7 +677,7 @@ public:
 	 * @param x is integer to round to.
 	 * @return is the result of the rounding operation.
 	 */
-	PolyImpl Round(const IntType& x) const;
+	PolyImpl Round(const Integer& x) const;
 
 	/**
 	 * @brief Write the element as \f$ \sum\limits{i=0}^{\lfloor {\log q/base} \rfloor} {(base^i u_i)} \f$ and
@@ -754,7 +756,7 @@ public:
 	 * @param b integer to add.
 	 * @return the result of the addition operation.
 	 */
-	friend inline PolyImpl operator+(const PolyImpl &a, const IntType &b) {
+	friend inline PolyImpl operator+(const PolyImpl &a, const Integer &b) {
 		return a.Plus(b);
 	}
 	
@@ -764,7 +766,7 @@ public:
 	 * @param b element to add.
 	 * @return the result of the addition operation.
 	 */
-	friend inline PolyImpl operator+(const IntType &a, const PolyImpl &b) {
+	friend inline PolyImpl operator+(const Integer &a, const PolyImpl &b) {
 		return b.Plus(a);
 	}
 	
@@ -784,7 +786,7 @@ public:
 	 * @param b integer to subtract.
 	 * @return the result of the subtraction operation.
 	 */
-	friend inline PolyImpl operator-(const PolyImpl &a, const IntType &b) {
+	friend inline PolyImpl operator-(const PolyImpl &a, const Integer &b) {
 		return a.Minus(b);
 	}
 	
@@ -804,7 +806,7 @@ public:
 	 * @param b integer to multiply.
 	 * @return the result of the multiplication operation.
 	 */
-	friend inline PolyImpl operator*(const PolyImpl &a, const IntType &b) {
+	friend inline PolyImpl operator*(const PolyImpl &a, const Integer &b) {
 		return a.Times(b);
 	}
 	
@@ -814,7 +816,7 @@ public:
 	 * @param b element to multiply.
 	 * @return the result of the multiplication operation.
 	 */
-	friend inline PolyImpl operator*(const IntType &a, const PolyImpl &b) {
+	friend inline PolyImpl operator*(const Integer &a, const PolyImpl &b) {
 		return b.Times(a);
 	}
 
@@ -827,46 +829,17 @@ private:
 	Format m_format;
 
 	// parameters for ideal lattices
-	shared_ptr<ParmType> m_params;
+	shared_ptr<Params> m_params;
 
 	void ArbitrarySwitchFormat();
 };
 
-// biginteger version
 template<>
-inline NativePoly
-PolyImpl<BigInteger, BigInteger, BigVector, ILParams>::DecryptionCRTInterpolate(PlaintextModulus ptm) const {
-
-	Poly smaller = this->Mod(ptm);
-	NativePoly interp(
-			shared_ptr<ILNativeParams>( new ILNativeParams(this->GetCyclotomicOrder(), ptm, 1) ),
-															this->GetFormat(), true);
-
-	for (usint i = 0; i<smaller.GetLength(); i++) {
-		interp[i] = smaller[i].ConvertToInt();
-	}
-
-	return std::move( interp );
-}
-
-// native poly version
-template<>
-inline NativePoly
-PolyImpl<NativeInteger, NativeInteger, NativeVector, ILNativeParams>::DecryptionCRTInterpolate(PlaintextModulus ptm) const {
-
+inline PolyImpl<NativeVector>
+PolyImpl<NativeVector>::DecryptionCRTInterpolate(PlaintextModulus ptm) const {
 	return this->Mod(ptm);
 }
 
-
 } //namespace lbcrypto ends
-
-namespace lbcrypto
-{
-
-template<typename ModType, typename IntType, typename VecType, typename ParmType> class PolyImpl;
-typedef PolyImpl<BigInteger, BigInteger, BigVector, ILParams> Poly;
-typedef PolyImpl<NativeInteger, NativeInteger, NativeVector, ILNativeParams> NativePoly;
-
-}
 
 #endif

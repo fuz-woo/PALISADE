@@ -108,6 +108,27 @@ LPCryptoParametersBFVrns<Element>::LPCryptoParametersBFVrns(shared_ptr<typename 
 	}
 
 template <class Element>
+LPCryptoParametersBFVrns<Element>::LPCryptoParametersBFVrns(shared_ptr<typename Element::Params> params,
+		EncodingParams encodingParams,
+		float distributionParameter,
+		float assuranceMeasure,
+		SecurityLevel securityLevel,
+		usint relinWindow,
+		MODE mode,
+		int depth,
+		int maxDepth)
+		: LPCryptoParametersRLWE<Element>(params,
+			encodingParams,
+			distributionParameter,
+			assuranceMeasure,
+			securityLevel,
+			relinWindow,
+			depth,
+			maxDepth,
+			mode) {
+	}
+
+template <class Element>
 bool LPCryptoParametersBFVrns<Element>::Serialize(Serialized* serObj) const {
 	if (!serObj->IsObject())
 		return false;
@@ -129,8 +150,6 @@ bool LPCryptoParametersBFVrns<Element>::Deserialize(const Serialized& serObj) {
 
 	if (this->DeserializeRLWE(mIter) == false)
 		return false;
-
-	SerialItem::ConstMemberIterator pIt;
 
 	return PrecomputeCRTTables();
 }

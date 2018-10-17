@@ -25,8 +25,6 @@
  */
 
 #include "../math/backend.h"
-#include "../math/cpu_int/binint.cpp"
-#include "../math/cpu_int/binvect.cpp"
 #include "elemparams.cpp"
 #include "ildcrtparams.cpp"
 #include "../math/discretegaussiangenerator.cpp"
@@ -41,8 +39,11 @@
 namespace lbcrypto
 {
 
-template class ElemParams<NativeInteger>;
-template class ILDCRTParams<BigInteger>;
-template class DCRTPolyImpl<BigInteger, BigInteger, BigVector, ILDCRTParams<BigInteger>>;
+template class ILDCRTParams<M2Integer>;
+template class DCRTPolyImpl<M2Vector>;
+template class ILDCRTParams<M4Integer>;
+template class DCRTPolyImpl<M4Vector>;
+template class ILDCRTParams<M6Integer>;
+template class DCRTPolyImpl<M6Vector>;
 
 }

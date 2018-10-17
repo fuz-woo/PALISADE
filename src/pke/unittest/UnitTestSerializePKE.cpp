@@ -184,8 +184,8 @@ TEST_F(UTPKESer, Keys_and_ciphertext) {
     	BigInteger bigmodulus("1645504557321206042154969182557350504982735865633579863348616321");
     	BigInteger bigroot("201473555181182026164891698186176997440470643522932663932844212");
 
-    	auto cycloPoly = GetCyclotomicPolynomial<BigVector, BigInteger>(m, modulusQ);
-    	ChineseRemainderTransformArb<BigInteger, BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
+    	auto cycloPoly = GetCyclotomicPolynomial<BigVector>(m, modulusQ);
+    	ChineseRemainderTransformArb<BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
 
     	float stdDev = 4;
 
