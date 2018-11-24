@@ -84,7 +84,8 @@ bool PackedEncoding::Encode() {
 
 			for (size_t i = 1; i < nativeParams.size(); i++ ) {
 				NativePoly temp(firstElement);
-				temp.SwitchModulus(nativeParams[i]->GetModulus(),nativeParams[i]->GetRootOfUnity());
+				temp.SwitchModulus(nativeParams[i]->GetModulus(),nativeParams[i]->GetRootOfUnity(),
+						nativeParams[i]->GetBigModulus(),nativeParams[i]->GetBigRootOfUnity());
 				this->encodedVectorDCRT.SetElementAtIndex(i,temp);
 			}
 

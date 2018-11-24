@@ -30,6 +30,7 @@
 
 #define _USE_MATH_DEFINES
 #include "math/backend.h"
+#include "lattice/backend.h"
 #include "utils/inttypes.h"
 #include "math/nbtheory.h"
 #include "math/distrgen.h"

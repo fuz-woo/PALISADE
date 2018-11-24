@@ -237,20 +237,20 @@ void basic_math_test(const string& msg) {
   // support for negative numbers as of now ConvertToInt converts
   // T calculatedResult to integer
 
-  {
-    // TEST_F CASE WHEN FIRST NUMBER IS LESS THAN THE SECOND NUMBER
-
-    T a("20489");
-    T b("2034455");
-
-    calculatedResult = a.Minus(b);
-    expectedResult = 0;
-
-    //SINCE THERE IS NO CONCEPT OF NEGATIVE NUMEBR RESULT SHOULD BE
-    //ZERO
-    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
-      << msg << " Failure testing minus_a_less_than_b";
-  }
+//  {
+//    // TEST_F CASE WHEN FIRST NUMBER IS LESS THAN THE SECOND NUMBER
+//
+//    T a("20489");
+//    T b("2034455");
+//
+//    calculatedResult = a.Minus(b);
+//    expectedResult = 0;
+//
+//    //SINCE THERE IS NO CONCEPT OF NEGATIVE NUMEBR RESULT SHOULD BE
+//    //ZERO
+//    EXPECT_EQ(expectedResult, calculatedResult.ConvertToInt())
+//      << msg << " Failure testing minus_a_less_than_b";
+//  }
   // TEST_F CASE WHEN FIRST NUMBER IS EQUAL TO THE SECOND NUMBER
   {
     T a("2048956567");
@@ -293,19 +293,19 @@ void basic_math_test(const string& msg) {
   // Integers a,b Calculates a-b, and stores result in a Results to 0,
   // when a<b, since there is no concept of negative number as of now
   // ConvertToInt converts T a to integer
-  {
-    // TEST_F CASE WHEN FIRST NUMBER IS LESS THAN THE SECOND NUMBER
-
-    T a("20489");
-    T b("2034455");
-
-    a-=b;
-    expectedResult = 0;
-
-    //SINCE THERE IS NO CONCEPT OF NEGATIVE NUMBER RESULT SHOULD BE ZERO
-    EXPECT_EQ(expectedResult, a.ConvertToInt())
-      << msg << " Failure testing minus_equals_a_less_than_b";
-  }
+//  {
+//    // TEST_F CASE WHEN FIRST NUMBER IS LESS THAN THE SECOND NUMBER
+//
+//    T a("20489");
+//    T b("2034455");
+//
+//    a-=b;
+//    expectedResult = 0;
+//
+//    //SINCE THERE IS NO CONCEPT OF NEGATIVE NUMBER RESULT SHOULD BE ZERO
+//    EXPECT_EQ(expectedResult, a.ConvertToInt())
+//      << msg << " Failure testing minus_equals_a_less_than_b";
+//  }
   // TEST_F CASE WHEN FIRST NUMBER IS EQUAL TO THE SECOND NUMBER
   {
     T a("2048956567");
