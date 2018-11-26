@@ -1,3 +1,10 @@
+11/26/2018: PALISADE v1.3.1 is released
+
+* Improves performance of BFVrns
+* Improves performance of Number Theoretic Transform
+* Fixes a bug affecting the demo-cross-correlation demo
+* Fixes other bugs that were brought to our attention
+
 10/17/2018: PALISADE v1.3.0 is released
 
 * Added support for the security levels/tables specified by the HomorphicEncryption.org security standard to all variants of the BFV scheme

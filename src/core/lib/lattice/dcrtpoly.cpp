@@ -1075,7 +1075,7 @@ DCRTPolyImpl<VecType>::ScaleAndRound(const NativeInteger &p,
 				curFloatSum += (double)(xi.ConvertToInt())*beta[vi];
 			}
 
-			coefficients[ri] = ((curIntSum + Integer(std::llround(curFloatSum))).Mod(p)).ConvertToInt();
+			coefficients[ri] = (curIntSum + NativeInteger(std::llround(curFloatSum))).Mod(p);
 		}
 	}
 	else if (m_vectors[0].GetModulus().GetMSB() < 58)
@@ -1095,7 +1095,7 @@ DCRTPolyImpl<VecType>::ScaleAndRound(const NativeInteger &p,
 				curFloatSum += (long double)(xi.ConvertToInt())*extBeta[vi];
 			}
 
-			coefficients[ri] = ((curIntSum + Integer(std::llround(curFloatSum))).Mod(p)).ConvertToInt();
+			coefficients[ri] = (curIntSum + NativeInteger(std::llround(curFloatSum))).Mod(p);
 		}
 	}
 	else
@@ -1120,7 +1120,7 @@ DCRTPolyImpl<VecType>::ScaleAndRound(const NativeInteger &p,
 					curFloatSum += quadFloatFromInt64(xi.ConvertToInt())*quadBeta[vi];
 				}
 
-				coefficients[ri] = ((curIntSum + Integer(quadFloatRound(curFloatSum - pFloat*floor(curFloatSum/pFloat)))).Mod(p)).ConvertToInt();
+				coefficients[ri] = (curIntSum + NativeInteger(quadFloatRound(curFloatSum - pFloat*floor(curFloatSum/pFloat)))).Mod(p);
 			}
 		}
 		else
@@ -1140,7 +1140,7 @@ DCRTPolyImpl<VecType>::ScaleAndRound(const NativeInteger &p,
 					curFloatSum += quadFloatFromInt64(xi.ConvertToInt())*quadBeta[vi];
 				}
 
-				coefficients[ri] = ((curIntSum + Integer(quadFloatRound(curFloatSum))).Mod(p)).ConvertToInt();
+				coefficients[ri] = (curIntSum + NativeInteger(quadFloatRound(curFloatSum))).Mod(p);
 			}
 		}
 	}

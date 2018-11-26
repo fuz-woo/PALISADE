@@ -42,6 +42,7 @@
 #include <iostream>
 
 #include "math/backend.h"
+#include "lattice/backend.h"
 #include "utils/inttypes.h"
 #include "math/nbtheory.h"
 #include "lattice/elemparams.h"
