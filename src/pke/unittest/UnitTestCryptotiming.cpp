@@ -276,7 +276,7 @@ TEST_F(UTCryptotiming, eval_sum) {
 
     Ciphertext<Poly> ciphertext;
 
-    Plaintext intArray = cc->MakePackedPlaintext(std::vector<uint64_t>{1,2});
+    Plaintext intArray = cc->MakePackedPlaintext(std::vector<int64_t>{1,2});
 
     ciphertext = cc->Encrypt(kp.publicKey, intArray);
     auto len = times.size();
@@ -377,7 +377,7 @@ TEST_F(UTCryptotiming, eval_index){
     int32_t n = cc->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder()/2;
 
     cc->EvalAtIndexKeyGen(kp.secretKey, vector<int32_t>{2});
-    std::vector<uint64_t> vectorOfInts = {1};
+    std::vector<int64_t> vectorOfInts = {1};
     vectorOfInts.resize(n);
 
 

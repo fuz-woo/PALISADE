@@ -109,12 +109,12 @@ void ArbBGVInnerProductPackedArray() {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 
 	std::cout << "Input array 1 \n\t" << intArray1 << std::endl;
 
-	std::vector<uint64_t> vectorOfInts2 = { 1,2,3,2,1,2,1,2,0,0 };
+	std::vector<int64_t> vectorOfInts2 = { 1,2,3,2,1,2,1,2,0,0 };
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
 	std::cout << "Input array 2 \n\t" << intArray2 << std::endl;
@@ -179,13 +179,13 @@ void ArbLTVInnerProductPackedArray() {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 
 	std::cout << "Input array 1 \n\t" << intArray1 << std::endl;
 
 
-	std::vector<uint64_t> vectorOfInts2 = { 1,2,3,2,1,2,1,2,0,0 };
+	std::vector<int64_t> vectorOfInts2 = { 1,2,3,2,1,2,1,2,0,0 };
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
 	std::cout << "Input array 2 \n\t" << intArray2 << std::endl;
@@ -263,13 +263,13 @@ void ArbBFVInnerProductPackedArray() {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 
 	std::cout << "Input array 1 \n\t" << intArray1 << std::endl;
 
 
-	std::vector<uint64_t> vectorOfInts2 = { 1,2,3,2,1,2,1,2,0,0 };
+	std::vector<int64_t> vectorOfInts2 = { 1,2,3,2,1,2,1,2,0,0 };
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
 	std::cout << "Input array 2 \n\t" << intArray2 << std::endl;
@@ -346,13 +346,13 @@ void ArbBFVEvalMultPackedArray() {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 
-	std::vector<uint64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
+	std::vector<int64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
-	std::vector<uint64_t> vectorOfIntsMult;
+	std::vector<int64_t> vectorOfIntsMult;
 	std::transform(vectorOfInts1.begin(), vectorOfInts1.end(), vectorOfInts2.begin(), std::back_inserter(vectorOfIntsMult), std::multiplies<usint>());
 	Plaintext intArrayMult = cc->MakePackedPlaintext(vectorOfIntsMult);
 

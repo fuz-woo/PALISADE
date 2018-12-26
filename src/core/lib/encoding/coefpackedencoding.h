@@ -65,6 +65,12 @@ public:
 	const vector<int64_t>& GetCoefPackedValue() const { return value; }
 
 	/**
+	 * SetIntVectorValue
+	 * @param val integer vector to initialize the plaintext
+	 */
+	void SetIntVectorValue(const vector<int64_t>& val) { value = val; }
+
+	/**
 	 * Encode the plaintext into the Poly
 	 * @return true on success
 	 */

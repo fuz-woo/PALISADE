@@ -51,9 +51,8 @@ std::vector<std::complex<double>> DiscreteFourierTransform::FFTForwardTransform(
 	std::vector<std::complex<double>> B(A);
 	usint l = floor(log2(m));
 
-
-	static usint maxMCached (8192);
-	static usint LOGM_MAX(13);
+	static usint maxMCached (65536);
+	static usint LOGM_MAX(16);
 	static std::vector<usint> cachedM(LOGM_MAX, 0);
 	static std::vector<std::vector<double>> cosTable(LOGM_MAX);
 	static std::vector<std::vector<double>> sinTable(LOGM_MAX);;
@@ -64,7 +63,7 @@ std::vector<std::complex<double>> DiscreteFourierTransform::FFTForwardTransform(
 			//need to grow cachedM and the tables
 			cachedM.resize(l);
 			cosTable.resize(l);
-			cosTable.resize(l);
+			sinTable.resize(l);
 			maxMCached = m;
 		}
 		//std::cout<<"miss m "<<m<<" != M "<<cachedM[l]<<std::endl;

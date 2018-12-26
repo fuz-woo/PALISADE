@@ -56,7 +56,7 @@ template Matrix<M6Integer> Rotate(Matrix<M6Poly> const& inMat);
 template class Matrix<M6DCRTPoly>;
 ONES_FOR_TYPE(M6DCRTPoly)
 IDENTITY_FOR_TYPE(M6DCRTPoly)
-GADGET_FOR_TYPE(M6DCRTPoly)
+GADGET_FOR_TYPE_DCRT(M6DCRTPoly)
 NORM_FOR_TYPE(M6DCRTPoly)
 MATRIX_NOT_SERIALIZABLE(M6DCRTPoly)
 SPLIT64_FOR_TYPE(M6DCRTPoly)
@@ -65,4 +65,4 @@ SPLIT32ALT_FOR_TYPE(M6DCRTPoly)
 template Matrix<M6Vector> RotateVecResult(Matrix<M6DCRTPoly> const& inMat);
 template Matrix<M6Integer> Rotate(Matrix<M6DCRTPoly> const& inMat);
 
-}
+}  // namespace lbcrypto

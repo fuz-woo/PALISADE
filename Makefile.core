@@ -49,8 +49,9 @@ CORE_TEST_TARGET := $(EXTTESTDIR)/core/tests$(EXESUFFIX)
 -include $(COREDEMOOBJECTS:.o=.d)
 
 .PHONY: allcore
-allcore: ntl_all $(EXTLIBDIR)/$(PALISADECORELIB) $(CORE_TEST_TARGET) allcoredemos
+allcore: $(EXTLIBDIR)/$(PALISADECORELIB) $(CORE_TEST_TARGET) allcoredemos
 
+.PHONY: allcoredemos
 allcoredemos: $(EXTLIBDIR)/$(PALISADECORELIB) $(patsubst $(COREBINDIR)/demo/%,$(BINDIR)/demo/core/%,$(patsubst %.o,%$(EXESUFFIX),$(COREDEMOOBJECTS)))
 
 $(BINDIR)/demo/core/%$(EXESUFFIX): $(COREBINDIR)/demo/%.o $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
@@ -83,7 +84,6 @@ $(COREBINDIR)/%:
 
 #this target is used to cleanup, it is called from the top Makefile
 .PHONY: cleancore 
-
 cleancore: 
 	$(RM) -fr $(COREBINDIR) $(EXTLIBDIR)/$(PALISADECORELIB) `dirname $(CORE_TEST_TARGET)` $(BINDIR)/demo/core
 
@@ -98,13 +98,14 @@ testcore: $(CORE_TEST_TARGET)
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(ROOTDIR)/$(THIRDPARTYLIBDIR):$(ROOTDIR)/$(EXTLIBDIR) $(CORE_TEST_TARGET)
 
 .PHONY: installcore
-installcore:  libdir
+installcore:  installdirs
 	install -t $(LIB_DEST) $(EXTLIBDIR)/$(PALISADECORELIB)
 
 .PHONY: uninstallcore
 uninstallcore:
 	rm $(LIB_DEST)/$(PALISADECORELIB)
 
+.PHONY: corestrings
 corestrings:
 	@echo $(CORESOURCES)
 	@echo $(COREOBJECTS)

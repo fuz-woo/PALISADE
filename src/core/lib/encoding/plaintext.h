@@ -49,7 +49,6 @@ enum PlaintextEncodings {
 	Packed,
 	String,
 	Fractional,
-	//MaxKnownEncoding = 7
 };
 
 inline std::ostream& operator<<(std::ostream& out, const PlaintextEncodings p) {
@@ -101,10 +100,15 @@ protected:
 	bool						isEncoded;
 	PtxtPolyType				typeFlag;
 	EncodingParams			encodingParams;
-	//mutable ILElement		*vec;
+
 	mutable Poly				encodedVector;
 	mutable NativePoly		encodedNativeVector;
 	mutable DCRTPoly			encodedVectorDCRT;
+
+	static const int			intCTOR		= 0x01;
+	static const int			vecintCTOR	= 0x02;
+	static const int			fracCTOR		= 0x04;
+	static const int			vecuintCTOR	= 0x08;
 
 public:
 	PlaintextImpl(shared_ptr<Poly::Params> vp, EncodingParams ep, bool isEncoded = false) :
@@ -182,14 +186,6 @@ public:
 			encodedVectorDCRT.SetFormat(fmt);
 	}
 
-//	template<typename Element>
-//	const Element& GetElement() const {
-//		if( !isEncoded )
-//			PALISADE_THROW(type_error,"Element for this plaintext is not encoded");
-//			//this->Encode();
-//		return GetElement<Element>();
-//	}
-
 	/**
 	 * GetElement
 	 * @return the Polynomial that the element was encoded into
@@ -237,7 +233,12 @@ public:
 	virtual const int64_t			GetIntegerValue() const { throw std::logic_error("not an integer"); }
 	virtual const int64_t			GetScalarValue() const { throw std::logic_error("not a scalar"); }
 	virtual const vector<int64_t>&	GetCoefPackedValue() const { throw std::logic_error("not a packed coefficient vector"); }
-	virtual const vector<uint64_t>&	GetPackedValue() const { throw std::logic_error("not a packed coefficient vector"); }
+	virtual const vector<int64_t>&	GetPackedValue() const { throw std::logic_error("not a packed coefficient vector"); }
+
+	virtual void SetStringValue(const std::string&) { throw std::logic_error("does not support a string"); }
+	virtual void SetIntegerValue(const int64_t) { throw std::logic_error("does not support an integer"); }
+	virtual void SetIntVectorValue(const vector<int64_t>&) { throw std::logic_error("does not support an int vector"); }
+	virtual void SetFractionalValues(int64_t scalar, size_t divisorBits = 0) { throw std::logic_error("does not support a fractional value"); }
 
 	/**
 	 * Method to compare two plaintext to test for equivalence.

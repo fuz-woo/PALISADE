@@ -38,5 +38,3 @@ $(INDEXFILE):
 cleandocs:
 	@echo " Cleaning docs..."
 	rm -rf doc/apidocs
-
-

@@ -17,9 +17,23 @@ else
   #$(info GMP/NTL directory third-party does not exist)
 endif
 
+## library for tcmalloc for linux machines
+
+ifneq ($(wildcard third-party/lib/libtcmalloc_minimal.a), )
+  #$(info TCMALLOC library third-party/lib exists)
+  TCMLIB := third-party/lib/libtcmalloc_minimal.so
+  CPPSTD := -std=gnu++11 -fPIC  -fno-builtin-malloc -fno-builtin-calloc -fno-builtin-realloc -fno-builtin-free  
+else
+  #$(info TCMALLOC directory third-party does not exist)
+  CPPSTD := -std=gnu++11 -fPIC
+endif
+
+
+
 
 ##CPPSTD := -std=gnu++11 -fPIC
 CPPSTD := -std=gnu++11 -fPIC ##-mcmodel=large  ## static allocator requires this memory model
+
 CC := g++ $(CPPSTD)
 
 LIBSUFFIX := .so
@@ -35,5 +49,3 @@ LIBPYTHON := -lpython2.7
 
 COMPTHREADFLAG := -pthread
 LOADTHREADFLAG := -pthread
-
-

@@ -51,29 +51,29 @@ public:
 };
 
 //declaration for Automorphism Test on LTV scheme with polynomial operation in arbitrary cyclotomics.
-std::vector<uint64_t> ArbLTVAutomorphismPackedArray(usint i);
+std::vector<int64_t> ArbLTVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on BGV scheme with polynomial operation in arbitrary cyclotomics.
-std::vector<uint64_t> ArbBGVAutomorphismPackedArray(usint i);
+std::vector<int64_t> ArbBGVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on LTV scheme with polynomial operation in power of 2 cyclotomics.
-std::vector<uint64_t> LTVAutomorphismPackedArray(usint i);
+std::vector<int64_t> LTVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on Null scheme with polynomial operation in power of 2 cyclotomics.
-std::vector<uint64_t> NullAutomorphismPackedArray(usint i);
+std::vector<int64_t> NullAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on BGV scheme with polynomial operation in powerof 2 cyclotomics.
-std::vector<uint64_t> BGVAutomorphismPackedArray(usint i);
+std::vector<int64_t> BGVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on BFV scheme with polynomial operation in power of 2 cyclotomics.
-std::vector<uint64_t> BFVAutomorphismPackedArray(usint i);
+std::vector<int64_t> BFVAutomorphismPackedArray(usint i);
 //declaration for Automorphism Test on BFVrns scheme with polynomial operation in power of 2 cyclotomics.
-std::vector<uint64_t> BFVrnsAutomorphismPackedArray(usint i);
+std::vector<int64_t> BFVrnsAutomorphismPackedArray(usint i);
 //Helper to function to produce a output of the input vector by i to the left(cyclic rotation).
-std::vector<uint64_t> Rotate(const std::vector<uint64_t> &input,usint i);
+std::vector<int64_t> Rotate(const std::vector<int64_t> &input,usint i);
 //Helper to function to check if the elements in perm are the same in the init vector.
-bool CheckAutomorphism(const std::vector<uint64_t> &perm,const std::vector<uint64_t> &init);
+bool CheckAutomorphism(const std::vector<int64_t> &perm,const std::vector<int64_t> &init);
 
 TEST_F(UTAUTOMORPHISM, Test_LTV_Automorphism_PowerOf2) {
 	
 	PackedEncoding::Destroy();
 	
-	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> initVector = { 1,2,3,4,5,6,7,8 };
 	
 	for (usint index = 3; index < 16; index = index + 2) {
 		auto morphedVector = LTVAutomorphismPackedArray(index);
@@ -86,7 +86,7 @@ TEST_F(UTAUTOMORPHISM, Test_Null_Automorphism_PowerOf2) {
 
 	PackedEncoding::Destroy();
 
-	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> initVector = { 1,2,3,4,5,6,7,8 };
 
 	for (usint index = 3; index < 16; index = index + 2) {
 		auto morphedVector = NullAutomorphismPackedArray(index);
@@ -98,7 +98,7 @@ TEST_F(UTAUTOMORPHISM, Test_Null_Automorphism_PowerOf2) {
 TEST_F(UTAUTOMORPHISM, Test_BGV_Automorphism_PowerOf2) {
 	PackedEncoding::Destroy();
 	
-	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> initVector = { 1,2,3,4,5,6,7,8 };
 
 	for (usint index = 3; index < 16; index = index + 2) {
 		auto morphedVector = BGVAutomorphismPackedArray(index);
@@ -110,7 +110,7 @@ TEST_F(UTAUTOMORPHISM, Test_BGV_Automorphism_PowerOf2) {
 TEST_F(UTAUTOMORPHISM, Test_BFV_Automorphism_PowerOf2) {
 	PackedEncoding::Destroy();
 
-	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> initVector = { 1,2,3,4,5,6,7,8 };
 
 	for (usint index = 3; index < 16; index = index + 2) {
 		auto morphedVector = BFVAutomorphismPackedArray(index);
@@ -121,7 +121,7 @@ TEST_F(UTAUTOMORPHISM, Test_BFV_Automorphism_PowerOf2) {
 TEST_F(UTAUTOMORPHISM, Test_BFVrns_Automorphism_PowerOf2) {
 	PackedEncoding::Destroy();
 
-	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> initVector = { 1,2,3,4,5,6,7,8 };
 
 	for (usint index = 3; index < 16; index = index + 2) {
 		auto morphedVector = BFVrnsAutomorphismPackedArray(index);
@@ -136,7 +136,7 @@ TEST_F(UTAUTOMORPHISM, Test_LTV_Automorphism_Arb) {
 	usint m = 22;
 
 	auto totientList = GetTotientList(m);
-	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> initVector = { 1,2,3,4,5,6,7,8,9,10 };
 
 	for (usint index = 1; index < 10; index++) {
 		auto morphedVector = ArbLTVAutomorphismPackedArray(totientList[index]);
@@ -152,7 +152,7 @@ TEST_F(UTAUTOMORPHISM, Test_BGV_Automorphism_Arb) {
 	usint m = 22;
 
 	auto totientList = GetTotientList(m);
-	std::vector<uint64_t> initVector = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> initVector = { 1,2,3,4,5,6,7,8,9,10 };
 
 	for (usint index = 1; index < 10; index++) {
 		auto morphedVector = ArbBGVAutomorphismPackedArray(totientList[index]);
@@ -167,7 +167,7 @@ TEST_F(UTAUTOMORPHISM, Test_BFV_Automorphism_Arb) {
 	EXPECT_EQ(1,1);
 }
 
-std::vector<uint64_t> ArbLTVAutomorphismPackedArray(usint i) {
+std::vector<int64_t> ArbLTVAutomorphismPackedArray(usint i) {
 
 	usint m = 22;
 	usint p = 2333;
@@ -196,7 +196,7 @@ std::vector<uint64_t> ArbLTVAutomorphismPackedArray(usint i) {
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -217,7 +217,7 @@ std::vector<uint64_t> ArbLTVAutomorphismPackedArray(usint i) {
 	return intArrayNew->GetPackedValue();
 }
 
-std::vector<uint64_t> ArbBGVAutomorphismPackedArray(usint i) {
+std::vector<int64_t> ArbBGVAutomorphismPackedArray(usint i) {
 	
 	
 	usint m = 22;
@@ -249,7 +249,7 @@ std::vector<uint64_t> ArbBGVAutomorphismPackedArray(usint i) {
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8,9,10 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -271,7 +271,7 @@ std::vector<uint64_t> ArbBGVAutomorphismPackedArray(usint i) {
 
 }
 
-std::vector<uint64_t> LTVAutomorphismPackedArray(usint i) {
+std::vector<int64_t> LTVAutomorphismPackedArray(usint i) {
 
 	usint m = 16;
 	BigInteger q("67108913");
@@ -291,7 +291,7 @@ std::vector<uint64_t> LTVAutomorphismPackedArray(usint i) {
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -312,7 +312,7 @@ std::vector<uint64_t> LTVAutomorphismPackedArray(usint i) {
 
 }
 
-std::vector<uint64_t> NullAutomorphismPackedArray(usint i) {
+std::vector<int64_t> NullAutomorphismPackedArray(usint i) {
 
 	usint m = 16;
 	BigInteger q("67108913");
@@ -332,7 +332,7 @@ std::vector<uint64_t> NullAutomorphismPackedArray(usint i) {
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -353,7 +353,7 @@ std::vector<uint64_t> NullAutomorphismPackedArray(usint i) {
 
 }
 
-std::vector<uint64_t> BGVAutomorphismPackedArray(usint i) {
+std::vector<int64_t> BGVAutomorphismPackedArray(usint i) {
 
 	usint m = 16;
 	BigInteger q("67108913");
@@ -374,7 +374,7 @@ std::vector<uint64_t> BGVAutomorphismPackedArray(usint i) {
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -395,7 +395,7 @@ std::vector<uint64_t> BGVAutomorphismPackedArray(usint i) {
 
 }
 
-std::vector<uint64_t> BFVAutomorphismPackedArray(usint i) {
+std::vector<int64_t> BFVAutomorphismPackedArray(usint i) {
 
 	usint m = 16;
 	BigInteger q("67108913");
@@ -421,7 +421,7 @@ std::vector<uint64_t> BFVAutomorphismPackedArray(usint i) {
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -442,7 +442,7 @@ std::vector<uint64_t> BFVAutomorphismPackedArray(usint i) {
 
 }
 
-std::vector<uint64_t> BFVrnsAutomorphismPackedArray(usint i) {
+std::vector<int64_t> BFVrnsAutomorphismPackedArray(usint i) {
 
 	PlaintextModulus p = 65537;
 	double sigma = 4;
@@ -462,7 +462,7 @@ std::vector<uint64_t> BFVrnsAutomorphismPackedArray(usint i) {
 
 	Ciphertext<DCRTPoly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -484,10 +484,10 @@ std::vector<uint64_t> BFVrnsAutomorphismPackedArray(usint i) {
 }
 
 
-std::vector<uint64_t> Rotate(const std::vector<uint64_t>& input, usint i)
+std::vector<int64_t> Rotate(const std::vector<int64_t>& input, usint i)
 {
 	usint n = input.size();
-	std::vector<uint64_t> result(n,0);
+	std::vector<int64_t> result(n,0);
 
 	for (usint j = 0; j < n; j++) {
 		usint newIndex = (n + j - i)%n;
@@ -497,7 +497,7 @@ std::vector<uint64_t> Rotate(const std::vector<uint64_t>& input, usint i)
 	return result;
 }
 
-bool CheckAutomorphism(const std::vector<uint64_t>& perm, const std::vector<uint64_t>& init)
+bool CheckAutomorphism(const std::vector<int64_t>& perm, const std::vector<int64_t>& init)
 {
 	bool result = true;
 	for (usint i = 0; i< init.size(); i++) {

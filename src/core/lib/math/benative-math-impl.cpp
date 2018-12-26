@@ -68,6 +68,7 @@ template NativeVector SyntheticPolynomialDivision(const NativeVector &dividend, 
 template NativeInteger FindGeneratorCyclic(const NativeInteger& modulo);
 template bool IsGenerator(const NativeInteger& g, const NativeInteger& modulo);
 template NativeInteger ComputeMu(const NativeInteger& q);
+template std::shared_ptr<std::vector<int64_t>> GetDigits(const NativeInteger &u, uint64_t base, uint32_t k);
 
 template class Matrix<NativeInteger>;
 ONES_FOR_TYPE(NativeInteger)

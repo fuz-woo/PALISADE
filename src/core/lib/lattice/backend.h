@@ -37,65 +37,84 @@
 
 namespace lbcrypto {
 
-	template<typename IntType> class ILParamsImpl;
-	template<typename VecType> class PolyImpl;
+template<typename IntType> class ILParamsImpl;
+template<typename VecType> class PolyImpl;
 
-	using M2Poly = PolyImpl<M2Vector>;
-	using M4Poly = PolyImpl<M4Vector>;
-	using M6Poly = PolyImpl<M6Vector>;
+using M2Poly = PolyImpl<M2Vector>;
+using M4Poly = PolyImpl<M4Vector>;
+using M6Poly = PolyImpl<M6Vector>;
 
-	using NativePoly = PolyImpl<NativeVector>;
+using NativePoly = PolyImpl<NativeVector>;
 
-	using M2Params = ILParamsImpl<M2Integer>;
-	using M4Params = ILParamsImpl<M4Integer>;
-	using M6Params = ILParamsImpl<M6Integer>;
+using M2Params = ILParamsImpl<M2Integer>;
+using M4Params = ILParamsImpl<M4Integer>;
+using M6Params = ILParamsImpl<M6Integer>;
 
-	using ILNativeParams = ILParamsImpl<NativeInteger>;
+using ILNativeParams = ILParamsImpl<NativeInteger>;
 
-	// the default for the backend...
-	using ILParams = ILParamsImpl<BigInteger>;
-	using Poly = PolyImpl<BigVector>;
+// the default for the backend...
+using ILParams = ILParamsImpl<BigInteger>;
+using Poly = PolyImpl<BigVector>;
 
-} // namespace lbcrypto ends
+}  // namespace lbcrypto
 
 #include "../lattice/dcrtpoly.h"
 
 namespace lbcrypto {
 
-	template<typename IntType> class ILDCRTParams;
-	template<typename VecType> class DCRTPolyImpl;
+template<typename IntType> class ILDCRTParams;
+template<typename VecType> class DCRTPolyImpl;
 
-	using M2DCRTPoly = DCRTPolyImpl<M2Vector>;
-	using M4DCRTPoly = DCRTPolyImpl<M4Vector>;
-	using M6DCRTPoly = DCRTPolyImpl<M6Vector>;
+using M2DCRTPoly = DCRTPolyImpl<M2Vector>;
+using M4DCRTPoly = DCRTPolyImpl<M4Vector>;
+using M6DCRTPoly = DCRTPolyImpl<M6Vector>;
 
-	using M2DCRTParams = ILDCRTParams<M2Integer>;
-	using M4DCRTParams = ILDCRTParams<M4Integer>;
-	using M6DCRTParams = ILDCRTParams<M6Integer>;
+using M2DCRTParams = ILDCRTParams<M2Integer>;
+using M4DCRTParams = ILDCRTParams<M4Integer>;
+using M6DCRTParams = ILDCRTParams<M6Integer>;
 
-	// the default for the backend...
-	using DCRTPoly = DCRTPolyImpl<BigVector>;
+// the default for the backend...
+using DCRTPoly = DCRTPolyImpl<BigVector>;
 
-} // namespace lbcrypto ends
+}  // namespace lbcrypto
 
 #endif
 
 
 #define RUN_BIG_POLYS(FUNCTION, MESSAGE) { \
-	if( TestB2 ) { using V = M2Poly; FUNCTION<V>("BE2Poly " MESSAGE); } \
-	if( TestB4 ) { using V = M4Poly; FUNCTION<V>("BE4Poly " MESSAGE); } \
-	if( TestB6 ) { using V = M6Poly; FUNCTION<V>("BE6Poly " MESSAGE); } \
+    if ( TestB2 ) { \
+        using V = M2Poly; \
+        FUNCTION<V>("BE2Poly " MESSAGE); \
+    } \
+    if ( TestB4 ) { \
+        using V = M4Poly; \
+        FUNCTION<V>("BE4Poly " MESSAGE); \
+    } \
+    if ( TestB6 ) { \
+        using V = M6Poly; \
+        FUNCTION<V>("BE6Poly " MESSAGE); \
+    } \
 }
 
 #define RUN_BIG_DCRTPOLYS(FUNCTION, MESSAGE) { \
-	if( TestB2 ) { using V = M2DCRTPoly; FUNCTION<V>("BE2DCRTPoly " MESSAGE); } \
-	if( TestB4 ) { using V = M4DCRTPoly; FUNCTION<V>("BE4DCRTPoly " MESSAGE); } \
-	if( TestB6 ) { using V = M6DCRTPoly; FUNCTION<V>("BE6DCRTPoly " MESSAGE); } \
+    if ( TestB2 ) { \
+        using V = M2DCRTPoly; \
+        FUNCTION<V>("BE2DCRTPoly " MESSAGE); \
+    } \
+    if ( TestB4 ) { \
+        using V = M4DCRTPoly; \
+        FUNCTION<V>("BE4DCRTPoly " MESSAGE); \
+    } \
+    if ( TestB6 ) { \
+        using V = M6DCRTPoly; \
+        FUNCTION<V>("BE6DCRTPoly " MESSAGE); \
+    } \
 }
 
 #define RUN_ALL_POLYS(FUNCTION, MESSAGE) { \
-	RUN_BIG_POLYS(FUNCTION,MESSAGE) \
-	if( TestNative ) { using V = NativePoly; FUNCTION<V>("Native " MESSAGE); } \
+    RUN_BIG_POLYS(FUNCTION, MESSAGE) \
+    if ( TestNative ) { \
+        using V = NativePoly; \
+        FUNCTION<V>("Native " MESSAGE); \
+    } \
 }
-
-

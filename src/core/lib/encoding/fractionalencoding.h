@@ -70,6 +70,13 @@ public:
 	 */
 	const int64_t GetIntegerValue() const { return m_integer; }
 
+	/**
+	 * SetFractionalValues
+	 * @param scalar actual scalar value
+	 * @param divisorBits bit cutoff
+	 */
+	void SetFractionalValues(int64_t scalar, size_t divisorBits = 0) { m_integer = scalar; m_separator = divisorBits; }
+
 	// these methods are placeholders until the members are used
 	uint64_t	 GetNumerator() const { return m_numerator; }
 	uint64_t GetDenominator() const { return m_denominator; }

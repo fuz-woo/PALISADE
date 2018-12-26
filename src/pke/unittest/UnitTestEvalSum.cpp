@@ -52,13 +52,12 @@ public:
 };
 
 
-usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p);
-usint ArbBGVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p);
-usint ArbBGVEvalSumPackedArrayPrime(std::vector<uint64_t> &clearVector, PlaintextModulus p);
-usint ArbBFVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p);
+int64_t ArbLTVEvalSumPackedArray(std::vector<int64_t> &clearVector, PlaintextModulus p);
+int64_t ArbBGVEvalSumPackedArray(std::vector<int64_t> &clearVector, PlaintextModulus p);
+int64_t ArbBGVEvalSumPackedArrayPrime(std::vector<int64_t> &clearVector, PlaintextModulus p);
+int64_t ArbBFVEvalSumPackedArray(std::vector<int64_t> &clearVector, PlaintextModulus p);
 
-void
-EvalSumSetup(std::vector<uint64_t>& input, usint& expectedSum, PlaintextModulus plaintextMod) {
+void EvalSumSetup(std::vector<int64_t>& input, int64_t& expectedSum, PlaintextModulus plaintextMod) {
 
 	usint limit = 15;
 
@@ -72,62 +71,68 @@ EvalSumSetup(std::vector<uint64_t>& input, usint& expectedSum, PlaintextModulus 
 	expectedSum = std::accumulate(input.begin(), input.end(), 0);
 
 	expectedSum %= plaintextMod;
+
+	int64_t half = int64_t(plaintextMod)/2;
+
+	if( expectedSum > half )
+		expectedSum -= plaintextMod;
+
 }
 
 TEST_F(UTEvalSum, Test_LTV_EvalSum) {
 
 	usint size = 10;
-	std::vector<uint64_t> input(size,0);
-	usint expectedSum;
+	std::vector<int64_t> input(size,0);
+	int64_t expectedSum;
 	
 	EvalSumSetup(input,expectedSum, 89);
 
-	usint result = ArbLTVEvalSumPackedArray(input, 89);
+	int64_t result = ArbLTVEvalSumPackedArray(input, 89);
 
-	EXPECT_EQ(result, expectedSum);
+	EXPECT_EQ(expectedSum, result);
 }
 
 TEST_F(UTEvalSum, Test_BGV_EvalSum) {
 
 	usint size = 10;
-	std::vector<uint64_t> input(size,0);
-	usint expectedSum;
+	std::vector<int64_t> input(size,0);
+	int64_t expectedSum;
 
 	EvalSumSetup(input,expectedSum, 89);
 
-	usint result = ArbBGVEvalSumPackedArray(input, 89);
+	int64_t result = ArbBGVEvalSumPackedArray(input, 89);
 
-	EXPECT_EQ(result, expectedSum);
+	EXPECT_EQ(expectedSum, result);
 }
 
 TEST_F(UTEvalSum, Test_BGV_EvalSum_Prime_Cyclotomics) {
 
 	usint size = 10;
-	std::vector<uint64_t> input(size,0);
-	usint expectedSum;
+	std::vector<int64_t> input(size,0);
+	int64_t expectedSum;
 
 	EvalSumSetup(input,expectedSum, 23);
 
-	usint result = ArbBGVEvalSumPackedArrayPrime(input, 23);
+	int64_t result = ArbBGVEvalSumPackedArrayPrime(input, 23);
 
-	EXPECT_EQ(result, expectedSum);
+	EXPECT_EQ(expectedSum, result);
 }
 
 TEST_F(UTEvalSum, Test_BFV_EvalSum) {
 	
 	usint size = 10;
-	std::vector<uint64_t> input(size,0);
-	usint expectedSum;
+	std::vector<int64_t> input(size,0);
+	int64_t expectedSum;
 
 	EvalSumSetup(input,expectedSum, 89);
 
-	usint result = ArbBFVEvalSumPackedArray(input, 89);
+	int64_t result = ArbBFVEvalSumPackedArray(input, 89);
 
-	EXPECT_EQ(result, expectedSum);
+	EXPECT_EQ(expectedSum, result);
 
 }
 
-usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
+int64_t ArbLTVEvalSumPackedArray(std::vector<int64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 22;
 	BigInteger modulusP(p);
@@ -167,7 +172,7 @@ usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = std::move(clearVector);
+	std::vector<int64_t> vectorOfInts = std::move(clearVector);
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	cc->EvalSumKeyGen(kp.secretKey, kp.publicKey);
@@ -184,7 +189,7 @@ usint ArbLTVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 
 }
 
-usint ArbBGVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
+int64_t ArbBGVEvalSumPackedArray(std::vector<int64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 22;
 	BigInteger modulusP(p);
@@ -233,7 +238,7 @@ usint ArbBGVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 	return intArrayNew->GetPackedValue()[0];
 }
 
-usint ArbBGVEvalSumPackedArrayPrime(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
+int64_t ArbBGVEvalSumPackedArrayPrime(std::vector<int64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 11;
 	BigInteger modulusP(p);
@@ -282,7 +287,7 @@ usint ArbBGVEvalSumPackedArrayPrime(std::vector<uint64_t> &clearVector, Plaintex
 	return intArrayNew->GetPackedValue()[0];
 }
 
-usint ArbBFVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModulus p) {
+int64_t ArbBFVEvalSumPackedArray(std::vector<int64_t> &clearVector, PlaintextModulus p) {
 
 	usint m = 22;
 	BigInteger modulusP(p);
@@ -318,7 +323,7 @@ usint ArbBFVEvalSumPackedArray(std::vector<uint64_t> &clearVector, PlaintextModu
 
 	Ciphertext<Poly> ciphertext;
 
-	std::vector<uint64_t> vectorOfInts = std::move(clearVector);
+	std::vector<int64_t> vectorOfInts = std::move(clearVector);
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	cc->EvalSumKeyGen(kp.secretKey);

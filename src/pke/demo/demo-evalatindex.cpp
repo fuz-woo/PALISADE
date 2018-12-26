@@ -104,7 +104,7 @@ void BFVrnsEvalAtIndex2n() {
 
 	cc->EvalAtIndexKeyGen(kp.secretKey, indexList);
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8, 9, 10 };
 	vectorOfInts.resize(n);
 	vectorOfInts[n-1]=n;
 	vectorOfInts[n-2]=n-1;
@@ -150,7 +150,7 @@ void NullEvalAtIndex2n() {
 
 	cc->EvalAtIndexKeyGen(kp.secretKey, indexList);
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8, 9, 10 };
 	vectorOfInts.resize(n);
 	vectorOfInts[n-1]=n;
 	vectorOfInts[n-2]=n-1;
@@ -218,7 +218,7 @@ void BFVEvalAtIndexCyclic() {
 
 	cc->EvalAtIndexKeyGen(kp.secretKey, indexList);
 
-	std::vector<uint64_t> vectorOfInts = { 1,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts = { 1,2,3,4,5,6,7,8, 9, 10 };
 
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
@@ -262,23 +262,23 @@ void BFVrnsEvalMerge2n() {
 
 	std::vector<Ciphertext<DCRTPoly>> ciphertexts;
 
-	std::vector<uint64_t> vectorOfInts1 = { 32,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts1 = { 32,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray1));
 
-	std::vector<uint64_t> vectorOfInts2 = { 2,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts2 = { 2,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray2));
 
-	std::vector<uint64_t> vectorOfInts3 = { 4,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts3 = { 4,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray3 = cc->MakePackedPlaintext(vectorOfInts3);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray3));
 
-	std::vector<uint64_t> vectorOfInts4 = { 8,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts4 = { 8,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray4 = cc->MakePackedPlaintext(vectorOfInts4);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray4));
 
-	std::vector<uint64_t> vectorOfInts5 = { 16,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts5 = { 16,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray5 = cc->MakePackedPlaintext(vectorOfInts5);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray5));
 
@@ -321,23 +321,23 @@ void NullEvalMerge2n() {
 
 	std::vector<Ciphertext<Poly>> ciphertexts;
 
-	std::vector<uint64_t> vectorOfInts1 = { 32,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts1 = { 32,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray1));
 
-	std::vector<uint64_t> vectorOfInts2 = { 2,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts2 = { 2,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray2));
 
-	std::vector<uint64_t> vectorOfInts3 = { 4,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts3 = { 4,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray3 = cc->MakePackedPlaintext(vectorOfInts3);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray3));
 
-	std::vector<uint64_t> vectorOfInts4 = { 8,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts4 = { 8,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray4 = cc->MakePackedPlaintext(vectorOfInts4);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray4));
 
-	std::vector<uint64_t> vectorOfInts5 = { 16,2,3,4,5,6,7,8, 9, 10 };
+	std::vector<int64_t> vectorOfInts5 = { 16,2,3,4,5,6,7,8, 9, 10 };
 	Plaintext intArray5 = cc->MakePackedPlaintext(vectorOfInts5);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray5));
 

@@ -130,11 +130,166 @@ TEST_F(UTEncoding,packed_int_ptxt_encoding) {
 
 	PackedEncoding::SetParams(m, ep);
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 	PackedEncoding	se(lp, ep, vectorOfInts1);
 	se.Encode();
 	se.Decode();
 	EXPECT_EQ( se.GetPackedValue(), vectorOfInts1 ) << "packed int";
+}
+
+TEST_F(UTEncoding,packed_int_ptxt_encoding_negative) {
+	usint m = 22;
+	PlaintextModulus p = 89;
+	BigInteger modulusQ("955263939794561");
+	BigInteger squareRootOfRoot("941018665059848");
+	BigInteger bigmodulus("80899135611688102162227204937217");
+	BigInteger bigroot("77936753846653065954043047918387");
+
+	auto cycloPoly = GetCyclotomicPolynomial<BigVector>(m, modulusQ);
+	ChineseRemainderTransformArb<BigVector>::SetCylotomicPolynomial(cycloPoly, modulusQ);
+
+	shared_ptr<ILParams> lp(new ILParams(m, modulusQ, squareRootOfRoot, bigmodulus, bigroot));
+	EncodingParams ep(new EncodingParamsImpl(p,8));
+
+	PackedEncoding::SetParams(m, ep);
+
+	std::vector<int64_t> vectorOfInts1 = { 1,2,-3,4,5,-6,7,8,0,0 };
+	PackedEncoding	se(lp, ep, vectorOfInts1);
+	se.Encode();
+	se.Decode();
+	EXPECT_EQ( se.GetPackedValue(), vectorOfInts1 ) << "packed int";
+}
+
+TEST_F(UTEncoding,packed_int_ptxt_encoding_DCRTPoly_prime_cyclotomics) {
+
+	usint init_size = 3;
+	usint dcrtBits = 24;
+	usint dcrtBitsBig = 58;
+
+	usint m = 1811;
+
+	PlaintextModulus p = 2 * m + 1;
+	BigInteger modulusP(p);
+
+	usint mArb = 2 * m;
+	usint mNTT = pow(2, ceil(log2(2 * m - 1)));
+
+	// populate the towers for the small modulus
+
+	vector<NativeInteger> init_moduli(init_size);
+	vector<NativeInteger> init_rootsOfUnity(init_size);
+
+	NativeInteger q = FirstPrime<NativeInteger>(dcrtBits, mArb);
+	init_moduli[0] = q;
+	init_rootsOfUnity[0] = RootOfUnity(mArb, init_moduli[0]);
+
+	for (usint i = 1; i < init_size; i++) {
+		q = lbcrypto::NextPrime(q, mArb);
+		init_moduli[i] = q;
+		init_rootsOfUnity[i] = RootOfUnity(mArb, init_moduli[i]);
+	}
+
+	// populate the towers for the big modulus
+
+	vector<NativeInteger> init_moduli_NTT(init_size);
+	vector<NativeInteger> init_rootsOfUnity_NTT(init_size);
+
+	q = FirstPrime<NativeInteger>(dcrtBitsBig, mNTT);
+	init_moduli_NTT[0] = q;
+	init_rootsOfUnity_NTT[0] = RootOfUnity(mNTT, init_moduli_NTT[0]);
+
+	for (usint i = 1; i < init_size; i++) {
+		q = lbcrypto::NextPrime(q, mNTT);
+		init_moduli_NTT[i] = q;
+		init_rootsOfUnity_NTT[i] = RootOfUnity(mNTT, init_moduli_NTT[i]);
+	}
+
+	shared_ptr<ILDCRTParams<BigInteger>> paramsDCRT(new ILDCRTParams<BigInteger>(m, init_moduli, init_rootsOfUnity, init_moduli_NTT, init_rootsOfUnity_NTT));
+
+	EncodingParams ep(new EncodingParamsImpl(p));
+
+	PackedEncoding::SetParams(m, ep);
+
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
+	PackedEncoding	se(paramsDCRT, ep, vectorOfInts1);
+
+	se.Encode();
+
+	se.GetElement<DCRTPoly>().SwitchFormat();
+	se.GetElement<DCRTPoly>().SwitchFormat();
+
+	se.Decode();
+
+	se.SetLength(vectorOfInts1.size());
+
+	EXPECT_EQ( se.GetPackedValue(), vectorOfInts1 ) << "packed int - prime cyclotomics";
+
+}
+
+TEST_F(UTEncoding,packed_int_ptxt_encoding_DCRTPoly_prime_cyclotomics_negative) {
+
+	usint init_size = 3;
+	usint dcrtBits = 24;
+	usint dcrtBitsBig = 58;
+
+	usint m = 1811;
+
+	PlaintextModulus p = 2 * m + 1;
+	BigInteger modulusP(p);
+
+	usint mArb = 2 * m;
+	usint mNTT = pow(2, ceil(log2(2 * m - 1)));
+
+	// populate the towers for the small modulus
+
+	vector<NativeInteger> init_moduli(init_size);
+	vector<NativeInteger> init_rootsOfUnity(init_size);
+
+	NativeInteger q = FirstPrime<NativeInteger>(dcrtBits, mArb);
+	init_moduli[0] = q;
+	init_rootsOfUnity[0] = RootOfUnity(mArb, init_moduli[0]);
+
+	for (usint i = 1; i < init_size; i++) {
+		q = lbcrypto::NextPrime(q, mArb);
+		init_moduli[i] = q;
+		init_rootsOfUnity[i] = RootOfUnity(mArb, init_moduli[i]);
+	}
+
+	// populate the towers for the big modulus
+
+	vector<NativeInteger> init_moduli_NTT(init_size);
+	vector<NativeInteger> init_rootsOfUnity_NTT(init_size);
+
+	q = FirstPrime<NativeInteger>(dcrtBitsBig, mNTT);
+	init_moduli_NTT[0] = q;
+	init_rootsOfUnity_NTT[0] = RootOfUnity(mNTT, init_moduli_NTT[0]);
+
+	for (usint i = 1; i < init_size; i++) {
+		q = lbcrypto::NextPrime(q, mNTT);
+		init_moduli_NTT[i] = q;
+		init_rootsOfUnity_NTT[i] = RootOfUnity(mNTT, init_moduli_NTT[i]);
+	}
+
+	shared_ptr<ILDCRTParams<BigInteger>> paramsDCRT(new ILDCRTParams<BigInteger>(m, init_moduli, init_rootsOfUnity, init_moduli_NTT, init_rootsOfUnity_NTT));
+
+	EncodingParams ep(new EncodingParamsImpl(p));
+
+	PackedEncoding::SetParams(m, ep);
+
+	std::vector<int64_t> vectorOfInts1 = { 1,2,-3,4,5,6,-7,8,0,0 };
+	PackedEncoding	se(paramsDCRT, ep, vectorOfInts1);
+
+	se.Encode();
+
+	se.GetElement<DCRTPoly>().SwitchFormat();
+	se.GetElement<DCRTPoly>().SwitchFormat();
+
+	se.Decode();
+
+	se.SetLength(vectorOfInts1.size());
+
+	EXPECT_EQ( se.GetPackedValue(), vectorOfInts1 ) << "packed int - prime cyclotomics";
+
 }
 
 TEST_F(UTEncoding,string_encoding) {

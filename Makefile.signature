@@ -1,0 +1,107 @@
+#
+#Copyright (c) 2015, New Jersey Institute of Technology (NJIT)
+#All rights reserved.
+#Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+#met:
+#1. Redistributions of source code must retain the above copyright
+#notice, this list of conditions and the following disclaimer.
+#2. Redistributions in binary form must reproduce the above copyright
+#notice, this list of conditions and the following disclaimer in the
+#documentation and/or other materials provided with the distribution.
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+#IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+#TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#PARTICULAR PURPOSE ARE DISCLAIMED.
+#IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+#ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+#DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+#OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+#HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+#STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+#IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#POSSIBILITY OF SUCH DAMAGE.
+#
+
+
+################
+# Makefile.signature builds the attribute-based encryption components of the PALISADE library
+# Includes unit tests and demos
+################
+
+SIGNATURESRCDIR := src/signature
+SIGNATUREBINDIR := $(BINDIR)/build/signature
+SIGNATURETESTDIR := src/signature/unittest
+SIGNATUREDEMODIR := src/signature/demo
+
+SIGNATURESOURCES := $(shell find $(SIGNATURESRCDIR)/lib -name '*.cpp' ! -name '*-public.cpp')
+SIGNATUREUNITSOURCES := $(wildcard $(SIGNATURESRCDIR)/unittest/*.cpp)
+SIGNATUREDEMOSOURCES := $(wildcard $(SIGNATURESRCDIR)/demo/*.cpp)
+
+SIGNATUREOBJECTSALL = $(patsubst $(SIGNATURESRCDIR)/%,$(SIGNATUREBINDIR)/%,$(patsubst %.cpp,%.o,$(SIGNATURESOURCES)))
+SIGNATUREOBJECTS = $(filter %-impl.o,$(SIGNATUREOBJECTSALL))
+SIGNATUREUNITOBJECTS := $(patsubst $(SIGNATURESRCDIR)/%,$(SIGNATUREBINDIR)/%,$(patsubst %.cpp,%.o,$(SIGNATUREUNITSOURCES)))
+SIGNATUREDEMOOBJECTS += $(patsubst $(SIGNATURESRCDIR)/%,$(SIGNATUREBINDIR)/%,$(patsubst %.cpp,%.o,$(SIGNATUREDEMOSOURCES)))
+
+SIGNATURE_TEST_TARGET := $(EXTTESTDIR)/signature/tests$(EXESUFFIX)
+
+-include $(SIGNATUREOBJECTS:.o=.d)
+-include $(SIGNATUREUNITOBJECTS:.o=.d)
+-include $(SIGNATUREDEMOOBJECTS:.o=.d)
+
+.PHONY: allsignature
+allsignature: allcore $(EXTLIBDIR)/$(PALISADESIGNATURELIB) $(SIGNATURE_TEST_TARGET) allsignaturedemos
+
+.PHONY: allsignaturedemos
+allsignaturedemos: $(patsubst $(SIGNATUREBINDIR)/demo/%,$(BINDIR)/demo/signature/%,$(patsubst %.o,%$(EXESUFFIX),$(SIGNATUREDEMOOBJECTS)))
+
+$(BINDIR)/demo/signature/%$(EXESUFFIX): $(SIGNATUREBINDIR)/demo/%.o $(EXTLIBDIR)/$(PALISADESIGNATURELIB) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
+	@mkdir -p $(@D)
+	$(CC) -o $@ $< $(EXTLIB) -lPALISADEsignature -lPALISADEcore $(NTLLIB) $(GMPLIB)
+
+#this builds the palisade library out of the objects 
+$(EXTLIBDIR)/$(PALISADESIGNATURELIB): $(SIGNATUREOBJECTS) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
+	@echo " -- signature:linking $@ from SIGNATUREOBJECTS"
+	@mkdir -p $(EXTLIBDIR)
+ifdef COVERAGE
+	$(LIBCMD) $@ $(SIGNATUREOBJECTS) 
+else
+	$(LIBCMD) $@ $(SIGNATUREOBJECTS) $(EXTLIB) -lPALISADEcore $(NTLLIB) $(GMPLIB)
+endif
+
+### #this builds the individual objects that make up the library .
+.PRECIOUS: $(SIGNATUREBINDIR)/%
+$(SIGNATUREBINDIR)/%:
+	@if [ "$(suffix $@)" = ".o" ] ;   \
+	then  \
+		mkdir -p $(@D)  ;\
+		echo $(CC) $(CPPFLAGS) $(INC) -c -o $@ $(patsubst $(SIGNATUREBINDIR)/%,$(SIGNATURESRCDIR)/%,$(patsubst %.o,%.cpp,$@))  ;\
+		$(CC) -MM $(CPPFLAGS) $(INC) $(patsubst $(SIGNATUREBINDIR)/%,$(SIGNATURESRCDIR)/%,$(patsubst %.o,%.cpp,$@)) > $(patsubst %.o,%.d,$@) ;\
+		mv -f $(patsubst %.o,%.d,$@) $(patsubst %.o,%.d.tmp,$@)  ;\
+		sed -e 's|.*\.o:|$(SIGNATUREBINDIR)/$*:|' < $(patsubst %.o,%.d.tmp,$@) > $(patsubst %.o,%.d,$@)  ;\
+		rm -f $(patsubst %.o,%.d.tmp,$@)  ; \
+		$(CC) $(CPPFLAGS) $(INC) -c -o $@ $(patsubst $(SIGNATUREBINDIR)/%,$(SIGNATURESRCDIR)/%,$(patsubst %.o,%.cpp,$@))  ;\
+	fi
+
+#this target is used to cleanup, it is called from the top Makefile
+.PHONY: cleansignature 
+cleansignature: 
+	$(RM) -fr $(SIGNATUREBINDIR) $(EXTLIBDIR)/$(PALISADESIGNATURELIB) `dirname $(SIGNATURE_TEST_TARGET)` $(BINDIR)/demo/signature
+
+# this links test executable  from objects in the test build directory
+$(SIGNATURE_TEST_TARGET): $(UNITTESTMAINOBJ) $(SIGNATUREUNITOBJECTS) $(EXTLIBDIR)/$(PALISADESIGNATURELIB) $(EXTLIBDIR)/$(PALISADECORELIB) $(NTLLIB) $(GMPLIB)
+	@mkdir -p `dirname $(SIGNATURE_TEST_TARGET)`
+	$(CC) -o $(SIGNATURE_TEST_TARGET) $(UNITTESTMAINOBJ) $(SIGNATUREUNITOBJECTS) $(EXTLIB) -lPALISADEsignature -lPALISADEcore $(TEST_LIB) $(NTLLIB) $(GMPLIB)
+
+#used to run tests from make
+.PHONY: testsignature
+testsignature: $(SIGNATURE_TEST_TARGET)
+	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(ROOTDIR)/$(THIRDPARTYLIBDIR):$(ROOTDIR)/$(EXTLIBDIR) $(SIGNATURE_TEST_TARGET)
+
+.PHONY: installsignature
+installsignature: installdirs
+	install -t $(LIB_DEST) $(EXTLIBDIR)/$(PALISADESIGNATURELIB)
+
+.PHONY: uninstallsignature
+uninstallsignature:
+	rm $(LIB_DEST)/$(PALISADESIGNATURELIB)

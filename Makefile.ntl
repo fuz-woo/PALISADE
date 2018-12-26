@@ -56,32 +56,41 @@ else
  NTL_INSTALL_NEEDED := ntl_install
 endif
 
+.PHONY: ntl_all
 ntl_all: $(GMP_NEEDED) $(NTL_UNPACK_NEEDED) $(NTL_CONFIG_NEEDED) $(NTL_MAKE_NEEDED) $(NTL_CHECK_NEEDED) $(NTL_INSTALL_NEEDED)
 	@echo $(all)
 
+.PHONY: ntl_unpack
 ntl_unpack: 
 	@echo 'Unpacking ntl for Palisade into $(NTL_DISTRO_DIR)'
 	cd $(DISTROS_DIR);\
 	$(TAR) xf ./ntl-$(NTL_VER).tar.gz
 
+.PHONY: ntl_config
 ntl_config: $(NTL_UNPACK_NEEDED)
 	@echo 'Configuring ntl for Palisade in $(NTL_DISTRO_DIR)'
 	cd $(NTL_DISTRO_DIR); \
 	./configure PREFIX=$(THIRD_PARTY_DIR) GMP_PREFIX=$(THIRD_PARTY_DIR) NTL_THREADS=on NTL_THREAD_BOOST=on NTL_EXCEPTIONS=on SHARED=on NTL_STD_CXX11=on NTL_SAFE_VECTORS=off
 
+.PHONY: ntl_make
 ntl_make: ntl_config
 	@echo 'making ntl for Palisade in $(NTL_DISTRO_DIR)'
 	cd $(NTL_DISTRO_DIR); \
 	$(MAKE)
 
+.PHONY: ntl_check
 ntl_check: $(NTL_MAKE_NEEDED)
 	@echo 'checking ntl for Palisade in $(NTL_DISTRO_DIR)'
 	cd $(NTL_DISTRO_DIR); \
 	$(MAKE) check
+
+.PHONY: ntl_install
 ntl_install: $(NTL_CHECK_NEEDED) $(NTL_MAKE_NEEDED)
 	@echo 'installing ntl for Palisade in $(THIRD_PARTY_DIR)'
 	cd $(NTL_DISTRO_DIR); \
 	$(MAKE) install
+
+.PHONY: clean_ntl
 clean_ntl:
 	@echo 'Cleaning ntl installation'
 	cd $(DISTROS_DIR);\

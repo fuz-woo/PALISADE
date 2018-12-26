@@ -33,8 +33,7 @@
 #include "ilparams.cpp"
 #include "poly.cpp"
 
-namespace lbcrypto
-{
+namespace lbcrypto {
 
 template class ElemParams<NativeInteger>;
 template class ILParamsImpl<NativeInteger>;
@@ -52,4 +51,4 @@ SPLIT32ALT_FOR_TYPE(NativePoly)
 template Matrix<NativeVector> RotateVecResult(Matrix<NativePoly> const& inMat);
 template Matrix<NativeInteger> Rotate(Matrix<NativePoly> const& inMat);
 
-}
+}  // namespace lbcrypto
