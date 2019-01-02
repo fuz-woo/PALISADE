@@ -69,6 +69,7 @@ using ConstCiphertext = const shared_ptr<const CiphertextImpl<Element>>;
 #include "utils/exception.h"
 
 #include "encoding/encodings.h"
+#include "encoding/plaintextfactory.h"
 
 #include "pubkeylp.h"
 

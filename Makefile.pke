@@ -49,7 +49,7 @@ PKE_TEST_TARGET := $(EXTTESTDIR)/pke/tests$(EXESUFFIX)
 -include $(PKEUNITOBJECTS:.o=.d)
 -include $(PKEDEMOOBJECTS:.o=.d)
 
-.PHONY:allpke
+.PHONY: allpke
 allpke: allcore $(EXTLIBDIR)/$(PALISADEPKELIB) $(PKE_TEST_TARGET) allpkedemos
 
 allpkedemos: $(patsubst $(PKEBINDIR)/demo/%,$(BINDIR)/demo/pke/%,$(patsubst %.o,%$(EXESUFFIX),$(PKEDEMOOBJECTS)))
@@ -82,9 +82,8 @@ $(PKEBINDIR)/%:
 		$(CC) $(CPPFLAGS) $(INC) -c -o $@ $(patsubst $(PKEBINDIR)/%,$(PKESRCDIR)/%,$(patsubst %.o,%.cpp,$@))  ;\
 	fi
 
-.PHONY: cleanpke 
-
 #this target is used to cleanup, it is called from the top Makefile
+.PHONY: cleanpke 
 cleanpke: 
 	$(RM) -fr $(PKEBINDIR) $(EXTLIBDIR)/$(PALISADEPKELIB) `dirname $(PKE_TEST_TARGET)` $(BINDIR)/demo/pke
 
@@ -99,7 +98,7 @@ testpke: $(PKE_TEST_TARGET)
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(ROOTDIR)/$(THIRDPARTYLIBDIR):$(ROOTDIR)/$(EXTLIBDIR) $(PKE_TEST_TARGET)
 
 .PHONY: installpke
-installpke: libdir
+installpke: installdirs
 	install -t $(LIB_DEST) $(EXTLIBDIR)/$(PALISADEPKELIB)
 
 .PHONY: uninstallpke

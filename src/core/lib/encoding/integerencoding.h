@@ -63,6 +63,12 @@ public:
 	const int64_t GetIntegerValue() const { return value; }
 
 	/**
+	 * SetIntegerValue
+	 * @param val to initialize the Plaintext
+	 */
+	void SetIntegerValue(const int64_t val) { value = val; }
+
+	/**
 	 * Encode the plaintext into the Poly
 	 * @return true on success
 	 */

@@ -48,7 +48,7 @@ WARNING_FLAG := -Wno-unused-but-set-variable
 LIBBENCHMARK_FLAGS := $(REGEX_FLAG) -DHAVE_STEADY_CLOCK -DNDEBUG $(WARNING_FLAG) -Wno-unused-variable ##-Wextra -Wshadow -pedantic -pedantic-errors -Wfloat-equal -Wzero-as-null-pointer-constant -fstrict-aliasing -Wstrict-aliasing -Wno-nested-anon-types
 
 #define list of source files (all files with .cc in the BMARK_SRC
-BM_SOURCES :=  $(wildcard $(BMARK_SRC)/*.cpp) 
+BM_SOURCES :=  $(wildcard $(BMARK_SRC)/*.cpp)
 
 BM_OBJS :=  $(BM_SOURCES:$(BMARK_SRC)%.cpp=$(BMARK_BUILD)%.o)
 

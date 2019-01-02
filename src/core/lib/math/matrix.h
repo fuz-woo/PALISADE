@@ -146,6 +146,20 @@ public:
 	}
 
 	/**
+	 * In-place modulo reduction
+	 *
+	 * @return the resulting matrix
+	 */
+	Matrix<Element>& ModEq(const Element &modulus);
+
+	/**
+	 * modular subtraction
+	 *
+	 * @return the resulting matrix
+	 */
+	Matrix<Element>& ModSubEq(Matrix<Element> const& b, const Element &modulus);
+
+	/**
 	 * Fill matrix using the same element
 	 *
 	 * @param &val the element the matrix is filled by
@@ -202,6 +216,37 @@ public:
   	}								\
     return g;							\
   }
+
+#define GADGET_FOR_TYPE_DCRT(T) \
+	template<> \
+	  Matrix<T> Matrix<T>::GadgetVector(int64_t base) const \
+	  { \
+		Matrix<T> g(allocZero, rows, cols); \
+		auto base_matrix = allocZero(); \
+		base_matrix = base; \
+		size_t bk = 1; \
+						\
+		auto params = g(0,0).GetParams()->GetParams(); \
+														\
+		uint64_t digitCount = (long)ceil(log2(params[0]->GetModulus().ConvertToDouble())/log2(base)); \
+															\
+		for (size_t k = 0; k < digitCount; k++) { \
+			for (size_t i = 0; i < params.size(); i++) { \
+				NativePoly temp(params[i]); \
+				temp = bk; \
+				g(0,k+i*digitCount).SetElementAtIndex(i,temp); \
+			} \
+			bk *= base; \
+		} \
+			\
+		size_t kCols = cols/rows; 						\
+		for (size_t row = 1; row < rows; row++) {		\
+			for (size_t i = 0; i < kCols; i++) { 		\
+	    	    g(row, i + row*kCols) = g(0, i);		\
+	    	} 							\
+	  	}							\
+		return g; \
+	  }
 
 	/**
 	 * Computes the infinity norm

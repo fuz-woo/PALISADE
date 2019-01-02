@@ -100,7 +100,7 @@ void BM_encoding_PackedIntPlaintext(benchmark::State& state) {
 	shared_ptr<ILParams> lp;
 	EncodingParams ep;
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 
 	usint m = 22;
 	PlaintextModulus p = 89;
@@ -134,7 +134,7 @@ void BM_encoding_PackedIntPlaintext_SetParams(benchmark::State& state) {
 	PlaintextModulus p = 89;
 	BigInteger modulusP(p);
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,0,0 };
 
 	if( state.thread_index == 0 ) {
 		BigInteger modulusQ("955263939794561");

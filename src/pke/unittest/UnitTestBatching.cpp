@@ -89,7 +89,62 @@ TEST_F(UTLTVBATCHING, Poly_Encrypt_Decrypt) {
 	modulus = NextPrime(modulus, m);
 	rootOfUnity = RootOfUnity(m, modulus);
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4 };
+
+	shared_ptr<Poly::Params> ep( new Poly::Params(m, modulus, rootOfUnity) );
+	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(ep, 17, 8, stdDev);
+
+	cc->Enable(ENCRYPTION);
+
+	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
+
+	//Regular LWE-NTRU encryption algorithm
+
+	////////////////////////////////////////////////////////////
+	//Perform the key generation operation.
+	///////////////////////////////////////////////////////////
+
+	LPKeyPair<Poly> kp = cc->KeyGen();
+
+
+	////////////////////////////////////////////////////////////
+	//Encryption
+	////////////////////////////////////////////////////////////
+	Ciphertext<Poly> ciphertext;
+
+	ciphertext = cc->Encrypt(kp.publicKey, intArray1);
+
+
+	////////////////////////////////////////////////////////////
+	//Decryption
+	////////////////////////////////////////////////////////////
+
+	Plaintext intArrayNew;
+
+	DecryptResult result = cc->Decrypt(kp.secretKey, ciphertext, &intArrayNew);
+
+	ASSERT_TRUE(result.isValid) << "Decryption failed!";
+	EXPECT_EQ(intArrayNew->GetPackedValue(), vectorOfInts1);
+}
+
+
+/*Simple Encrypt-Decrypt check for DCRTPoly with negative plaintext integers. The assumption is this test case is that everything with respect to lattice and math
+* layers and cryptoparameters work. This test case is only testing if the resulting plaintext from an encrypt/decrypt returns the same
+* plaintext
+* The cyclotomic order is set 2048
+*tower size is set to 3*/
+TEST_F(UTLTVBATCHING, Poly_Encrypt_Decrypt_Negative) {
+
+	float stdDev = 4;
+
+	usint m = 8;
+	BigInteger modulus("2199023288321");
+	BigInteger rootOfUnity;
+
+	modulus = NextPrime(modulus, m);
+	rootOfUnity = RootOfUnity(m, modulus);
+
+	std::vector<int64_t> vectorOfInts1 = { 1,-2,3,-4 };
 
 	shared_ptr<Poly::Params> ep( new Poly::Params(m, modulus, rootOfUnity) );
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(ep, 17, 8, stdDev);
@@ -139,13 +194,13 @@ TEST_F(UTLTVBATCHING, Poly_EVALADD) {
 	modulus = NextPrime(modulus, m);
 	rootOfUnity = RootOfUnity(m, modulus);
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4 };
 
 
-	std::vector<uint64_t> vectorOfInts2 = { 4,3,2,1 };
+	std::vector<int64_t> vectorOfInts2 = { 4,3,2,1 };
 
 
-	std::vector<uint64_t> vectorOfIntsExpected = { 5,5,5,5 };
+	std::vector<int64_t> vectorOfIntsExpected = { 5,5,5,5 };
 
 	shared_ptr<Poly::Params> ep( new Poly::Params(m, modulus, rootOfUnity) );
 	CryptoContext<Poly> cc = CryptoContextFactory<Poly>::genCryptoContextBGV(ep, 17, 8, stdDev);
@@ -213,13 +268,13 @@ TEST_F(UTLTVBATCHING, Poly_EVALMULT) {
 	//Initialize the public key containers.
 	LPKeyPair<Poly> kp;
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4 };
-	std::vector<uint64_t> vectorOfInts2 = { 4,3,2,1 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4 };
+	std::vector<int64_t> vectorOfInts2 = { 4,3,2,1 };
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
-	std::vector<uint64_t> vectorOfIntsExpected = { 4,6,6,4 };
+	std::vector<int64_t> vectorOfIntsExpected = { 4,6,6,4 };
 
 
 	kp = cc->KeyGen();
@@ -270,7 +325,7 @@ TEST_F(UTLTVBATCHING, Poly_Encrypt_Decrypt_Arb) {
 	// Initialize the public key containers.
 	LPKeyPair<Poly> kp = cc->KeyGen();
 
-	std::vector<uint64_t> vectorOfInts = { 1,1,1,5,1,4,1,6,1,7 };
+	std::vector<int64_t> vectorOfInts = { 1,1,1,5,1,4,1,6,1,7 };
 	Plaintext intArray = cc->MakePackedPlaintext(vectorOfInts);
 
 	Ciphertext<Poly> ciphertext = cc->Encrypt(kp.publicKey, intArray);
@@ -310,13 +365,13 @@ TEST_F(UTLTVBATCHING, Poly_EVALADD_Arb) {
 	Ciphertext<Poly> ciphertext1;
 	Ciphertext<Poly> ciphertext2;
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
-	std::vector<uint64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
-	std::vector<uint64_t> vectorOfIntsAdd;
+	std::vector<int64_t> vectorOfIntsAdd;
 	std::transform(vectorOfInts1.begin(), vectorOfInts1.end(), vectorOfInts2.begin(), std::back_inserter(vectorOfIntsAdd), std::plus<usint>());
 
 	ciphertext1 = cc->Encrypt(kp.publicKey, intArray1);
@@ -359,13 +414,13 @@ TEST_F(UTBGVBATCHING, Poly_EVALMULT_Arb) {
 	Ciphertext<Poly> ciphertext1;
 	Ciphertext<Poly> ciphertext2;
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
-	std::vector<uint64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
-	std::vector<uint64_t> vectorOfIntsMult;
+	std::vector<int64_t> vectorOfIntsMult;
 	std::transform(vectorOfInts1.begin(), vectorOfInts1.end(), vectorOfInts2.begin(), std::back_inserter(vectorOfIntsMult), std::multiplies<usint>());
 
 	ciphertext1 = cc->Encrypt(kp.publicKey, intArray1);
@@ -428,13 +483,13 @@ TEST_F(UTBFVBATCHING, Poly_EVALMULT_Arb) {
 	Ciphertext<Poly> ciphertext1;
 	Ciphertext<Poly> ciphertext2;
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
-	std::vector<uint64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10 };
+	std::vector<int64_t> vectorOfInts2 = { 10,9,8,7,6,5,4,3,2,1 };
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 
-	std::vector<uint64_t> vectorOfIntsMult;
+	std::vector<int64_t> vectorOfIntsMult;
 	std::transform(vectorOfInts1.begin(), vectorOfInts1.end(), vectorOfInts2.begin(), std::back_inserter(vectorOfIntsMult), std::multiplies<usint>());
 
 	ciphertext1 = cc->Encrypt(kp.publicKey, intArray1);

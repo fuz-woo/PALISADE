@@ -1260,15 +1260,11 @@ TEST_F(UTBinInt,getDigitAtIndex) {
 
 template<typename T>
 void GetBitAtIndex(const string& msg) {
-  bool dbg_flag = false;
   T x(1);
 
   x <<= 55; //x has one bit at 55
 
   x += T(2); //x has one bit at 2
-
-  DEBUG("x "<<x);
-  DEBUG(x.GetInternalRepresentation());
 
   // index is 1 for lsb!
   EXPECT_EQ(x.GetBitAtIndex(1), 0) << msg;

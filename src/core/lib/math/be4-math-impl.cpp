@@ -65,6 +65,7 @@ template M4Vector SyntheticPolynomialDivision(const M4Vector &dividend, const M4
 template M4Integer FindGeneratorCyclic(const M4Integer& modulo);
 template bool IsGenerator(const M4Integer& g, const M4Integer& modulo);
 template M4Integer ComputeMu(const M4Integer& q);
+template std::shared_ptr<std::vector<int64_t>> GetDigits(const M4Integer &u, uint64_t base, uint32_t k);
 
 template class Matrix<M4Integer>;
 ONES_FOR_TYPE(M4Integer)

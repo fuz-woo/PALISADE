@@ -46,7 +46,6 @@ using namespace lbcrypto;
 
 template<typename T>
 void bigint(const string& msg) {
-	bool dbg_flag = false;
 	T small(7);
 	T medium(uint64_t(1)<<27 | uint64_t(1)<<22);
 	T larger(uint64_t(1)<<40 | uint64_t(1)<<22);
@@ -65,11 +64,6 @@ void bigint(const string& msg) {
 	ser = larger.SerializeToString();
 	deser.DeserializeFromString(ser.c_str());
 	EXPECT_EQ(larger, deser) << msg << " Larger integer ser/deser fails";
-
-	if (dbg_flag){
-	  DEBUGEXP(larger.GetInternalRepresentation());
-	  DEBUGEXP(deser.GetInternalRepresentation());
-	}
 }
 
 TEST(UTSer,bigint){

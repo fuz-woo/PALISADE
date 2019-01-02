@@ -1406,7 +1406,7 @@ namespace lbcrypto {
 			dug.SetModulus(encodingParams->GetPlaintextModulus());
 			BigVector randomVector = dug.GenerateVector(n - 1);
 
-			std::vector<uint64_t> randomIntVector(n);
+			std::vector<int64_t> randomIntVector(n);
 
 			//first plaintext slot does not need to change
 			randomIntVector[0] = 0;
@@ -1746,7 +1746,7 @@ namespace lbcrypto {
 
 			auto cc = ciphertextVector[0]->GetCryptoContext();
 
-			std::vector<uint64_t> plaintextVector = {1,0};
+			std::vector<int64_t> plaintextVector = {1,0};
 			Plaintext plaintext = cc->MakePackedPlaintext(plaintextVector);
 
 			newCiphertext = EvalMult(newCiphertext,plaintext);

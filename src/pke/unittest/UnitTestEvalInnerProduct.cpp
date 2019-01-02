@@ -51,15 +51,15 @@ protected:
 public:
 };
 
-usint ArbLTVInnerProductPackedArray(std::vector<uint64_t> &input1,std::vector<uint64_t> &input2);
-usint ArbBGVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<uint64_t> &input2);
-usint ArbBFVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<uint64_t> &input2);
+int64_t ArbLTVInnerProductPackedArray(std::vector<int64_t> &input1,std::vector<int64_t> &input2);
+int64_t ArbBGVInnerProductPackedArray(std::vector<int64_t> &input1, std::vector<int64_t> &input2);
+int64_t ArbBFVInnerProductPackedArray(std::vector<int64_t> &input1, std::vector<int64_t> &input2);
 
 TEST_F(UTEvalIP, Test_LTV_EvalInnerProduct) {
 
 	usint size = 10;
-	std::vector<uint64_t> input1(size, 0);
-	std::vector<uint64_t> input2(size, 0);
+	std::vector<int64_t> input1(size, 0);
+	std::vector<int64_t> input2(size, 0);
 	usint limit = 15;
 	usint plainttextMod = 89;
 
@@ -71,11 +71,16 @@ TEST_F(UTEvalIP, Test_LTV_EvalInnerProduct) {
 	generate(input1.begin(), input1.end() - 2, gen);
 	generate(input2.begin(), input2.end() - 2, gen);
 
-	usint expectedResult = std::inner_product(input1.begin(), input1.end(), input2.begin(), 0);
+	int64_t expectedResult = std::inner_product(input1.begin(), input1.end(), input2.begin(), 0);
 	expectedResult %= plainttextMod;
 
+	int64_t half = int64_t(plainttextMod)/2;
+
+	if( expectedResult > half )
+		expectedResult-= plainttextMod;
+
 	try {
-		usint result = ArbLTVInnerProductPackedArray(input1, input2);
+		int64_t result = ArbLTVInnerProductPackedArray(input1, input2);
 
 		EXPECT_EQ(result, expectedResult);
 	} catch( const std::logic_error& e ) {
@@ -86,8 +91,8 @@ TEST_F(UTEvalIP, Test_LTV_EvalInnerProduct) {
 
 TEST_F(UTEvalIP, Test_BGV_EvalInnerProduct) {
 	usint size = 10;
-	std::vector<uint64_t> input1(size, 0);
-	std::vector<uint64_t> input2(size, 0);
+	std::vector<int64_t> input1(size, 0);
+	std::vector<int64_t> input2(size, 0);
 	usint limit = 15;
 	usint plainttextMod = 89;
 
@@ -99,11 +104,16 @@ TEST_F(UTEvalIP, Test_BGV_EvalInnerProduct) {
 	generate(input1.begin(), input1.end() - 2, gen);
 	generate(input2.begin(), input2.end() - 2, gen);
 
-	usint expectedResult = std::inner_product(input1.begin(), input1.end(), input2.begin(), 0);
+	int64_t expectedResult = std::inner_product(input1.begin(), input1.end(), input2.begin(), 0);
 	expectedResult %= plainttextMod;
 
+	int64_t half = int64_t(plainttextMod)/2;
+
+	if( expectedResult > half )
+		expectedResult-= plainttextMod;
+
 	try {
-		usint result = ArbBGVInnerProductPackedArray(input1, input2);
+		int64_t result = ArbBGVInnerProductPackedArray(input1, input2);
 
 		EXPECT_EQ(result, expectedResult);
 	} catch( const std::logic_error& e ) {
@@ -115,8 +125,8 @@ TEST_F(UTEvalIP, Test_BGV_EvalInnerProduct) {
 TEST_F(UTEvalIP, Test_BFV_EvalInnerProduct) {
 	
 	usint size = 10;
-	std::vector<uint64_t> input1(size, 0);
-	std::vector<uint64_t> input2(size, 0);
+	std::vector<int64_t> input1(size, 0);
+	std::vector<int64_t> input2(size, 0);
 	usint limit = 15;
 	usint plainttextMod = 2333;
 
@@ -128,11 +138,16 @@ TEST_F(UTEvalIP, Test_BFV_EvalInnerProduct) {
 	generate(input1.begin(), input1.end() - 2, gen);
 	generate(input2.begin(), input2.end() - 2, gen);
 
-	usint expectedResult = std::inner_product(input1.begin(), input1.end(), input2.begin(), 0);
+	int64_t expectedResult = std::inner_product(input1.begin(), input1.end(), input2.begin(), 0);
 	expectedResult %= plainttextMod;
 
+	int64_t half = int64_t(plainttextMod)/2;
+
+	if( expectedResult > half )
+		expectedResult-= plainttextMod;
+
 	try {
-		usint result = ArbBFVInnerProductPackedArray(input1, input2);
+		int64_t result = ArbBFVInnerProductPackedArray(input1, input2);
 
 		EXPECT_EQ(result, expectedResult);
 	} catch( const std::logic_error& e ) {
@@ -142,7 +157,7 @@ TEST_F(UTEvalIP, Test_BFV_EvalInnerProduct) {
 
 
 
-usint ArbLTVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<uint64_t> &input2) {
+int64_t ArbLTVInnerProductPackedArray(std::vector<int64_t> &input1, std::vector<int64_t> &input2) {
 
 	usint m = 22;
 	PlaintextModulus p = 89;
@@ -178,8 +193,8 @@ usint ArbLTVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	Ciphertext<Poly> ciphertext1;
 	Ciphertext<Poly> ciphertext2;
 
-	std::vector<uint64_t> vectorOfInts1 = std::move(input1);
-	std::vector<uint64_t> vectorOfInts2 = std::move(input2);
+	std::vector<int64_t> vectorOfInts1 = std::move(input1);
+	std::vector<int64_t> vectorOfInts2 = std::move(input2);
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
@@ -201,7 +216,7 @@ usint ArbLTVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 }
 
 
-usint ArbBGVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<uint64_t> &input2) {
+int64_t ArbBGVInnerProductPackedArray(std::vector<int64_t> &input1, std::vector<int64_t> &input2) {
 
 	usint m = 22;
 	PlaintextModulus p = 89;
@@ -237,8 +252,8 @@ usint ArbBGVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	Ciphertext<Poly> ciphertext1;
 	Ciphertext<Poly> ciphertext2;
 
-	std::vector<uint64_t> vectorOfInts1 = std::move(input1);
-	std::vector<uint64_t> vectorOfInts2 = std::move(input2);
+	std::vector<int64_t> vectorOfInts1 = std::move(input1);
+	std::vector<int64_t> vectorOfInts2 = std::move(input2);
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
@@ -260,7 +275,7 @@ usint ArbBGVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 }
 
 
-usint ArbBFVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<uint64_t> &input2) {
+int64_t ArbBFVInnerProductPackedArray(std::vector<int64_t> &input1, std::vector<int64_t> &input2) {
 
 	usint m = 22;
 	PlaintextModulus p = 2333; // we choose s.t. 2m|p-1 to leverage CRTArb
@@ -306,8 +321,8 @@ usint ArbBFVInnerProductPackedArray(std::vector<uint64_t> &input1, std::vector<u
 	Ciphertext<Poly> ciphertext1;
 	Ciphertext<Poly> ciphertext2;
 
-	std::vector<uint64_t> vectorOfInts1 = std::move(input1);
-	std::vector<uint64_t> vectorOfInts2 = std::move(input2);
+	std::vector<int64_t> vectorOfInts1 = std::move(input1);
+	std::vector<int64_t> vectorOfInts2 = std::move(input2);
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);

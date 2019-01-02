@@ -356,14 +356,14 @@ GENERATE_TEST_CASES_FUNC(UTSHE, UnitTest_Mult_CoefPacked, ORDER, PTMOD)
 template<class Element>
 static void UnitTest_Mult_Packed(const CryptoContext<Element> cc, const string& failmsg) {
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,0,3,1,0,1,2,1 };
+	std::vector<int64_t> vectorOfInts1 = { 1,0,3,1,0,1,2,1 };
 	Plaintext plaintext1 = cc->MakePackedPlaintext(vectorOfInts1);
 
-	std::vector<uint64_t> vectorOfInts2 = { 2,1,3,2,2,1,3,1 };
+	std::vector<int64_t> vectorOfInts2 = { 2,1,3,2,2,1,3,1 };
 	Plaintext plaintext2 = cc->MakePackedPlaintext(vectorOfInts2);
 
 	// For cyclotomic order != 16, the expected result is the convolution of vectorOfInt21 and vectorOfInts2
-	std::vector<uint64_t> vectorOfIntsMult = { 2,0, 9, 2, 0, 1, 6, 1 };
+	std::vector<int64_t> vectorOfIntsMult = { 2,0, 9, 2, 0, 1, 6, 1 };
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 
@@ -410,12 +410,12 @@ GENERATE_TEST_CASES_FUNC_EVALATINDEX(UTSHE, UnitTest_Mult_Packed, 512, 65537)
 template<class Element>
 static void UnitTest_EvalAtIndex(const CryptoContext<Element> cc, const string& failmsg) {
 
-	std::vector<uint64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 };
+	std::vector<int64_t> vectorOfInts1 = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 };
 	Plaintext plaintext1 = cc->MakePackedPlaintext(vectorOfInts1);
 
 	// Expected results after evaluating EvalAtIndex(3) and EvalAtIndex(-3)
-	std::vector<uint64_t> vectorOfIntsPlus3= { 4,5,6,7,8,9,10,11,12,13,14,15,16,0,0,0 };
-	std::vector<uint64_t> vectorOfIntsMinus3 = {0,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13};
+	std::vector<int64_t> vectorOfIntsPlus3= { 4,5,6,7,8,9,10,11,12,13,14,15,16,0,0,0 };
+	std::vector<int64_t> vectorOfIntsMinus3 = {0,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13};
 
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 
@@ -459,28 +459,28 @@ static void UnitTest_EvalMerge(const CryptoContext<Element> cc, const string& fa
 
 	std::vector<Ciphertext<Element>> ciphertexts;
 
-	std::vector<uint64_t> vectorOfInts1 = { 32,0,0,0,0,0,0,0, 0, 0 };
+	std::vector<int64_t> vectorOfInts1 = { 32,0,0,0,0,0,0,0, 0, 0 };
 	Plaintext intArray1 = cc->MakePackedPlaintext(vectorOfInts1);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray1));
 
-	std::vector<uint64_t> vectorOfInts2 = { 2,0,0,0,0,0,0,0, 0, 0};
+	std::vector<int64_t> vectorOfInts2 = { 2,0,0,0,0,0,0,0, 0, 0};
 	Plaintext intArray2 = cc->MakePackedPlaintext(vectorOfInts2);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray2));
 
-	std::vector<uint64_t> vectorOfInts3 = { 4,0,0,0,0,0,0,0, 0, 0};
+	std::vector<int64_t> vectorOfInts3 = { 4,0,0,0,0,0,0,0, 0, 0};
 	Plaintext intArray3 = cc->MakePackedPlaintext(vectorOfInts3);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray3));
 
-	std::vector<uint64_t> vectorOfInts4 = { 8,0,0,0,0,0,0,0, 0, 0 };
+	std::vector<int64_t> vectorOfInts4 = { 8,0,0,0,0,0,0,0, 0, 0 };
 	Plaintext intArray4 = cc->MakePackedPlaintext(vectorOfInts4);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray4));
 
-	std::vector<uint64_t> vectorOfInts5 = { 16,0,0,0,0,0,0,0, 0, 0 };
+	std::vector<int64_t> vectorOfInts5 = { 16,0,0,0,0,0,0,0, 0, 0 };
 	Plaintext intArray5 = cc->MakePackedPlaintext(vectorOfInts5);
 	ciphertexts.push_back(cc->Encrypt(kp.publicKey, intArray5));
 
 	// Expected results after evaluating EvalAtIndex(3) and EvalAtIndex(-3)
-	std::vector<uint64_t> vectorMerged = { 32,2,4,8,16,0,0,0 };
+	std::vector<int64_t> vectorMerged = { 32,2,4,8,16,0,0,0 };
 	Plaintext intArrayMerged = cc->MakePackedPlaintext(vectorMerged);
 
 	vector<int32_t> indexList = {-1,-2,-3,-4,-5};

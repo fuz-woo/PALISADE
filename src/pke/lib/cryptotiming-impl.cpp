@@ -171,7 +171,6 @@ MakeRandomPlaintext(CryptoContext<Element> cc, PlaintextEncodings pte) {
 
 	auto maxval = cc->GetCryptoParameters()->GetPlaintextModulus() / 2;
 	vector<int64_t> vec;
-	vector<uint64_t> uvec;
 	auto maxentry = cc->GetRingDimension();
 
 	// Depending on encoding, will need a random integer, vector, or string
@@ -181,12 +180,6 @@ MakeRandomPlaintext(CryptoContext<Element> cc, PlaintextEncodings pte) {
 
 	auto randomInt = [&]() {
 		return (int64_t)(randomUInt() * ((rand() % 1) > 0 ? 1 : -1));
-	};
-
-	auto randomUIntVec = [&]() {
-		uvec.clear();
-		for( size_t n=0; n<maxentry; n++ )
-			uvec.push_back( randomUInt() );
 	};
 
 	auto randomIntVec = [&]() {
@@ -224,8 +217,8 @@ MakeRandomPlaintext(CryptoContext<Element> cc, PlaintextEncodings pte) {
 	}
 
 	case Packed: {
-		randomUIntVec();
-		return cc->MakePackedPlaintext(uvec);
+		randomIntVec();
+		return cc->MakePackedPlaintext(vec);
 	}
 
 	case String: {

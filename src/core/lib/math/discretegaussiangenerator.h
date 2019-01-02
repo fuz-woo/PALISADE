@@ -56,6 +56,8 @@
 
 namespace lbcrypto {
 
+const double KARNEY_THRESHOLD = 300;
+
 template<typename VecType>
 class DiscreteGaussianGeneratorImpl;
 
@@ -73,7 +75,7 @@ public:
 	* @param modulus The modulus to use to generate discrete values.
 	* @param std     The standard deviation for this Gaussian Distribution.
 	*/
-	DiscreteGaussianGeneratorImpl (float std = 1);
+	DiscreteGaussianGeneratorImpl (double std = 1);
 
 	/**
 	* @brief Destructor
@@ -89,13 +91,13 @@ public:
 	* @brief  Returns the standard deviation of the generator.
 	* @return The analytically obtained standard deviation of the generator.
 	*/
-	float GetStd () const;
+	double GetStd () const;
 
 	/**
 	* @brief     Sets the standard deviation of the generator.
 	* @param std The analytic standard deviation of the generator.
 	*/
-	void SetStd (float std);
+	void SetStd (double std);
 
 	//BigVector DiscreteGaussianGenerator::GenerateIdentity(usint size, const BigInteger &modulus);
 
@@ -226,7 +228,7 @@ private:
 	/**
 	* The standard deviation of the distribution.
 	*/
-	float m_std;
+	double m_std;
  bool peikert=false;
 	
 };

@@ -97,6 +97,8 @@ public:
 
 	const DCRTPolyType& operator=(const PolyLargeType& element);
 
+	const DCRTPolyType& operator=(const NativePoly& element);
+
 	/**
 	* @brief Constructor based on discrete Gaussian generator.
 	*
@@ -113,9 +115,7 @@ public:
 	* @param params parameter set required for DCRTPoly.
 	* @param format the input format fixed to EVALUATION. Format is a enum type that indicates if the polynomial is in Evaluation representation or Coefficient representation. It is defined in inttypes.h.
 	*/
-	DCRTPolyImpl(const BugType &bug, const shared_ptr<Params> params, Format format = EVALUATION) {
-		throw std::logic_error("Cannot use BinaryUniformGenerator with DCRTPoly; not implemented");
-	}
+	DCRTPolyImpl(const BugType &bug, const shared_ptr<Params> params, Format format = EVALUATION);
 
 	/**
 	* @brief Constructor based on ternary distribution generator.
@@ -144,6 +144,15 @@ public:
 	DCRTPolyImpl(const PolyLargeType &element, const shared_ptr<Params> params);
 
 	/**
+	* @brief Construct using a single NativePoly. The NativePoly is copied into every tower.
+	* Each tower will be reduced to it's corresponding modulus  via GetModuli(at tower index). The format is derived from the passed in NativePoly.
+	*
+	* @param &element Poly to build other towers from.
+	* @param params parameter set required for DCRTPoly.
+	*/
+	DCRTPolyImpl(const NativePoly &element, const shared_ptr<Params> params);
+
+	/**
 	* @brief Construct using an tower of ILVectro2ns. The params and format for the DCRTPoly will be derived from the towers.
 	*
 	* @param &towers vector of Polys which correspond to each tower of DCRTPoly.
@@ -169,7 +178,7 @@ public:
 	* @param stddev standard deviation for the discrete gaussian generator.
 	* @return the resulting vector.
 	*/
-	inline static function<DCRTPolyType()> MakeDiscreteGaussianCoefficientAllocator(shared_ptr<Params> params, Format resultFormat, int stddev) {
+	inline static function<DCRTPolyType()> MakeDiscreteGaussianCoefficientAllocator(shared_ptr<Params> params, Format resultFormat, double stddev) {
 		return [=]() {
 			DggType dgg(stddev);
 			DCRTPolyType ilvec(dgg, params, COEFFICIENT);
@@ -552,7 +561,7 @@ public:
 
 	const DCRTPolyType& operator+=(const Integer &element) {
 		for (usint i = 0; i < this->GetNumOfElements(); i++) {
-			this->m_vectors[i] += element.ConvertToInt();
+			this->m_vectors[i] += (element.Mod(this->m_vectors[i].GetModulus())).ConvertToInt();
 		}
 		return *this;
 	}
@@ -565,7 +574,7 @@ public:
 	*/
 	const DCRTPolyType& operator-=(const Integer &element) {
 		for (usint i = 0; i < this->GetNumOfElements(); i++) {
-			this->m_vectors[i] -= element.ConvertToInt();
+			this->m_vectors[i] -= (element.Mod(this->m_vectors[i].GetModulus())).ConvertToInt();
 		}
 		return *this;
 	}
@@ -585,6 +594,13 @@ public:
 	* @return is the result of the multiplication.
 	*/
 	const DCRTPolyType& operator*=(const DCRTPolyType &element);
+
+	/**
+	 * @brief Get value of element at index i.
+	 *
+	 * @return value at index i.
+	 */
+	PolyType& ElementAtIndex(usint i);
 
 	// multiplicative inverse operation
 	/**

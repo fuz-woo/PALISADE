@@ -379,8 +379,8 @@ void Encrypt() {
 
 		for (size_t i = 0; i < VECTORS; i++)
 		{
-			std::vector<uint64_t> tempX(batchSize);
-			std::vector<uint64_t> tempY(batchSize);
+			std::vector<int64_t> tempX(batchSize);
+			std::vector<int64_t> tempY(batchSize);
 			for (size_t j = 0; j < batchSize; j++)
 			{
 				tempX[j] = x(i, j);
@@ -703,7 +703,13 @@ NativeInteger CRTInterpolate(const std::vector<Plaintext> &crtVector) {
 	}
 
 	for (size_t i = 0; i < crtVector.size(); i++) {
-		result += ((NativeInteger(crtVector[i]->GetPackedValue()[0])*qInverse[i]).Mod(q[i])*Q / q[i]).Mod(Q);
+		NativeInteger value;
+		if ((crtVector[i]->GetPackedValue()[0]) < 0)
+			value = NativeInteger(q[i]-NativeInteger((uint64_t)std::llabs(crtVector[i]->GetPackedValue()[0])));
+		else
+			value = NativeInteger(crtVector[i]->GetPackedValue()[0]);
+
+		result += ((value*qInverse[i]).Mod(q[i])*Q / q[i]).Mod(Q);
 	}
 	
 	return result.Mod(Q);

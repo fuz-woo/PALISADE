@@ -42,26 +42,42 @@ bool PackedEncoding::Encode() {
 
 	if (( this->typeFlag == IsNativePoly ) || (this->typeFlag == IsDCRTPoly )) {
 
+		NativeInteger q;
+
 		NativeVector temp;
-		if ( this->typeFlag == IsNativePoly )
+		if ( this->typeFlag == IsNativePoly ) {
+			q = this->GetElementModulus().ConvertToInt();
 			temp = NativeVector(this->GetElementRingDimension(), this->GetElementModulus().ConvertToInt());
-		else {
-			NativeInteger q0 = this->encodedVectorDCRT.GetParams()->GetParams()[0]->GetModulus().ConvertToInt();
-			temp = NativeVector(this->GetElementRingDimension(), q0);
-			if( q0 < mod )
+		}
+		else
+		{
+			q = this->encodedVectorDCRT.GetParams()->GetParams()[0]->GetModulus().ConvertToInt();
+			temp = NativeVector(this->GetElementRingDimension(), q);
+			if( q < mod )
 				throw std::logic_error("the plaintext modulus size is larger than the size of CRT moduli; either decrease the plaintext modulus or increase the CRT moduli.");
 		}
 
 		size_t i;
-		for( i=0; i < value.size(); i++ ) {
-			uint32_t entry = value[i];
 
-			if( entry >= mod )
-				throw std::logic_error("Cannot encode integer " + std::to_string(entry) +
+		for( i=0; i < value.size(); i++ ) {
+
+			NativeInteger entry;
+
+			if ( (PlaintextModulus)llabs(value[i]) >= mod )
+				throw std::logic_error("Cannot encode integer " + std::to_string(value[i]) +
 						" at position " + std::to_string(i) +
 						" that is > plaintext modulus " + std::to_string(mod) );
 
-			temp[i] = NativeInteger(entry);
+			if( value[i] < 0 ) {
+				//It is more efficient to encode negative numbers using the ciphertext modulus
+				//no noise growth occurs
+				entry = NativeInteger(mod) - NativeInteger((uint64_t)llabs(value[i]));
+			}
+			else
+				entry = NativeInteger(value[i]);
+
+			temp[i] = entry;
+
 		}
 
 		for(; i < this->GetElementRingDimension(); i++ )
@@ -93,18 +109,29 @@ bool PackedEncoding::Encode() {
 
 	}
 	else {
+
 		BigVector temp(this->GetElementRingDimension(), BigInteger(this->GetElementModulus()));
+
+		BigInteger q = this->GetElementModulus();
 
 		size_t i;
 		for( i=0; i < value.size(); i++ ) {
-			uint32_t entry = value[i];
+			BigInteger entry;
 
-			if( entry >= mod )
-				throw std::logic_error("Cannot encode integer " + std::to_string(entry) +
+			if( (PlaintextModulus)llabs(value[i]) >= mod )
+				throw std::logic_error("Cannot encode integer " + std::to_string(value[i]) +
 						" at position " + std::to_string(i) +
 						" that is > plaintext modulus " + std::to_string(mod) );
 
-			temp[i] = BigInteger(entry);
+			if( value[i] < 0 ) {
+				//It is more efficient to encode negative numbers using the ciphertext modulus
+				//no noise growth occurs
+				entry = BigInteger(mod) - BigInteger((uint64_t)llabs(value[i]));
+			}
+			else
+				entry = BigInteger(value[i]);
+
+			temp[i] = entry;
 		}
 
 		for(; i < this->GetElementRingDimension(); i++ )
@@ -120,11 +147,25 @@ bool PackedEncoding::Encode() {
 }
 
 template<typename T>
-static void fillVec(const T& poly, vector<uint64_t>& vec) {
+static void fillVec(const T& poly, const PlaintextModulus &mod, vector<int64_t>& vec) {
+
 	vec.clear();
-	for (size_t i = 0; i<poly.GetLength(); i++) {
-		vec.push_back(poly[i].ConvertToInt());
+
+	int64_t half = int64_t(mod)/2;
+	//const typename T::Integer &q = poly.GetModulus();
+	//typename T::Integer qHalf = q>>1;
+
+	for( size_t i = 0; i < poly.GetLength(); i++ ) {
+		int64_t val = poly[i].ConvertToInt();;
+		/*if (poly[i] > qHalf)
+			val = (-(q-poly[i]).ConvertToInt());
+		else
+			val = poly[i].ConvertToInt();*/
+		if( val > half )
+			val -= mod;
+		vec.push_back(val);
 	}
+
 }
 
 bool PackedEncoding::Decode() {
@@ -134,18 +175,18 @@ bool PackedEncoding::Decode() {
 	if (( this->typeFlag == IsNativePoly ) || (this->typeFlag == IsDCRTPoly )) {
 		if ( this->typeFlag == IsNativePoly ) {
 			this->Unpack(&this->GetElement<NativePoly>(), ptm);
-			fillVec(this->encodedNativeVector, this->value);
+			fillVec(this->encodedNativeVector, ptm, this->value);
 		}
 		else
 		{
 			NativePoly firstElement = this->GetElement<DCRTPoly>().GetElementAtIndex(0);
 			this->Unpack(&firstElement, ptm);
-			fillVec(firstElement, this->value);
+			fillVec(firstElement, ptm, this->value);
 		}
 	}
 	else {
 		this->Unpack(&this->GetElement<Poly>(), ptm);
-		fillVec(this->encodedVector, this->value);
+		fillVec(this->encodedVector, ptm, this->value);
 	}
 
 	return true;

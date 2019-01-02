@@ -54,6 +54,16 @@
 #include "../../utils/debug.h"
 #include "../nbtheory.h"
 
+// the default behavior of the native integer layer is
+// to assume that the user does not need bounds/range checks
+// in the native integer code
+// if you want them, change this #define to true
+// we use a #define to resolve which to use at compile time
+// sadly, making the choice according to some setting that
+// is checked at runtime has awful performance; using this
+// #define in a simple expression causes the compiler to
+// optimize away the test
+#define NATIVEINT_DO_CHECKS	false
 
 namespace native_int {
 
@@ -98,7 +108,6 @@ const usint BARRETT_LEVELS = 8;		//!< @brief The number of levels (precomputed v
 template<typename uint_type>
 class NativeInteger : public lbcrypto::BigIntegerInterface<NativeInteger<uint_type>>
 {
-
 public:
 	/**
 	 * Default constructor.
@@ -176,12 +185,6 @@ public:
 		return *this;
 	}
 
-	vector<NativeInteger> GetInternalRepresentation() {
-	  vector<NativeInteger> ret;
-	  ret.push_back(m_value);
-	  return ret;
-	}
-
 	/**
 	 * Basic set method for setting the value of an integer
 	 *
@@ -231,10 +234,20 @@ public:
 	/**
 	 * Addition operation.
 	 *
-	 * @param b is the value to add of type BigInteger.
-	 * @return result of the addition operation of type BigInteger.
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
 	 */
 	NativeInteger Plus(const NativeInteger& b) const {
+		return NATIVEINT_DO_CHECKS ? PlusCheck(b) : PlusFast(b);
+	}
+
+	/**
+	 * PlusCheck is the addition operation with bounds checking
+	 *
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	NativeInteger PlusCheck(const NativeInteger& b) const {
 		uint_type newv = m_value + b.m_value;
 		if( newv < m_value || newv < b.m_value ) {
 			PALISADE_THROW( lbcrypto::math_error, "Overflow");
@@ -243,38 +256,111 @@ public:
 	}
 
 	/**
-	 * Addition operation.
+	 * PlusFast is the addition operation without bounds checking
 	 *
-	 * @param b is the value to add of type BigInteger.
-	 * @return result of the addition operation of type BigInteger.
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	NativeInteger PlusFast(const NativeInteger& b) const {
+		return m_value + b.m_value;
+	}
+
+	/**
+	 * Addition in place operation.
+	 *
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
 	 */
 	const NativeInteger& PlusEq(const NativeInteger& b) {
-		//uint_type oldv = m_value;
+		return NATIVEINT_DO_CHECKS ? PlusEqCheck(b) : PlusEqFast(b);
+	}
+
+	/**
+	 * PlusEqCheck is the addition in place operation with bounds checking
+	 *
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	const NativeInteger& PlusEqCheck(const NativeInteger& b) {
+		uint_type oldv = m_value;
+
 		m_value += b.m_value;
-		//if( m_value < oldv ) {
-		//	PALISADE_THROW( lbcrypto::math_error, "Overflow");
-		//}
+		if( m_value < oldv ) {
+			PALISADE_THROW( lbcrypto::math_error, "Overflow");
+		}
+
+		return *this;
+	}
+
+	/**
+	 * PlusEqFast is the addition in place operation without bounds checking
+	 *
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	const NativeInteger& PlusEqFast(const NativeInteger& b) {
+		m_value += b.m_value;
 		return *this;
 	}
 
 	/**
 	 * Subtraction operation.
 	 *
-	 * @param b is the value to subtract of type BigInteger.
-	 * @return result of the subtraction operation of type BigInteger.
+	 * @param b is the value to subtract from this
+	 * @return result of the subtraction operation
 	 */
 	NativeInteger Minus(const NativeInteger& b) const {
-		return m_value - b.m_value;
-//		return m_value <= b.m_value ? 0 : m_value - b.m_value;
+		return NATIVEINT_DO_CHECKS ? MinusCheck(b) : MinusFast(b);
 	}
 
 	/**
-	 * Subtraction operation.
+	 * MinusCheck is the subtraction operation with bounds checking
 	 *
-	 * @param b is the value to subtract of type BigInteger.
-	 * @return result of the subtraction operation of type BigInteger.
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	NativeInteger MinusCheck(const NativeInteger& b) const {
+		return m_value <= b.m_value ? 0 : m_value - b.m_value;
+	}
+
+	/**
+	 * MinusFast is the subtraction operation without bounds checking
+	 *
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	NativeInteger MinusFast(const NativeInteger& b) const {
+		return m_value - b.m_value;
+	}
+
+	/**
+	 * Subtraction in place operation.
+	 *
+	 * @param b is the value to subtract
+	 * @return result of the subtraction operation
 	 */
 	const NativeInteger& MinusEq(const NativeInteger& b) {
+		return NATIVEINT_DO_CHECKS ? MinusEqCheck(b) : MinusEqFast(b);
+	}
+
+	/**
+	 * MinusEqCheck is the subtraction in place operation with bounds checking
+	 *
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	const NativeInteger& MinusEqCheck(const NativeInteger& b) {
+		m_value = m_value <= b.m_value ? 0 : m_value - b.m_value;
+		return *this;
+	}
+
+	/**
+	 * MinusEqFast is the subtraction in place operation without bounds checking
+	 *
+	 * @param b is the value to add to this
+	 * @return result of the addition operation
+	 */
+	const NativeInteger& MinusEqFast(const NativeInteger& b) {
 		m_value -= b.m_value;
 		return *this;
 	}
@@ -282,10 +368,20 @@ public:
 	/**
 	 * Multiplication operation.
 	 *
-	 * @param b of type BigInteger is the value to multiply with.
-	 * @return result of the multiplication operation.
+	 * @param b is the value to multiply with
+	 * @return result of the multiplication operation
 	 */
 	NativeInteger Times(const NativeInteger& b) const {
+		return NATIVEINT_DO_CHECKS ? TimesCheck(b) : TimesFast(b);
+	}
+
+	/**
+	 * TimesCheck is the multiplication operation with bounds checking
+	 *
+	 * @param b is the value to multiply with
+	 * @return result of the multiplication operation
+	 */
+	NativeInteger TimesCheck(const NativeInteger& b) const {
 		uint_type prod = m_value * b.m_value;
 		if( prod > 0 && (prod < m_value || prod < b.m_value) )
 			PALISADE_THROW( lbcrypto::math_error, "Overflow");
@@ -293,16 +389,50 @@ public:
 	}
 
 	/**
-	 * Multiplication operation.
+	 * TimesFast is the multiplication operation without bounds checking
 	 *
-	 * @param b of type BigInteger is the value to multiply with.
-	 * @return result of the multiplication operation.
+	 * @param b is the value to multiply with
+	 * @return result of the multiplication operation
+	 */
+	NativeInteger TimesFast(const NativeInteger& b) const {
+		return m_value * b.m_value;
+	}
+
+	/**
+	 * Multiplication in place operation.
+	 *
+	 * @param b is the value to multiply with
+	 * @return result of the multiplication operation
 	 */
 	const NativeInteger& TimesEq(const NativeInteger& b) {
+		return NATIVEINT_DO_CHECKS ? TimesEqCheck(b) : TimesEqFast(b);
+	}
+
+	/**
+	 * TimesEqCheck is the multiplication in place operation with bounds checking
+	 *
+	 * @param b is the value to multiply with
+	 * @return result of the multiplication operation
+	 */
+	const NativeInteger& TimesEqCheck(const NativeInteger& b) {
 		uint_type oldval = m_value;
+
 		m_value *= b.m_value;
+
 		if( m_value < oldval )
 			PALISADE_THROW( lbcrypto::math_error, "Overflow");
+
+		return *this;
+	}
+
+	/**
+	 * TimesEqFast is the multiplication in place operation without bounds checking
+	 *
+	 * @param b is the value to multiply with
+	 * @return result of the multiplication operation
+	 */
+	const NativeInteger& TimesEqFast(const NativeInteger& b) {
+		m_value *= b.m_value;
 		return *this;
 	}
 
@@ -848,7 +978,6 @@ public:
 		Duint_type bv = b.m_value;
 
 		this->m_value = (uint_type)((av*=bv)%=modulus.m_value);
-		//this->m_value = (uint_type)((av*bv)%modulus.m_value);
 #endif
 		return *this;
 	}
@@ -1394,14 +1523,6 @@ public:
 	 * It is used to initialize a Matrix of NativeInteger objects.
 	 */
 	static NativeInteger<uint_type> Allocator() { return 0; }
-
-	inline bool operator==(const NativeInteger& b) {return this->m_value==b.m_value; }
-	inline bool operator!=(const NativeInteger& b) {return this->m_value!=b.m_value;}
-
-	inline bool operator> (const NativeInteger& b) {return this->m_value > b.m_value;}
-	inline bool operator>=(const NativeInteger& b) {return this->m_value >= b.m_value; }
-	inline bool operator< (const NativeInteger& b) {return this->m_value < b.m_value;}
-	inline bool operator<=(const NativeInteger& b) {return this->m_value <= b.m_value;}
 
 protected:
 

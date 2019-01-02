@@ -1,3 +1,11 @@
+12/31/2018: PALISADE v1.4.0 is released
+
+* Adds the Gentry-Peikert-Vaikuntanathan (GPV) digital signature scheme
+* Adds the GPV identity-based encryption scheme
+* Adds the Zhang-Zhang ciphertext-policy attribute-based encryption scheme
+* Includes Genise-Micciancio (Eurocrypt'18) lattice trapdoor sampling algorithms and their improvements/generalizations
+* Fixes bugs that were brought to our attention
+
 11/26/2018: PALISADE v1.3.1 is released
 
 * Improves performance of BFVrns

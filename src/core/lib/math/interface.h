@@ -388,13 +388,13 @@ namespace lbcrypto {
 		int Compare(const T& a) const;
 
 		//// relational operators, using Compare
-		inline friend bool operator==(const T& a, const T& b) {return a.Compare(b) == 0;}
-		inline friend bool operator!=(const T& a, const T& b) {return a.Compare(b) != 0;}
+		friend bool operator==(const T& a, const T& b) { return a.Compare(b) == 0;}
+		friend bool operator!=(const T& a, const T& b) { return a.Compare(b) != 0;}
 
-		inline friend bool operator> (const T& a, const T& b) {return a.Compare(b) >  0;}
-		inline friend bool operator>=(const T& a, const T& b) {return a.Compare(b) >= 0;}
-		inline friend bool operator< (const T& a, const T& b) {return a.Compare(b) <  0;}
-		inline friend bool operator<=(const T& a, const T& b) {return a.Compare(b) <= 0;}
+		friend bool operator> (const T& a, const T& b) { return a.Compare(b) >  0;}
+		friend bool operator>=(const T& a, const T& b) { return a.Compare(b) >= 0;}
+		friend bool operator< (const T& a, const T& b) { return a.Compare(b) <  0;}
+		friend bool operator<=(const T& a, const T& b) { return a.Compare(b) <= 0;}
 	}; 
 
 	template<typename T, typename I>

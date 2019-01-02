@@ -57,15 +57,6 @@ public:
 	StringEncoding(shared_ptr<DCRTPoly::Params> vp, EncodingParams ep, string str) :
 		PlaintextImpl(vp,ep), ptx(str) {}
 
-	StringEncoding(shared_ptr<Poly::Params> vp, EncodingParams ep, vector<uint8_t> vec) :
-		PlaintextImpl(vp,ep), ptx(vec.begin(),vec.end()) {}
-
-	StringEncoding(shared_ptr<NativePoly::Params> vp, EncodingParams ep, vector<uint8_t> vec) :
-		PlaintextImpl(vp,ep), ptx(vec.begin(),vec.end()) {}
-
-	StringEncoding(shared_ptr<DCRTPoly::Params> vp, EncodingParams ep, vector<uint8_t> vec) :
-		PlaintextImpl(vp,ep), ptx(vec.begin(),vec.end()) {}
-
 	// TODO provide wide-character version (for unicode); right now this class only
 	// supports strings of 7-bit ASCII characters
 
@@ -77,6 +68,11 @@ public:
 	 */
 	const string& GetStringValue() const { return ptx; }
 
+	/**
+	 * SetStringValue
+	 * @param val to initialize the Plaintext
+	 */
+	void SetStringValue(const std::string& value) { ptx = value; }
 
 	/**
 	 * Encode the plaintext into the Poly
