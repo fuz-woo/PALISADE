@@ -40,6 +40,10 @@
     class ABEContext{
         public:
             /*
+            *@brief Default destructor
+            */
+            ~ABEContext(){DiscreteFourierTransform::Reset();} 
+            /*
             *@brief Default constructor
             */
             ABEContext(){}

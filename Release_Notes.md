@@ -1,3 +1,7 @@
+02/11/2018: PALISADE v1.4.1 is released
+
+Fixes a bug affecting the IBE and CP-ABE implementations (some unit tests for IBE/CP-ABE were entering in an infinite loop in about 10% of the runs).
+
 12/31/2018: PALISADE v1.4.0 is released
 
 * Adds the Gentry-Peikert-Vaikuntanathan (GPV) digital signature scheme
