@@ -46,7 +46,7 @@ const int32_t N_MAX = 16384;
 const double SIGMA = std::sqrt(std::log(2 * N_MAX / DG_ERROR) / M_PI);
 
 //Spectral norm for preimage samples
-const double SPECTRAL_CONSTANT = 1.3;
+const double SPECTRAL_CONSTANT = 1.8;
 const auto SPECTRAL_BOUND = [](uint64_t n, uint64_t k, uint64_t base) -> double {
 	return SPECTRAL_CONSTANT*(base+1)*SIGMA*SIGMA*(std::sqrt(n*k) + std::sqrt(2*n) + 4.7);
 };

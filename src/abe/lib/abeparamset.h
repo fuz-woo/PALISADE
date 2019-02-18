@@ -31,7 +31,7 @@ namespace lbcrypto{
 static std::map<SecurityLevel,std::pair<usint,usint>> IBEMinRingSizeMap = {
     {HEStd_128_classic,{1024,2}},
     {HEStd_192_classic,{2048,512}},
-    {HEStd_256_classic,{2048,64}}
+    {HEStd_256_classic,{2048,2}}
 };
 
 //Map holding minimum ring size and base in CPABE for the given security level and number of attributes
@@ -41,16 +41,16 @@ static std::map<std::pair<SecurityLevel,usint>,std::pair<usint,usint>> CPABEMinR
     {{HEStd_128_classic,16},{1024,2}},
     {{HEStd_128_classic,20},{1024,2}},
     {{HEStd_128_classic,32},{1024,2}},
-    {{HEStd_192_classic,6},{2048,512}},
-    {{HEStd_192_classic,8},{2048,512}},
-    {{HEStd_192_classic,16},{2048,512}},
-    {{HEStd_192_classic,20},{2048,512}},
-    {{HEStd_192_classic,32},{2048,512}},
-    {{HEStd_256_classic,6},{2048,1024}},
-    {{HEStd_256_classic,8},{2048,1024}},
-    {{HEStd_256_classic,16},{2048,1024}},
-    {{HEStd_256_classic,20},{2048,1024}},
-    {{HEStd_256_classic,32},{2048,1024}},
+    {{HEStd_192_classic,6},{2048,128}},
+    {{HEStd_192_classic,8},{2048,128}},
+    {{HEStd_192_classic,16},{2048,128}},
+    {{HEStd_192_classic,20},{2048,128}},
+    {{HEStd_192_classic,32},{2048,128}},
+    {{HEStd_256_classic,6},{2048,2}},
+    {{HEStd_256_classic,8},{2048,2}},
+    {{HEStd_256_classic,16},{2048,2}},
+    {{HEStd_256_classic,20},{2048,2}},
+    {{HEStd_256_classic,32},{2048,2}},
 };
 }
 #endif
